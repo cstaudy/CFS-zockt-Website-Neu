@@ -1,0 +1,6 @@
+/* R34: Klares Drop-Feedback, ohne weitere Buttons oder Kategorien. */
+#wsWidgetConverter.dragging,#wsPanelConverter.dragging{outline:2px dashed #67d8ff;outline-offset:3px;background-color:rgba(24,104,145,.15)}
+#wsWidgetConverter.dragging .ws-converter-upload>span,#wsPanelConverter.dragging .ws-converter-upload>span,#wsPanelSetUploadLabel.dragging>span{border-color:#67d8ff;background:rgba(17,83,113,.35)}
+#wsWidgetConverter.dragging .ws-converter-upload>span:after,#wsPanelConverter.dragging .ws-converter-upload>span:after{content:'Bild hier ablegen';font-size:11px;letter-spacing:.01em;color:#9ce8ff;font-weight:750}
+.ws-converter-upload:focus-within>span{outline:2px solid #78dfff;outline-offset:3px}
+@media(max-width:700px){#wsWidgetConverter.dragging .ws-converter-upload>span:after,#wsPanelConverter.dragging .ws-converter-upload>span:after{display:none}}

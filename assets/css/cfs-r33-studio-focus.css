@@ -1,0 +1,41 @@
+/* R33 · Vorschau und Arbeitsfläche priorisieren – Werkzeuge bleiben per Schalter erreichbar. */
+.cfs-r33-focus-toggle {
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  flex:0 0 auto;min-height:34px;padding:8px 12px;
+  border:1px solid rgba(75,169,222,.42);border-radius:9px;
+  background:#0b273a;color:#c3ebff;font:inherit;font-size:12px;font-weight:750;
+  line-height:1.25;cursor:pointer;white-space:normal;text-align:center;
+}
+.cfs-r33-focus-toggle:hover,.cfs-r33-focus-toggle[aria-pressed="true"]{background:#10364e;border-color:#42c6fa;color:white}
+.cfs-r33-focus-toggle:focus-visible{outline:2px solid #70dfff;outline-offset:3px}
+/* Normalansicht: etwas mehr Platz für Arbeit statt Hero-/Toolbar-Abstände. */
+body .scene-hero{padding-top:18px;padding-bottom:14px;gap:14px}
+body .scene-hero h1{font-size:clamp(30px,4vw,48px);line-height:1.04;letter-spacing:-1.5px;margin:5px 0 8px}
+body.sm-app .sm-heading{padding:16px 0 13px;gap:12px}
+body.sm-app .sm-toolbar{margin:12px 0 10px}
+body .cut-hero{padding-top:16px;padding-bottom:14px}
+body .cut-mode-panel{gap:9px}
+/* Fokus: Vorschau/Editor breit, keine IDs, Handler oder Daten entfernen. */
+body.cfs-r33-focused .scene-workspace{grid-template-columns:minmax(0,1fr)}
+body.cfs-r33-focused .scene-workspace>.scene-sidebar,
+body.cfs-r33-focused .scene-workspace>.scene-library{display:none!important}
+body.cfs-r33-focused .scene-stage-wrap{min-height:min(72vh,920px)}
+body.cfs-r33-focused .sm-editor{grid-template-columns:minmax(0,1fr)}
+body.cfs-r33-focused .sm-editor>.sm-library,
+body.cfs-r33-focused .sm-editor>.sm-settings{display:none!important}
+body.cfs-r33-focused .sm-editor .sm-stage{height:auto;min-height:min(65vh,800px)}
+body.cfs-r33-focused .cut-workspace{grid-template-columns:minmax(0,1fr)}
+body.cfs-r33-focused .cut-workspace>.cut-projects{display:none!important}
+body.cfs-r33-focused .cut-steps,
+body.cfs-r33-focused .cut-guide{display:none!important}
+body.cfs-r33-focused .cut-editor{min-width:0}
+/* Am Handy bleibt der Schalter leicht erreichbar und kann die Listen zurückholen. */
+@media(max-width:760px){
+  .scene-hero-actions{gap:8px;align-items:stretch}
+  .scene-hero-actions .cfs-r33-focus-toggle{width:100%}
+  .sm-stage-toolbar{flex-wrap:wrap}
+  body.sm-app .sm-stage-toolbar .cfs-r33-focus-toggle{width:100%;min-height:40px}
+  .cut-mode-panel .cfs-r33-focus-toggle{width:100%;min-height:40px}
+  body.cfs-r33-focused .scene-stage-wrap{min-height:420px}
+  body.cfs-r33-focused .sm-editor .sm-stage{min-height:400px}
+}

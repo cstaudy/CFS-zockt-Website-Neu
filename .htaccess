@@ -1,0 +1,23 @@
+# CFS Zockt – statische Webdateien (R234, Quelle: Website/public)
+# Fuer Apache-kompatibles Shared Hosting (STRATO / ALL-INKL).
+# Keine Node.js-API, Login- oder Shop-Funktionalitaet wird dadurch aktiviert.
+DirectoryIndex index.html
+Options -Indexes
+
+<IfModule mod_mime.c>
+  AddType image/webp .webp
+  AddType application/manifest+json .webmanifest
+  AddType application/javascript .js
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Kurze Pfade aus dem urspruenglichen _redirects-File intern auf HTML abbilden.
+  RewriteRule ^pages/(support|security|impressum|datenschutz|nutzungsbedingungen)/?$ pages/$1.html [L]
+</IfModule>

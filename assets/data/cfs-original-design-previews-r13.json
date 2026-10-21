@@ -1,0 +1,693 @@
+{
+  "version": "3.20.71-R13",
+  "type": "preview_catalog",
+  "full_archive_public": false,
+  "world_count": 31,
+  "colors_per_world": 16,
+  "disclaimer": "WebP-Dateien dienen nur als Vorschau. Die Original-PNGs verbleiben im privaten Designarchiv. Kein automatischer Kauf/Import.",
+  "colors": [
+    "Blau",
+    "Bordeaux",
+    "Dunkelblau",
+    "Dunkelgruen",
+    "Gelb",
+    "Gold",
+    "Gruen",
+    "Kupfer",
+    "Lavendel",
+    "Lila",
+    "Orange",
+    "Pink",
+    "Rot",
+    "Silber",
+    "Tuerkis",
+    "Weiss"
+  ],
+  "designs": [
+    {
+      "name": "Abendstudio",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/abendstudio/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/abendstudio/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/abendstudio/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/abendstudio/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/abendstudio/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/abendstudio/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/abendstudio/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/abendstudio/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/abendstudio/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/abendstudio/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/abendstudio/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/abendstudio/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/abendstudio/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/abendstudio/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/abendstudio/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/abendstudio/weiss.webp"
+      }
+    },
+    {
+      "name": "Aprikosenglas",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/aprikosenglas/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/aprikosenglas/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/aprikosenglas/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/aprikosenglas/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/aprikosenglas/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/aprikosenglas/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/aprikosenglas/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/aprikosenglas/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/aprikosenglas/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/aprikosenglas/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/aprikosenglas/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/aprikosenglas/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/aprikosenglas/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/aprikosenglas/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/aprikosenglas/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/aprikosenglas/weiss.webp"
+      }
+    },
+    {
+      "name": "Blitze",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/blitze/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/blitze/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/blitze/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/blitze/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/blitze/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/blitze/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/blitze/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/blitze/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/blitze/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/blitze/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/blitze/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/blitze/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/blitze/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/blitze/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/blitze/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/blitze/weiss.webp"
+      }
+    },
+    {
+      "name": "Chromgasse",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/chromgasse/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/chromgasse/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/chromgasse/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/chromgasse/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/chromgasse/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/chromgasse/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/chromgasse/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/chromgasse/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/chromgasse/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/chromgasse/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/chromgasse/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/chromgasse/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/chromgasse/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/chromgasse/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/chromgasse/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/chromgasse/weiss.webp"
+      }
+    },
+    {
+      "name": "Drachenhort",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/drachenhort/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/drachenhort/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/drachenhort/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/drachenhort/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/drachenhort/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/drachenhort/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/drachenhort/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/drachenhort/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/drachenhort/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/drachenhort/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/drachenhort/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/drachenhort/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/drachenhort/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/drachenhort/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/drachenhort/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/drachenhort/weiss.webp"
+      }
+    },
+    {
+      "name": "Eiskristall",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/eiskristall/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/eiskristall/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/eiskristall/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/eiskristall/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/eiskristall/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/eiskristall/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/eiskristall/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/eiskristall/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/eiskristall/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/eiskristall/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/eiskristall/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/eiskristall/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/eiskristall/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/eiskristall/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/eiskristall/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/eiskristall/weiss.webp"
+      }
+    },
+    {
+      "name": "Fliedernacht",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/fliedernacht/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/fliedernacht/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/fliedernacht/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/fliedernacht/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/fliedernacht/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/fliedernacht/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/fliedernacht/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/fliedernacht/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/fliedernacht/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/fliedernacht/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/fliedernacht/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/fliedernacht/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/fliedernacht/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/fliedernacht/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/fliedernacht/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/fliedernacht/weiss.webp"
+      }
+    },
+    {
+      "name": "Flutlichtliga",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/flutlichtliga/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/flutlichtliga/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/flutlichtliga/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/flutlichtliga/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/flutlichtliga/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/flutlichtliga/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/flutlichtliga/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/flutlichtliga/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/flutlichtliga/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/flutlichtliga/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/flutlichtliga/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/flutlichtliga/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/flutlichtliga/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/flutlichtliga/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/flutlichtliga/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/flutlichtliga/weiss.webp"
+      }
+    },
+    {
+      "name": "Frostsignal",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/frostsignal/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/frostsignal/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/frostsignal/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/frostsignal/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/frostsignal/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/frostsignal/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/frostsignal/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/frostsignal/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/frostsignal/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/frostsignal/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/frostsignal/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/frostsignal/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/frostsignal/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/frostsignal/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/frostsignal/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/frostsignal/weiss.webp"
+      }
+    },
+    {
+      "name": "Futuristisch",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/futuristisch/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/futuristisch/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/futuristisch/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/futuristisch/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/futuristisch/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/futuristisch/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/futuristisch/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/futuristisch/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/futuristisch/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/futuristisch/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/futuristisch/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/futuristisch/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/futuristisch/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/futuristisch/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/futuristisch/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/futuristisch/weiss.webp"
+      }
+    },
+    {
+      "name": "Graphitgold",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/graphitgold/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/graphitgold/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/graphitgold/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/graphitgold/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/graphitgold/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/graphitgold/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/graphitgold/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/graphitgold/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/graphitgold/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/graphitgold/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/graphitgold/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/graphitgold/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/graphitgold/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/graphitgold/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/graphitgold/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/graphitgold/weiss.webp"
+      }
+    },
+    {
+      "name": "Kirschseide",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/kirschseide/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/kirschseide/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/kirschseide/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/kirschseide/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/kirschseide/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/kirschseide/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/kirschseide/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/kirschseide/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/kirschseide/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/kirschseide/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/kirschseide/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/kirschseide/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/kirschseide/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/kirschseide/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/kirschseide/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/kirschseide/weiss.webp"
+      }
+    },
+    {
+      "name": "Klingenhain",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/klingenhain/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/klingenhain/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/klingenhain/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/klingenhain/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/klingenhain/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/klingenhain/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/klingenhain/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/klingenhain/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/klingenhain/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/klingenhain/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/klingenhain/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/klingenhain/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/klingenhain/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/klingenhain/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/klingenhain/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/klingenhain/weiss.webp"
+      }
+    },
+    {
+      "name": "Mecha",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/mecha/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/mecha/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/mecha/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/mecha/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/mecha/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/mecha/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/mecha/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/mecha/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/mecha/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/mecha/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/mecha/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/mecha/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/mecha/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/mecha/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/mecha/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/mecha/weiss.webp"
+      }
+    },
+    {
+      "name": "Mintwelle",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/mintwelle/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/mintwelle/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/mintwelle/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/mintwelle/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/mintwelle/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/mintwelle/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/mintwelle/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/mintwelle/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/mintwelle/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/mintwelle/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/mintwelle/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/mintwelle/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/mintwelle/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/mintwelle/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/mintwelle/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/mintwelle/weiss.webp"
+      }
+    },
+    {
+      "name": "Nachtgarten",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/nachtgarten/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/nachtgarten/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/nachtgarten/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/nachtgarten/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/nachtgarten/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/nachtgarten/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/nachtgarten/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/nachtgarten/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/nachtgarten/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/nachtgarten/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/nachtgarten/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/nachtgarten/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/nachtgarten/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/nachtgarten/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/nachtgarten/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/nachtgarten/weiss.webp"
+      }
+    },
+    {
+      "name": "Nachtkurve",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/nachtkurve/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/nachtkurve/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/nachtkurve/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/nachtkurve/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/nachtkurve/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/nachtkurve/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/nachtkurve/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/nachtkurve/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/nachtkurve/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/nachtkurve/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/nachtkurve/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/nachtkurve/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/nachtkurve/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/nachtkurve/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/nachtkurve/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/nachtkurve/weiss.webp"
+      }
+    },
+    {
+      "name": "Nebelrevier",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/nebelrevier/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/nebelrevier/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/nebelrevier/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/nebelrevier/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/nebelrevier/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/nebelrevier/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/nebelrevier/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/nebelrevier/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/nebelrevier/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/nebelrevier/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/nebelrevier/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/nebelrevier/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/nebelrevier/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/nebelrevier/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/nebelrevier/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/nebelrevier/weiss.webp"
+      }
+    },
+    {
+      "name": "Orbitkommando",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/orbitkommando/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/orbitkommando/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/orbitkommando/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/orbitkommando/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/orbitkommando/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/orbitkommando/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/orbitkommando/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/orbitkommando/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/orbitkommando/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/orbitkommando/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/orbitkommando/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/orbitkommando/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/orbitkommando/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/orbitkommando/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/orbitkommando/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/orbitkommando/weiss.webp"
+      }
+    },
+    {
+      "name": "Perlglanz",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/perlglanz/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/perlglanz/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/perlglanz/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/perlglanz/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/perlglanz/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/perlglanz/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/perlglanz/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/perlglanz/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/perlglanz/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/perlglanz/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/perlglanz/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/perlglanz/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/perlglanz/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/perlglanz/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/perlglanz/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/perlglanz/weiss.webp"
+      }
+    },
+    {
+      "name": "Pixelhafen",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/pixelhafen/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/pixelhafen/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/pixelhafen/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/pixelhafen/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/pixelhafen/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/pixelhafen/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/pixelhafen/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/pixelhafen/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/pixelhafen/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/pixelhafen/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/pixelhafen/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/pixelhafen/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/pixelhafen/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/pixelhafen/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/pixelhafen/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/pixelhafen/weiss.webp"
+      }
+    },
+    {
+      "name": "Rasterrausch",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/rasterrausch/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/rasterrausch/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/rasterrausch/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/rasterrausch/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/rasterrausch/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/rasterrausch/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/rasterrausch/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/rasterrausch/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/rasterrausch/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/rasterrausch/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/rasterrausch/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/rasterrausch/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/rasterrausch/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/rasterrausch/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/rasterrausch/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/rasterrausch/weiss.webp"
+      }
+    },
+    {
+      "name": "Salbeiruhe",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/salbeiruhe/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/salbeiruhe/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/salbeiruhe/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/salbeiruhe/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/salbeiruhe/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/salbeiruhe/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/salbeiruhe/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/salbeiruhe/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/salbeiruhe/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/salbeiruhe/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/salbeiruhe/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/salbeiruhe/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/salbeiruhe/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/salbeiruhe/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/salbeiruhe/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/salbeiruhe/weiss.webp"
+      }
+    },
+    {
+      "name": "Sandkrone",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/sandkrone/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/sandkrone/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/sandkrone/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/sandkrone/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/sandkrone/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/sandkrone/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/sandkrone/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/sandkrone/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/sandkrone/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/sandkrone/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/sandkrone/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/sandkrone/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/sandkrone/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/sandkrone/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/sandkrone/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/sandkrone/weiss.webp"
+      }
+    },
+    {
+      "name": "Silberkante",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/silberkante/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/silberkante/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/silberkante/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/silberkante/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/silberkante/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/silberkante/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/silberkante/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/silberkante/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/silberkante/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/silberkante/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/silberkante/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/silberkante/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/silberkante/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/silberkante/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/silberkante/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/silberkante/weiss.webp"
+      }
+    },
+    {
+      "name": "Sonnenwinkel",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/sonnenwinkel/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/sonnenwinkel/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/sonnenwinkel/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/sonnenwinkel/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/sonnenwinkel/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/sonnenwinkel/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/sonnenwinkel/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/sonnenwinkel/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/sonnenwinkel/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/sonnenwinkel/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/sonnenwinkel/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/sonnenwinkel/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/sonnenwinkel/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/sonnenwinkel/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/sonnenwinkel/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/sonnenwinkel/weiss.webp"
+      }
+    },
+    {
+      "name": "Staubmond",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/staubmond/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/staubmond/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/staubmond/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/staubmond/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/staubmond/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/staubmond/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/staubmond/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/staubmond/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/staubmond/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/staubmond/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/staubmond/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/staubmond/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/staubmond/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/staubmond/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/staubmond/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/staubmond/weiss.webp"
+      }
+    },
+    {
+      "name": "Sternenatlas",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/sternenatlas/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/sternenatlas/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/sternenatlas/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/sternenatlas/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/sternenatlas/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/sternenatlas/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/sternenatlas/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/sternenatlas/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/sternenatlas/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/sternenatlas/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/sternenatlas/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/sternenatlas/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/sternenatlas/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/sternenatlas/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/sternenatlas/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/sternenatlas/weiss.webp"
+      }
+    },
+    {
+      "name": "Tiefenrausch",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/tiefenrausch/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/tiefenrausch/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/tiefenrausch/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/tiefenrausch/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/tiefenrausch/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/tiefenrausch/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/tiefenrausch/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/tiefenrausch/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/tiefenrausch/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/tiefenrausch/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/tiefenrausch/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/tiefenrausch/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/tiefenrausch/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/tiefenrausch/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/tiefenrausch/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/tiefenrausch/weiss.webp"
+      }
+    },
+    {
+      "name": "Tuschefluss",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/tuschefluss/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/tuschefluss/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/tuschefluss/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/tuschefluss/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/tuschefluss/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/tuschefluss/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/tuschefluss/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/tuschefluss/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/tuschefluss/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/tuschefluss/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/tuschefluss/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/tuschefluss/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/tuschefluss/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/tuschefluss/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/tuschefluss/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/tuschefluss/weiss.webp"
+      }
+    },
+    {
+      "name": "Wurzellicht",
+      "previews": {
+        "Blau": "/assets/img/cfs-original-design-previews/wurzellicht/blau.webp",
+        "Bordeaux": "/assets/img/cfs-original-design-previews/wurzellicht/bordeaux.webp",
+        "Dunkelblau": "/assets/img/cfs-original-design-previews/wurzellicht/dunkelblau.webp",
+        "Dunkelgruen": "/assets/img/cfs-original-design-previews/wurzellicht/dunkelgruen.webp",
+        "Gelb": "/assets/img/cfs-original-design-previews/wurzellicht/gelb.webp",
+        "Gold": "/assets/img/cfs-original-design-previews/wurzellicht/gold.webp",
+        "Gruen": "/assets/img/cfs-original-design-previews/wurzellicht/gruen.webp",
+        "Kupfer": "/assets/img/cfs-original-design-previews/wurzellicht/kupfer.webp",
+        "Lavendel": "/assets/img/cfs-original-design-previews/wurzellicht/lavendel.webp",
+        "Lila": "/assets/img/cfs-original-design-previews/wurzellicht/lila.webp",
+        "Orange": "/assets/img/cfs-original-design-previews/wurzellicht/orange.webp",
+        "Pink": "/assets/img/cfs-original-design-previews/wurzellicht/pink.webp",
+        "Rot": "/assets/img/cfs-original-design-previews/wurzellicht/rot.webp",
+        "Silber": "/assets/img/cfs-original-design-previews/wurzellicht/silber.webp",
+        "Tuerkis": "/assets/img/cfs-original-design-previews/wurzellicht/tuerkis.webp",
+        "Weiss": "/assets/img/cfs-original-design-previews/wurzellicht/weiss.webp"
+      }
+    }
+  ],
+  "additional_scenes": [
+    {
+      "title": "Stream startet",
+      "preview": "/assets/img/cfs-scene-previews/startet.webp"
+    },
+    {
+      "title": "Kurze Pause",
+      "preview": "/assets/img/cfs-scene-previews/pause.webp"
+    },
+    {
+      "title": "Stream endet",
+      "preview": "/assets/img/cfs-scene-previews/endet.webp"
+    }
+  ]
+}

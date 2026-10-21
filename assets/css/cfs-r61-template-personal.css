@@ -1,0 +1,9 @@
+/* R61: minimal customization at source, same colors in renderer and draft. */
+.ws-r61-options{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:10px;padding:3px 15px 12px}
+.ws-r61-options label{display:grid;gap:5px;min-width:0;color:#a7cbd3;font-size:10px;letter-spacing:.065em;font-weight:800}
+.ws-r61-options input,.ws-r61-options select{box-sizing:border-box;width:100%;min-width:0;height:37px;padding:6px 10px;border:1px solid #365b6d;border-radius:9px;background:#112c3e;color:#edffff;font:600 13px system-ui,sans-serif;outline:none}
+.ws-r61-options input:focus-visible,.ws-r61-options select:focus-visible{outline:2px solid #71e6dd;outline-offset:1px}
+.ws-r61-options :disabled{opacity:.55;cursor:not-allowed}
+#wsR61SavePersonal{background:#102d3b;color:#bcefeb;border-color:#376c78}
+.ws-r60-actions{flex-wrap:wrap}
+@media(max-width:580px){.ws-r61-options{grid-template-columns:1fr;padding:2px 10px 10px;gap:8px}.ws-r60-viewport{height:min(37dvh,310px)}.ws-r60-actions{flex-direction:column}.ws-r60-actions button{min-height:38px}}

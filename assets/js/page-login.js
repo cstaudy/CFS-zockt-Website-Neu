@@ -1,0 +1,181 @@
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const message = (el,text,bad=false) => { el.textContent=text; el.className="notice"+(bad?" danger":""); };
+  const post = async (url,form) => {
+    const body = Object.fromEntries(new FormData(form));
+    return CFS.json(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  };
+  const normalizeEmail = value => String(value||"").trim().toLowerCase();
+  // Only known creator destinations can be requested by a login link.
+  // This intentionally rejects open redirects, traversal and arbitrary public pages.
+  const creatorDestinations = Object.freeze({
+    "account":"Account", "admin":"Admin-Verwaltung", "audio-studio":"Audio Studio",
+    "creator-suite":"Creator Suite", "cut-studio":"Cut Studio", "dashboard":"Dashboard",
+    "editor":"Creator Editor", "games":"Meine Spiele", "integrations":"Integrationen",
+    "launcher":"Launcher", "launcher-connect":"Geräteverbindung",
+    "scene-studio":"Scene Studio", "settings":"Einstellungen", "setup":"Stream-Setup",
+    "stream-maker":"Stream Maker", "stream-studio":"Stream Studio", "tiktok":"TikTok",
+    "universal-builder":"Universal Builder", "widget-studio":"Widget Studio"
+  });
+  const explicitReturnTo = () => {
+    const raw = String(new URLSearchParams(location.search).get("returnTo") || "").trim();
+    if (!raw || raw.length > 700 || /[\r\n\\]/.test(raw)) return "";
+    const matched = /^\/pages\/([a-z0-9-]+)\.html(?:\?[^#\s\\]*)?(?:#[a-zA-Z0-9_-]{1,80})?$/.exec(raw);
+    if (!matched || !Object.hasOwn(creatorDestinations, matched[1])) return "";
+    try {
+      const result = new URL(raw, location.origin);
+      if (result.origin !== location.origin || result.pathname !== `/pages/${matched[1]}.html`) return "";
+    } catch { return ""; }
+    return raw;
+  };
+  const showReturnContext = () => {
+    const target = explicitReturnTo();
+    const context = document.querySelector("[data-return-context]");
+    if (!context || !target) return;
+    const id = /^\/pages\/([a-z0-9-]+)\.html/.exec(target)?.[1];
+    const label = creatorDestinations[id] || "Creator Suite";
+    context.querySelector("[data-return-destination]").textContent = label;
+    context.hidden = false;
+  };
+  const postLoginDestination = async () => {
+    const explicit = explicitReturnTo();
+    if (explicit) return explicit;
+    try {
+      const me = await CFS.me();
+      if (me?.admin) return "/pages/admin.html";
+    } catch {}
+    return "/pages/dashboard.html";
+  };
+  const updateRules = () => {
+    const p = $("regPassword").value;
+    const c = $("regPasswordConfirm").value;
+    const states = {length:p.length>=15,match:p.length>0&&p===c};
+    Object.entries(states).forEach(([key,ok]) => document.querySelector(`[data-rule="${key}"]`)?.classList.toggle("ok",ok));
+    return Object.values(states).every(Boolean);
+  };
+  document.addEventListener("DOMContentLoaded", async () => {
+    const params = new URLSearchParams(location.search);
+    showReturnContext();
+    const registrationAnchor = location.hash === "#regForm" || location.hash === "#registerPanel";
+    if (registrationAnchor) {
+      window.setTimeout(() => {
+        const target = $("regForm");
+        target?.scrollIntoView({behavior:"smooth",block:"center"});
+        $("displayName")?.focus({preventScroll:true});
+      }, 80);
+    }
+    if (params.get("password") === "reset") {
+      message($("loginMsg"), "Passwort wurde geändert. Du kannst dich jetzt mit dem neuen Passwort anmelden.");
+      history.replaceState(null, "", location.pathname + location.hash);
+    }
+    if (params.get("verified") === "1") {
+      try {
+        const verifiedEmail = sessionStorage.getItem("cfs_pending_verification_email") || "";
+        if (verifiedEmail && $("loginEmail")) $("loginEmail").value = verifiedEmail;
+      } catch {}
+      message($("loginMsg"), "E-Mail bestätigt. Du kannst dich jetzt anmelden und direkt mit deinem Creator-Setup weitermachen.");
+      history.replaceState(null, "", location.pathname + location.hash);
+    }
+    const source = String(new URLSearchParams(location.search).get("source") || "").trim().toLowerCase();
+    if (source === "tiktok") {
+      const context = document.querySelector("[data-login-source-context]");
+      if (context) context.hidden = false;
+    }
+    try { const me = await CFS.me(); if (me?.authenticated) return location.replace(await postLoginDestination()); } catch {}
+    $("regPassword").addEventListener("input",updateRules); $("regPasswordConfirm").addEventListener("input",updateRules);
+    $("loginForm").addEventListener("submit", async e => {
+      e.preventDefault(); const form=e.currentTarget; if(!form.reportValidity()) return;
+      $("loginEmail").value=normalizeEmail($("loginEmail").value); $("loginButton").disabled=true; $("loginBusy").textContent="Anmeldung wird geprüft…";
+      try {
+        const result = await post("/api/account/login",form);
+        if (result?.mfa_required) {
+          form.hidden = true;
+          $("mfaLoginForm").hidden = false;
+          const methods = result?.mfa_methods || {};
+          $("mfaTotpField").hidden = !methods.totp;
+          $("mfaRecoveryField").hidden = !methods.recovery;
+          $("mfaLoginButton").hidden = !(methods.totp || methods.recovery);
+          $("passkeyLoginButton").hidden = !methods.passkey;
+          if (methods.totp) $("mfaCode").focus();
+          else if (methods.passkey) $("passkeyLoginButton").focus();
+          message($("loginMsg"), methods.passkey
+            ? "Passwort korrekt. Bestätige den zweiten Faktor mit Passkey, Authenticator oder Recovery-Code."
+            : "Passwort korrekt. Bitte bestätige jetzt den zweiten Faktor.");
+        } else {
+          location.replace(await postLoginDestination());
+        }
+      }
+      catch (error) {
+        if (error?.data?.code === "email_verification_required") {
+          try { sessionStorage.setItem("cfs_pending_verification_email", normalizeEmail($("loginEmail").value)); } catch {}
+          message($("loginMsg"),"Bitte bestätige zuerst deine E-Mail-Adresse. Über „E-Mail bestätigen“ kannst du einen neuen Link anfordern.",true);
+        } else {
+          message($("loginMsg"),"Anmeldung fehlgeschlagen. Bitte E-Mail und Passwort prüfen.",true);
+        }
+      }
+      finally { $("loginButton").disabled=false; $("loginBusy").textContent=""; }
+    });
+    $("mfaLoginForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const code=$("mfaCode").value.trim();
+      const recovery=$("mfaRecoveryCode").value.trim();
+      if(!code&&!recovery){message($("loginMsg"),"Bitte Authenticator- oder Recovery-Code eingeben.",true);return;}
+      $("mfaLoginButton").disabled=true; $("mfaBusy").textContent="Zweiter Faktor wird geprüft…";
+      try {
+        const result=await CFS.json("/api/account/mfa/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,recovery_code:recovery})});
+        if(result?.recovery_code_used) message($("loginMsg"),"Recovery-Code akzeptiert. Dieser Code ist jetzt verbraucht.");
+        location.replace(await postLoginDestination());
+      } catch(error){message($("loginMsg"),error?.message||"Zweiter Faktor konnte nicht bestätigt werden.",true);}
+      finally{$("mfaLoginButton").disabled=false;$("mfaBusy").textContent="";}
+    });
+    $("passkeyLoginButton").addEventListener("click", async () => {
+      if (!window.CFSWebAuthn?.supported?.()) { message($("loginMsg"),"Dieser Browser unterstützt WebAuthn/Passkeys nicht.",true); return; }
+      $("passkeyLoginButton").disabled=true; $("mfaBusy").textContent="Passkey wird geprüft…";
+      try {
+        const start=await CFS.json("/api/account/mfa/passkey/options",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+        const response=await CFSWebAuthn.get(start.options);
+        await CFS.json("/api/account/mfa/passkey/verify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({challenge_id:start.challenge_id,response})});
+        location.replace(await postLoginDestination());
+      } catch(error) {
+        const aborted=error?.name==="NotAllowedError" || /abgebrochen/i.test(String(error?.message||""));
+        message($("loginMsg"),aborted?"Passkey-Anmeldung wurde abgebrochen.":(error?.message||"Passkey konnte nicht bestätigt werden."),true);
+      } finally { $("passkeyLoginButton").disabled=false; $("mfaBusy").textContent=""; }
+    });
+
+    $("mfaRestartButton").addEventListener("click",()=>location.reload());
+
+    $("regForm").addEventListener("submit", async e => {
+      e.preventDefault(); const form=e.currentTarget; if(!form.reportValidity()) return;
+      $("regEmail").value=normalizeEmail($("regEmail").value);
+      if(!updateRules()){message($("regMsg"),"Bitte die Passwort-Anforderungen erfüllen.",true);return;}
+      $("regButton").disabled=true; $("regBusy").textContent="Konto wird sicher angelegt…";
+      try {
+        const body={
+          display_name:$("displayName").value.trim(),
+          email:$("regEmail").value,
+          password:$("regPassword").value,
+          terms_accepted:Boolean($("termsAccepted")?.checked),
+          privacy_acknowledged:Boolean($("privacyAcknowledged")?.checked),
+          beta_acknowledged:Boolean($("betaAcknowledged")?.checked),
+          age_18_confirmed:Boolean($("ageConfirmed")?.checked)
+        };
+        const result = await CFS.json("/api/account/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+        if (result?.verification_required) {
+          try {
+            sessionStorage.setItem("cfs_pending_verification_email", body.email);
+            sessionStorage.setItem("cfs_pending_creator_name", body.display_name);
+          } catch {}
+          message($("regMsg"),"Konto angelegt. Wir öffnen jetzt die E-Mail-Bestätigung.");
+          location.replace("/pages/verify-email.html?source=register");
+        } else {
+          location.replace(await postLoginDestination());
+        }
+      } catch (x) {
+        const known=x?.data?.code==="legal_acceptance_required"||x?.data?.code==="minimum_age_required";
+        message($("regMsg"),known?(x?.message||x?.data?.error):x.status===409?"Ein Konto mit diesen Daten kann nicht erstellt werden.":"Registrierung fehlgeschlagen. Bitte Eingaben prüfen und später erneut versuchen.",true);
+      }
+      finally { $("regButton").disabled=false; $("regBusy").textContent=""; }
+    });
+  });
+})();

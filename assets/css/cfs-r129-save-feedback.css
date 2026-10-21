@@ -1,0 +1,13 @@
+/* R129: Small inline, persistent save status; no extra card or menu. */
+.stream-studio-hero-actions .r129-save-feedback{
+ display:inline-flex;align-items:center;min-height:30px;max-width:240px;
+ padding:4px 9px;border:1px solid rgba(96,210,243,.20);border-radius:9px;
+ font-size:.75rem;line-height:1.35;color:#b8d8ec;background:rgba(7,24,39,.40)
+}
+.stream-studio-hero-actions .r129-save-feedback[data-save-state="pending"]{color:#f2d08a;border-color:rgba(242,208,138,.35)}
+.stream-studio-hero-actions .r129-save-feedback[data-save-state="success"]{color:#92e5c8;border-color:rgba(107,223,183,.35)}
+.stream-studio-hero-actions .r129-save-feedback[data-save-state="failure"]{color:#ffbcae;border-color:rgba(255,145,128,.50)}
+@media(max-width:620px){.stream-studio-hero-actions .r129-save-feedback{max-width:100%;font-size:.72rem}}
+
+/* R130: changes made after or during saving require an explicit second save. */
+.stream-studio-hero-actions .r129-save-feedback[data-save-state="unsaved"]{color:#f2d08a;border-color:rgba(242,208,138,.5)}

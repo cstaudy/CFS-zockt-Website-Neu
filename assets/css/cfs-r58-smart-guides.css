@@ -1,0 +1,16 @@
+/* R58: non-exporting editor grid and smart alignment lines. */
+.ws-canvas-tools .cfs-r58-grid-switch{display:flex;align-items:center;gap:5px;min-width:0}
+.ws-canvas-tools .cfs-r58-grid-switch select{height:28px;min-width:53px;padding:2px 17px 2px 5px;border:1px solid #2a5b6a;border-radius:6px;background:#071b2b;color:#dbf5f0;font-size:10px;font-weight:750;cursor:pointer}
+.ws-canvas-tools .cfs-r58-grid-switch select:focus-visible{outline:2px solid #70dfd1;outline-offset:2px}
+.ws-canvas-tools .cfs-r58-grid-switch>label{font-size:10px;font-weight:750;color:#9cbeca;white-space:nowrap}
+.ws-canvas-tools #wsGridToggle{height:27px;border:1px solid #1a3e5e;background:#061626;color:#91b9ce;border-radius:6px;padding:0 7px;font-size:9px;font-weight:800;cursor:pointer}
+.ws-canvas-tools #wsGridToggle[aria-pressed="true"]{border-color:#50bba7;background:#0d3b3d;color:#c7fff1}
+.ws-canvas-tools{flex-wrap:wrap}
+.ws-r58-grid,.ws-r58-alignment{position:absolute;inset:0;pointer-events:none;z-index:8500}
+.ws-r58-grid{background-image:linear-gradient(to right,rgba(100,234,205,.2) 1px,transparent 1px),linear-gradient(to bottom,rgba(100,234,205,.2) 1px,transparent 1px);background-position:0 0;mix-blend-mode:normal}
+.ws-r58-grid[hidden],.ws-r58-alignment[hidden]{display:none!important}
+.ws-r58-alignment>.ws-r58-align-x,.ws-r58-alignment>.ws-r58-align-y{position:absolute;display:none;pointer-events:none;background:rgba(116,255,209,.8);box-shadow:0 0 8px rgba(80,240,200,.45)}
+.ws-r58-alignment>.ws-r58-align-x{width:1px;top:0;bottom:0}
+.ws-r58-alignment>.ws-r58-align-y{height:1px;left:0;right:0}
+@media(max-width:1100px){.ws-canvas-tools .cfs-r58-grid-switch{gap:3px}.ws-canvas-tools .cfs-r58-grid-switch>label{font-size:9px}}
+@media(max-width:540px){.ws-canvas-tools{justify-content:flex-start}.ws-canvas-tools .cfs-r58-grid-switch select{min-width:48px}}

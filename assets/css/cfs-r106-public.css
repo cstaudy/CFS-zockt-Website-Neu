@@ -1,0 +1,25 @@
+/* R106: tidy the public streams panel while preserving all status/data hooks. */
+body.cfs-r104 .r104-stream-section{grid-template-columns:minmax(0,1.65fr) minmax(220px,.75fr)!important;gap:12px!important;}
+body.cfs-r104 .r104-stream-section .r104-live-card {display:block!important;min-height:0!important;}
+body.cfs-r104 .r104-stream-section .r104-live-visual {display:none!important;}
+body.cfs-r104 .r104-stream-section .r104-live-copy {display:grid!important;gap:11px!important;padding:0!important;}
+body.cfs-r104 .r104-stream-section .gaming-live-title {display:none!important;}
+body.cfs-r104 .r104-stream-section .gaming-live-status-panel {
+  border:1px solid #1b5877!important;border-radius:12px!important;padding:13px 16px!important;
+  min-height:0!important;background:#062033!important;box-shadow:none!important;
+}
+body.cfs-r104 .r104-stream-section .gaming-live-status-game {font-size:20px!important;margin:4px 0!important;}
+body.cfs-r104 .r104-stream-section .gaming-live-status-text {font-size:12px!important;line-height:1.55!important;}
+body.cfs-r104 .r104-stream-section .gaming-live-status-meta {font-size:10px!important;}
+body.cfs-r104 .r104-stream-section .gaming-live-channel-actions {display:flex!important;flex-wrap:wrap!important;gap:8px!important;}
+body.cfs-r104 .r104-stream-section .gaming-live-channel-actions>a {min-height:40px!important;padding:10px 14px!important;font-size:11px!important;width:auto!important;flex:1 1 155px;}
+body.cfs-r104 .r104-stream-section .r104-schedule-empty {min-height:0!important;justify-content:center!important;padding:16px!important;}
+body.cfs-r104 .r104-stream-section .r104-schedule-empty>span{margin:0 0 8px!important;}
+body.cfs-r104 .r104-stream-section .r104-schedule-empty p{font-size:12px!important;margin:0 0 9px!important;}
+body.cfs-r104 .r104-stream-section .r104-panel {box-shadow:none!important;}
+@media(max-width:900px){body.cfs-r104 .r104-stream-section{grid-template-columns:1fr!important;}}
+@media(max-width:600px){
+ body.cfs-r104 .r104-stream-section .gaming-live-channel-actions>a {flex:1 1 100%;}
+ body.cfs-r104 .r104-stream-section .gaming-live-status-panel {padding:12px!important;}
+ body.cfs-r104 .r104-stream-section .gaming-live-status-game{font-size:17px!important;}
+}

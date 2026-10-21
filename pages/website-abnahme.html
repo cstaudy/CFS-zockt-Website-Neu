@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="theme-color" content="#071527">
+<title>Website- und OBS-Abnahme | CFS Zockt</title>
+<link rel="icon" href="/assets/img/favicon.ico">
+<link rel="stylesheet" href="/assets/css/cfs-r197-abnahme.css?v=R197">
+<script src="/assets/js/app.js?v=v42-r9" defer></script>
+<script src="/assets/js/cfs-r197-qa-core.js?v=R199" defer></script>
+<script src="/assets/js/cfs-r197-abnahme.js?v=R199" defer></script>
+</head>
+<body>
+<header class="r197-header"><a href="/pages/dashboard.html" class="r197-brand">CFS ZOCKT</a><nav aria-label="Abnahmenavigation"><a href="/pages/dashboard.html">Dashboard</a><a href="/pages/widget-studio.html">Widgets</a><a href="/pages/scene-studio.html">Szenen</a><a href="/pages/obs-setup.html">OBS</a></nav></header>
+<main class="r197-main">
+  <p class="r197-eyebrow">R199 · WEBSITE ZUERST · TECHNIK DANACH · CFS ON SPÄTER</p>
+  <h1>Website- und OBS-Abnahme</h1>
+  <p>Diese Seite prüft im angemeldeten Website-Konto ausschließlich vorhandene Widgets und Szenen und deren veröffentlichte Verknüpfungen. Sie erstellt, veröffentlicht oder verändert nichts. Für TikTok oder Twitch ist keine Verbindung erforderlich.</p>
+  <div class="r197-status" role="status" id="r197Status" aria-live="polite">Authentifizierung und Datenstatus werden geprüft …</div>
+  <section class="r197-panel" aria-labelledby="r197Title">
+    <div class="r197-head"><h2 id="r197Title">1. Website-Daten prüfen</h2><button id="r197Refresh" type="button">Erneut prüfen</button></div>
+    <div class="r197-cards">
+      <div class="r197-card"><strong id="r197WidgetTotal">–</strong><span>Widgets vorhanden</span></div>
+      <div class="r197-card"><strong id="r197WidgetLive">–</strong><span>Widgets veröffentlicht</span></div>
+      <div class="r197-card"><strong id="r197SceneTotal">–</strong><span>Szenen vorhanden</span></div>
+      <div class="r197-card"><strong id="r197SceneLive">–</strong><span>Szenen veröffentlicht</span></div>
+      <div class="r197-card"><strong id="r198LinkedScenes">–</strong><span>Vollständig verknüpfte Browser-Szenen</span></div>
+      <div class="r197-card"><strong id="r198OrphanedScenes">–</strong><span>Szenen mit ungültigen aktiven Widget-Verweisen</span></div>
+      <div class="r197-card"><strong id="r199MissingWidgets">–</strong><span>Ungültige aktive Widget-Verweise</span></div>
+      <div class="r197-card"><strong id="r199NativeOnly">–</strong><span>Szenen mit nativen Quellen (separat prüfen)</span></div>
+    </div>
+    <p class="r197-hint" id="r197ApiHint">Nur zusammengefasste Zahlen werden exportiert. Alle aktiven Widget-Verweise einer Browser-Szene müssen auf veröffentlichte Widgets zeigen. Native Quellen benötigen eine gesonderte OBS-Prüfung. Bei jeder erneuten Prüfung werden bisherige manuelle Häkchen zurückgesetzt. Keine Tokens, Widget-URLs oder Kontoinformationen im Bericht.</p>
+    <p><a href="/pages/widget-studio.html">Widget Studio öffnen ↗</a> · <a href="/pages/scene-studio.html">Scene Studio öffnen ↗</a></p>
+  </section>
+  <section class="r197-panel" aria-labelledby="r197ObsTitle">
+    <h2 id="r197ObsTitle">2. Browserquelle manuell in OBS prüfen</h2>
+    <p>In OBS eine <strong>separate Testszene</strong> anlegen, die veröffentlichte Browserquelle aus dem Widget-/Scene Studio einsetzen und nur lokal aufnehmen. Weder „Streaming starten“ noch CFS On aktivieren.</p>
+    <fieldset class="r197-checks"><legend>Manuelle Nachweise (keine automatische Hardwaremessung)</legend>
+      <label><input type="checkbox" data-r197-check="obsBrowserSource"> OBS-Browserquelle konnte geladen werden</label>
+      <label><input type="checkbox" data-r197-check="sceneVisible"> Die richtige Szene ist sichtbar</label>
+      <label><input type="checkbox" data-r197-check="widgetVisible"> Veröffentlichtes Website-Widget wird korrekt gerendert</label>
+      <label><input type="checkbox" data-r197-check="audioAudible"> Audio ist bei der lokalen Aufnahme hörbar</label>
+      <label><input type="checkbox" data-r197-check="audioSync"> Bild und Ton wirken synchron</label>
+      <label><input type="checkbox" data-r197-check="localRecording"> OBS-Testaufnahme lässt sich abspielen</label>
+      <label><input type="checkbox" data-r197-check="restartPass"> OBS-Neustart und erneutes Laden der Browserquelle erfolgreich</label>
+    </fieldset>
+    <p class="r197-hint">Die Häkchen sind Selbstauskünfte; die Browser-Prüfung kann weder die OBS-Fensteransicht noch echte Audiosynchronität automatisch bestätigen.</p>
+  </section>
+  <section class="r197-panel" aria-labelledby="r197ExportTitle">
+    <h2 id="r197ExportTitle">3. Abnahmebericht speichern</h2>
+    <p>Manuelle Bestätigungen werden bei jeder Aktualisierung zurückgesetzt. Der Bericht enthält nur Zähler, technische Prüf-Flags und die angekreuzten Punkte. Du kannst ihn später zusammen mit dem R200-Technikbericht im <strong>lokalen</strong> CFS-On-Teststudio R201 einlesen; dafür ist kein Token und keine Website-Verbindung zum lokalen Testserver nötig. Er enthält keine Namen, URLs, Zugangsdaten, Live-Schlüssel oder Medienaufzeichnungen.</p>
+    <button type="button" id="r197Export">Datensparsamen JSON-Bericht herunterladen</button>
+    <p><strong>Freigabe: HOLD / NO-GO.</strong> Ein Bericht öffnet keine öffentliche Übertragung und erteilt keine Twitch-/TikTok-Freigabe.</p>
+  </section>
+</main>
+<footer class="r197-footer">CFS Zockt · R199 Website-Abnahme · geschützter Konto- und Testbereich</footer>
+</body>
+</html>

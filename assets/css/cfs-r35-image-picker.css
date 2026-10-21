@@ -1,0 +1,9 @@
+/* R35: Eine kleine Suche statt zusätzlicher Medien-Kategorien. */
+#wsWidgetConverter .ws-converter-library-label{min-width:0;gap:6px;margin:9px 0}
+#wsWidgetConverter .ws-converter-library-label>label{color:#bce5f4;font-size:12px;font-weight:800}
+#wsWidgetConverter #wsConverterLibrarySearch{box-sizing:border-box;width:100%;min-width:0;min-height:38px;border:1px solid rgba(91,177,222,.4);border-radius:9px;padding:8px 11px;background:#071c2b;color:#f0faff;font:inherit;font-size:12px}
+#wsWidgetConverter #wsConverterLibrarySearch:focus-visible,#wsWidgetConverter #wsConverterLibrarySelect:focus-visible{outline:2px solid #78dfff;outline-offset:2px}
+#wsWidgetConverter #wsConverterLibrarySelect{min-height:38px;font-size:12px;max-width:100%;width:100%;box-sizing:border-box}
+#wsWidgetConverter #wsConverterLibraryResults{font-size:11px;font-weight:500;color:#9ec4d9;min-height:15px}
+#wsWidgetConverter .ws-converter-library-label:focus-within>label{color:#7adfff}
+@media(max-width:600px){#wsWidgetConverter .ws-converter-library-label{margin:6px 0}#wsWidgetConverter #wsConverterLibrarySearch,#wsWidgetConverter #wsConverterLibrarySelect{min-height:42px}}

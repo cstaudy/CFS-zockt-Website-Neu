@@ -1,0 +1,10 @@
+/* R88: Public original-design previews remain visible without private ZIPs. */
+.r88-design-availability {margin:10px 0 14px;padding:10px 14px;border:1px solid rgba(125,174,210,.25);border-radius:12px;background:rgba(6,20,39,.72);color:#d9eafa;font-size:.92rem;line-height:1.45}
+.r88-design-availability[data-r88-ready="true"] {border-color:rgba(89,215,169,.45)}
+.r88-zip-locked,.r88-zip-locked:hover {cursor:not-allowed;opacity:.68;text-decoration:none}
+#shopDownloadAction:disabled {cursor:not-allowed;opacity:.72}
+
+.r88-color-swatches {display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 12px;max-width:100%}
+.r88-color-swatch {width:29px;height:29px;min-width:29px;border-radius:50%;border:2px solid rgba(230,243,255,.65);background:var(--r88-color,#38bdf8);cursor:pointer;padding:0;box-shadow:0 0 0 2px rgba(4,14,29,.95)}
+.r88-color-swatch[aria-pressed="true"] {outline:2px solid #fff;outline-offset:3px}
+.r88-color-swatch:focus-visible {outline:3px solid #fff;outline-offset:3px}

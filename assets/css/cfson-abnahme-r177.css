@@ -1,0 +1,41 @@
+/* R177 · CFSON rehearsal cockpit, still under existing admin-only lab route. */
+.cfson-lab .cfson-rehearsal{margin-top:26px;background:linear-gradient(140deg,rgba(10,23,42,.96),rgba(5,11,24,.99));border:1px solid rgba(115,174,216,.29);border-radius:22px;padding:clamp(18px,3.5vw,34px);box-shadow:0 22px 50px rgba(0,0,0,.24)}
+.cfson-rehearsal-heading{display:flex;align-items:start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.cfson-rehearsal-heading h2{margin:8px 0;color:#fff;font-size:clamp(1.45rem,2.8vw,2.15rem)}
+.cfson-rehearsal-heading p{margin:0;max-width:700px}
+.cfson-rehearsal-tag{font-weight:800;color:#ffd19c;border:1px solid rgba(243,168,104,.49);border-radius:99px;padding:8px 12px;font-size:.76rem;letter-spacing:.07em;white-space:nowrap}
+.cfson-step-links{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:24px 0}
+.cfson-step-links a{padding:13px 11px;border:1px solid #335371;border-radius:12px;background:#12263e;color:#e6f8ff;text-decoration:none;font-weight:750;display:flex;justify-content:space-between;gap:7px}
+.cfson-rehearsal-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(265px,1fr);gap:20px}
+.cfson-rehearsal-preview,.cfson-obs-instructions,.cfson-acceptance{background:#071323;border:1px solid rgba(105,162,207,.25);border-radius:16px;padding:16px;min-width:0}
+.cfson-preview-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:13px;color:#f4faff}
+.cfson-format-controls,.cfson-cue-bar,.cfson-acceptance-actions{display:flex;flex-wrap:wrap;gap:8px}
+.cfson-lab button[data-cfson-format],.cfson-lab button[data-cfson-cue],.cfson-lab .cfson-acceptance-actions button{cursor:pointer;color:#eefaff;border:1px solid #456482;background:#142b44;border-radius:9px;padding:9px 11px;font:inherit;font-size:.84rem;font-weight:750}
+.cfson-lab button[aria-pressed="true"]{border-color:#5dd1ee;background:#135471}
+.cfson-lab button:hover,.cfson-lab .cfson-step-links a:hover{border-color:#82cdec}
+.cfson-lab button:focus-visible,.cfson-lab a:focus-visible,.cfson-lab input:focus-visible,.cfson-lab textarea:focus-visible{outline:3px solid #8ce3fc;outline-offset:3px}
+.cfson-rehearsal-viewport{width:100%;aspect-ratio:16/9;overflow:hidden;border:1px solid #355778;border-radius:12px;background:#040b16;display:flex;justify-content:center;transition:aspect-ratio .2s}
+.cfson-rehearsal-viewport[data-cfson-viewport="portrait"]{aspect-ratio:9/16;max-width:320px;margin:0 auto}
+.cfson-rehearsal-viewport iframe{display:block;width:100%;height:100%;border:0}
+.cfson-cue-bar{margin-top:12px}
+.cfson-lab .cfson-rehearsal-feedback,.cfson-lab .cfson-report-status{font-size:.85rem;margin:12px 0 0;color:#b5d9e9}
+.cfson-obs-instructions h3,.cfson-acceptance h3{margin:0 0 12px;color:#f2f9ff;font-size:1.16rem}
+.cfson-obs-instructions ol{margin:0 0 12px;padding-left:21px;line-height:1.6;color:#c8d5e4;font-size:.93rem}
+.cfson-obs-instructions li{margin-bottom:10px}
+.cfson-obs-instructions a{color:#9befff}
+.cfson-lab .cfson-obs-note{padding:12px;background:#10233a;border-radius:10px;font-size:.85rem;line-height:1.5}
+.cfson-acceptance{margin-top:20px}
+.cfson-acceptance-head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;align-items:start}
+.cfson-acceptance-head p{margin:0 0 15px;font-size:.88rem}
+#cfson-acceptance-count{font-size:.82rem;border:1px solid #436182;border-radius:99px;padding:7px 10px;color:#e8f7ff}
+.cfson-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cfson-checks label{display:flex;gap:10px;align-items:start;border:1px solid #274762;background:#10233a;border-radius:11px;padding:12px;color:#e2f1ff;font-size:.9rem;line-height:1.5;cursor:pointer}
+.cfson-checks input{width:18px;height:18px;accent-color:#49d2d0;flex:0 0 auto;margin-top:2px}
+.cfson-observations{color:#d7eefe;display:block;font-size:.9rem;font-weight:700;margin-top:16px;margin-bottom:6px}
+.cfson-acceptance textarea{display:block;width:100%;box-sizing:border-box;resize:vertical;min-height:78px;padding:11px;border:1px solid #4c6a86;border-radius:9px;background:#07111e;color:#f4fbff;font:inherit}
+.cfson-acceptance-actions{margin-top:12px}
+.cfson-lab .cfson-acceptance-actions #cfson-export-report{background:#115574;border-color:#71cee4}
+.cfson-lab .cfson-no-go{font-size:.87rem;margin:18px 0 0;padding:14px;background:#2a1c18;border-left:4px solid #eaa05f;border-radius:8px;color:#ffdfc7;line-height:1.6}
+@media(max-width:900px){.cfson-step-links{grid-template-columns:repeat(2,minmax(0,1fr))}.cfson-rehearsal-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:630px){.cfson-checks,.cfson-step-links{grid-template-columns:minmax(0,1fr)}.cfson-format-controls{width:100%}.cfson-lab button[data-cfson-format]{flex:1}}
+@media(prefers-reduced-motion:reduce){.cfson-rehearsal-viewport{transition:none}}

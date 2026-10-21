@@ -1,0 +1,17 @@
+/* R77: beta feedback, separate from launch/invitation controls */
+.r77-owner-feedback{margin-top:22px;padding:19px;border:1px solid #2f536a;border-radius:13px;background:#071b2c;color:#d3e9f6}
+.r77-feedback-head{display:flex;align-items:start;justify-content:space-between;flex-wrap:wrap;gap:12px}.r77-feedback-head h3{margin:6px 0}.r77-feedback-head p,.r77-feedback-foot{color:#a8c7d7}
+.r77-feedback-toolbar{display:flex;align-items:center;gap:10px;margin:12px 0}.r77-feedback-list{display:grid;gap:10px;max-height:560px;overflow:auto}
+.r77-report{min-width:0;border:1px solid #26465f;border-radius:9px;background:#0b2337;padding:13px;overflow-wrap:anywhere}.r77-report strong,.r77-report small{display:block}.r77-report small{color:#9dbbce;margin-top:6px}
+.r77-report-description{white-space:pre-wrap;line-height:1.5}.r77-report-edit{display:grid;grid-template-columns:165px 1fr auto;gap:8px;align-items:center}
+.r77-owner-feedback button,.r77-owner-feedback input,.r77-owner-feedback select,.r77-feedback-page input,.r77-feedback-page textarea,.r77-feedback-page select,.r77-feedback-page button{border:1px solid #456a82;border-radius:8px;background:#092033;color:#eff8ff;padding:9px 11px;font:inherit;max-width:100%;min-width:0}
+.r77-owner-feedback button,.r77-feedback-page button{cursor:pointer;background:#0b5379;font-weight:650}.r77-owner-feedback button:disabled,.r77-feedback-page button:disabled{opacity:.45;cursor:wait}
+@media(max-width:700px){.r77-report-edit{grid-template-columns:minmax(0,1fr)}.r77-owner-feedback{padding:13px}}
+.r77-feedback-page{margin:0;background:#061321;color:#d6eaf7;font:16px/1.6 system-ui,sans-serif}.r77-feedback-page a{color:#7bd8ff}.r77-feedback-form-shell{max-width:820px;margin:0 auto;padding:clamp(16px,4vw,48px)}
+.r77-kicker{color:#80ccee;letter-spacing:.14em;font-size:.8rem}.r77-feedback-page h1{line-height:1.2}.r77-feedback-page form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:22px 0}.r77-feedback-page form[hidden]{display:none}
+.r77-feedback-page label{display:grid;gap:6px;font-weight:600}.r77-feedback-page label:nth-child(n+4){grid-column:1/-1}.r77-feedback-page textarea{width:100%;box-sizing:border-box;resize:vertical}.r77-feedback-page input,.r77-feedback-page select{width:100%;box-sizing:border-box}
+.r77-my-feedback{display:grid;gap:10px;margin-bottom:30px}@media(max-width:520px){.r77-feedback-page form{grid-template-columns:1fr}}
+
+/* R80 · visible retry for expiring beta sessions; compact on phones */
+.r80-access-refresh{margin:0 0 12px;display:inline-flex;align-items:center;justify-content:center}
+.r80-access-refresh:focus-visible{outline:3px solid #7bd8ff;outline-offset:3px}

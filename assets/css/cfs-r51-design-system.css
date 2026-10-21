@@ -1,0 +1,201 @@
+/* CFS R51 • Midnight Atelier. One consistent visual layer for all website pages.
+   No structural or runtime changes; editors, previews, modal behavior preserved. */
+html[data-cfs-r51-design]{
+  color-scheme:dark;
+  --r51-ink:#080e1a;--r51-base:#0b1423;--r51-surface:#101e30;--r51-raised:#15273a;
+  --r51-border:#263b50;--r51-border-hover:#4d8492;--r51-text:#eef5fa;
+  --r51-muted:#a4bdc9;--r51-teal:#62e4d0;--r51-teal-dark:#164d51;
+  --r51-blue:#94b8ff;--r51-amber:#f0c48a;
+  --cfs20-panel:#111f30;--cfs20-line:#2b4153;--cfs20-accent:#66e1d4;
+  --r19-surface:#111f30;--r19-line:#2b4153;--r19-cyan:#66e1d4;
+  scroll-padding-top:78px;
+}
+html[data-cfs-r51-design] body{
+  color:var(--r51-text);
+  background:radial-gradient(ellipse 900px 420px at 53% -210px,#235b63 0%,transparent 78%),var(--r51-ink)!important;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-optical-sizing:auto;-webkit-font-smoothing:antialiased;
+}
+html[data-cfs-r51-design] :is(h1,h2,h3,h4){color:var(--r51-text);letter-spacing:-.035em;line-height:1.16;text-wrap:balance}
+html[data-cfs-r51-design] :is(p,small,label){line-height:1.45}
+html[data-cfs-r51-design] :is(a,button,summary,input,select,textarea,[tabindex]):focus-visible{
+  outline:2px solid var(--r51-teal)!important;outline-offset:3px;scroll-margin-top:85px;
+}
+html[data-cfs-r51-design] [hidden]{display:none!important}
+html[data-cfs-r51-design] :is(.btn,.gaming-btn,.sm-btn,.cfs-r20-primary-action,button){border-radius:10px}
+html[data-cfs-r51-design] :is(.btn.primary,.gaming-btn-primary,.sm-primary,.cfs-r20-primary-action,.cfs-r29-convert){
+  background:linear-gradient(145deg,#297f81,#1e6770)!important;
+  border-color:#4db4b0!important;color:#fff!important;text-shadow:none!important;
+  box-shadow:0 5px 18px #020e1b42!important;
+}
+html[data-cfs-r51-design] :is(.btn.primary,.gaming-btn-primary,.sm-primary,.cfs-r20-primary-action,.cfs-r29-convert):hover{
+  background:linear-gradient(145deg,#31999a,#217c84)!important;border-color:var(--r51-teal)!important;
+}
+html[data-cfs-r51-design] :is(.btn,.gaming-btn,.sm-btn,button):disabled{opacity:.53;cursor:not-allowed}
+/* Common form controls: excludes checkbox, file, slider and color inputs. */
+html[data-cfs-r51-design] :is(input[type=text],input[type=search],input[type=email],input[type=password],input[type=number],input[type=url],input[type=tel],select,textarea){
+  background-color:#0c1929!important;color:var(--r51-text)!important;
+  border-color:#314d60!important;border-radius:10px!important;
+  box-shadow:inset 0 1px 2px #02091270!important;
+}
+html[data-cfs-r51-design] :is(input[type=text],input[type=search],input[type=email],input[type=password],input[type=number],input[type=url],input[type=tel],select,textarea)::placeholder{color:#91aab9;opacity:1}
+html[data-cfs-r51-design] :is(input[type=text],input[type=search],input[type=email],input[type=password],input[type=number],input[type=url],input[type=tel],select,textarea):focus{
+  border-color:#5fccc8!important;box-shadow:0 0 0 3px #57d9cc1f!important;
+}
+html[data-cfs-r51-design] :is(input[type=checkbox],input[type=radio],input[type=range]){accent-color:#55d4be}
+html[data-cfs-r51-design] ::selection{background:#4f9a9a;color:#fff}
+/* The one shared navigation: compact glass chrome and restrained active states. */
+html[data-cfs-r51-design] .cfs-r23-top{
+  background:rgba(8,17,29,.94)!important;border-bottom:1px solid #2b4754!important;
+  backdrop-filter:blur(20px) saturate(140%);box-shadow:0 6px 32px #040c182e!important;
+}
+html[data-cfs-r51-design] .cfs-r23-top .cfs-r14-top-inner{max-width:1430px;min-height:61px;gap:14px;padding-inline:clamp(12px,2.2vw,24px)}
+html[data-cfs-r51-design] .cfs-r23-top .r14-mark{color:#f0f9fa;font-weight:820;letter-spacing:-.04em;gap:9px}
+html[data-cfs-r51-design] .cfs-r23-top .r14-mark img{filter:none;width:31px;height:31px}
+html[data-cfs-r51-design] .cfs-r23-top .cfs-r14-links a{color:#b5c8d2;border-radius:9px;font-size:12px;letter-spacing:.01em}
+html[data-cfs-r51-design] .cfs-r23-top .cfs-r14-links a:hover,
+html[data-cfs-r51-design] .cfs-r23-top .cfs-r14-links a[aria-current]{background:#193a42!important;color:#d6fff7!important;border-color:#39646a!important}
+html[data-cfs-r51-design] .cfs-r23-top .cfs-r14-account a:last-child{
+  background:#16474a!important;border-color:#3c7b7d!important;color:#e2fffa!important;
+}
+html[data-cfs-r51-design] .cfs-r23-menu>summary{background:#132b39!important;border-color:#436574!important;color:#effafb!important}
+html[data-cfs-r51-design] .cfs-r23-top .cfs-r23-menu>.cfs-r14-links{background:#101e2d!important;border-color:#355464!important}
+/* Premium public home: hero uses one architectural panel, not multiple competing glows. */
+html[data-cfs-r51-design] body.cfs-r22-home .gaming-hero{
+  position:relative;border:1px solid #356375!important;border-radius:20px!important;
+  background:linear-gradient(118deg,#14283a 0%,#0c2030 52%,#102e35 100%)!important;
+  overflow:hidden;box-shadow:0 16px 50px #02081450!important;
+}
+html[data-cfs-r51-design] body.cfs-r22-home .gaming-hero:before{
+  content:'';position:absolute;inset:0;pointer-events:none;opacity:.55;
+  background:radial-gradient(circle at 88% 40%,#317f7630,transparent 44%);
+}
+html[data-cfs-r51-design] body.cfs-r22-home .gaming-hero-copy{position:relative;z-index:1}
+html[data-cfs-r51-design] body.cfs-r22-home .gaming-hero h1{font-weight:830!important;letter-spacing:-.045em!important}
+html[data-cfs-r51-design] body.cfs-r22-home :is(.gaming-kicker,.gaming-kicker-line){color:var(--r51-teal)!important;letter-spacing:.14em;font-weight:780}
+html[data-cfs-r51-design] body.cfs-r22-home .gaming-hero-copy>p{color:#c0d4dc!important}
+html[data-cfs-r51-design] body.cfs-r22-home .gaming-section-head h2{color:#ecf8fa!important}
+html[data-cfs-r51-design] body.cfs-r22-home :is(.gaming-live-card,.gaming-game-card,.gaming-community-grid article,.cfs-r6-entry-card){
+  background:linear-gradient(150deg,#12263a,#0d1b2b)!important;
+  border:1px solid var(--r51-border)!important;border-radius:15px!important;
+  box-shadow:none!important;overflow:hidden;
+}
+html[data-cfs-r51-design] body.cfs-r22-home :is(.gaming-live-card,.gaming-game-card,.gaming-community-grid article):hover{border-color:var(--r51-border-hover)!important}
+html[data-cfs-r51-design] body.cfs-r22-home .gaming-live-status-panel{border-radius:12px!important;background:#0d202e!important}
+html[data-cfs-r51-design] body.cfs-r22-home .gaming-hero-glow{opacity:.12!important}
+/* Creator directory: visual identities replace identical rectangles. Exactly two categories. */
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean .cfs-r27-directory{
+  width:min(1120px,calc(100% - 32px));margin:22px auto 28px;
+}
+html[data-cfs-r51-design] .cfs-r27-suite-title{align-items:center!important;justify-content:space-between;gap:12px}
+html[data-cfs-r51-design] .cfs-r27-suite-title h1{font-size:clamp(24px,3vw,32px)!important;font-weight:840}
+html[data-cfs-r51-design] .cfs-r27-suite-title p{color:var(--r51-muted)!important}
+html[data-cfs-r51-design] .cfs-r31-workbar{padding:10px!important;border-radius:14px;border:1px solid var(--r51-border);background:#101d2b!important}
+html[data-cfs-r51-design] .cfs-r31-quick a{background:#172b3b!important;border-color:#33596a!important;color:#d6eef1!important;border-radius:9px!important}
+html[data-cfs-r51-design] .cfs-r31-quick a:first-child{background:#184f51!important;border-color:#448e8d!important;color:#effffb!important}
+html[data-cfs-r51-design] .cfs-r20-suite-category{color:#96d3d1!important;letter-spacing:.035em;font-weight:770!important;text-transform:none}
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean .cfs-r20-suite-grid{gap:11px!important}
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean a.cfs-r20-studio-card{
+  display:flex;flex-direction:column;justify-content:center;gap:4px;
+  position:relative;min-height:94px!important;padding:14px 36px 14px 63px!important;
+  border-radius:13px!important;border:1px solid #2a4355!important;
+  background:linear-gradient(140deg,#15283b,#0e1f2d)!important;
+  box-shadow:inset 0 1px #ffffff09!important;transition:background .16s,border-color .16s,transform .16s;
+}
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean a.cfs-r20-studio-card:before{
+  content:attr(data-r51-glyph);position:absolute;left:13px;top:50%;transform:translateY(-50%);
+  display:grid;place-items:center;width:38px;height:38px;border:1px solid #376d71;
+  border-radius:11px;background:#1b4147;color:#a3f7e7;font-size:19px;line-height:1;font-weight:650;
+}
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean a.cfs-r20-studio-card:hover{
+  border-color:#5b9d9a!important;background:linear-gradient(140deg,#183647,#132637)!important;transform:translateY(-2px);
+}
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean a.cfs-r20-studio-card strong{font-size:14px!important;color:#f2f9fc;font-weight:760}
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean a.cfs-r20-studio-card span{color:#9fb9c9!important;font-size:11px!important}
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean a.cfs-r20-studio-card b{color:#8addd2;top:calc(50% - 8px)}
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean .cfs-r20-beta{color:#86b4b7!important}
+/* Dashboard: informative but calm. No new dashboard modules. */
+html[data-cfs-r51-design] body.cfs-r22-dashboard :is(.creator-dashboard-hero,.creator-next-step-v166,.creator-dashboard-actions-v166){
+  border:1px solid var(--r51-border)!important;border-radius:15px!important;
+  background:linear-gradient(130deg,#122639,#0d1d2d)!important;
+}
+html[data-cfs-r51-design] body.cfs-r22-dashboard .creator-dashboard-hero{border-left:3px solid #60d5c3!important}
+html[data-cfs-r51-design] body.cfs-r22-dashboard .creator-dashboard-hero h1{font-weight:820!important}
+html[data-cfs-r51-design] body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166>a{
+  border:1px solid #2a4558!important;border-radius:11px!important;background:#152a3d!important;
+}
+html[data-cfs-r51-design] body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166>a:hover{background:#193848!important;border-color:#528d8c!important}
+html[data-cfs-r51-design] body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166>a b{color:#7be8d5!important}
+html[data-cfs-r51-design] body.cfs-r22-dashboard :is(.cfs-r22-manual-live,.creator-dashboard-diagnostics-v166){border-color:var(--r51-border)!important;background:#101e2e!important;border-radius:12px!important}
+/* Studio titles and surfaces: one visual material across otherwise different editors. */
+html[data-cfs-r51-design].cfs-r20-studio body.cfs-r23-clean .cfs-r20-bar{
+  background:linear-gradient(120deg,#142a3a,#112332)!important;
+  border:1px solid #345367!important;border-left:3px solid #57d3c4!important;
+  border-radius:12px!important;
+}
+html[data-cfs-r51-design].cfs-r20-studio body.cfs-r23-clean .cfs-r20-bar h1{font-weight:800!important;letter-spacing:-.03em}
+html[data-cfs-r51-design] :is(.sm-editor,.sm-library,.sm-settings,.sm-workspace,.sm-toolbar,.sm-flow,.sm-stage-toolbar,.sm-bundle,.sm-export,.ws-widget-converter,.ws-converter-step,.ws-converter-library-strip,.cut-workspace,.cut-mode-panel,.cut-guide,.ub-panel,.tone-control){
+  border-color:#29465a!important;
+}
+html[data-cfs-r51-design] :is(.sm-library,.sm-settings,.sm-bundle,.sm-export,.ws-widget-converter,.ws-converter-step,.ws-converter-library-strip,.cut-mode-panel,.ub-panel,.tone-control){
+  background-color:#101f30!important;
+}
+html[data-cfs-r51-design] .sm-workspace{background-color:#0c1928!important}
+html[data-cfs-r51-design] :is(.sm-toolbar,.sm-flow,.sm-stage-toolbar){background-color:#0d1b29!important}
+html[data-cfs-r51-design] .sm-heading h1{font-size:clamp(25px,3vw,37px)!important;line-height:1.12!important;font-weight:830}
+html[data-cfs-r51-design] .sm-heading h1 span{color:var(--r51-teal)!important}
+html[data-cfs-r51-design] .sm-heading>div>p:last-child{color:#b0c9d5!important;font-size:13px}
+html[data-cfs-r51-design] .sm-eyebrow,html[data-cfs-r51-design] .sm-step-label{color:#88dcca!important}
+html[data-cfs-r51-design] .sm-tabs button[aria-selected=true]{background:#213a48!important;color:#e7fff9!important;border-color:#4d9891!important}
+html[data-cfs-r51-design] :is(.sm-categories button.active,.sm-element-card.active){border-color:#6adacb!important;background:#193c41!important}
+html[data-cfs-r51-design] .sm-stage{background-color:#0b1727!important}
+html[data-cfs-r51-design] .sm-drop{border-color:#45717a!important;background:#122738!important;border-radius:12px!important}
+html[data-cfs-r51-design] .sm-drop:hover{border-color:#63cbbb!important}
+html[data-cfs-r51-design] #wsAssetsModal :is(.ws-assets-card,.ws-asset-card){border-color:#385464!important;background:#111f2e!important;border-radius:12px!important}
+html[data-cfs-r51-design] #wsAssetsModal .ws-assets-upload{background:#132d37!important;border:1px dashed #53858a!important;border-radius:11px!important}
+html[data-cfs-r51-design] #wsAssetsModal .ws-asset-preview{background:#0a1725!important}
+html[data-cfs-r51-design] :is(.ws-converter-upload,.ws-drop-zone,.sm-drop):focus-within{outline:2px solid #68dfce;outline-offset:2px}
+html[data-cfs-r51-design] .ws-converter-step h4,html[data-cfs-r51-design] .ws-widget-converter-head h3{color:#e9f8f9!important}
+html[data-cfs-r51-design] :is(.cfs-r50-history button,.sm-r39-buttons button,.cfs-r33-focus-toggle){border-color:#3a5e6a!important;background:#162e40!important;color:#d9f2f4!important}
+html[data-cfs-r51-design] :is(.cfs-r50-history button,.sm-r39-buttons button,.cfs-r33-focus-toggle):hover:not(:disabled){background:#1a404c!important;border-color:#5eafa8!important}
+/* Public forms, accounts and catalog views inherit the same card elevation. */
+html[data-cfs-r51-design] :is(.panel,.card,.shop-featured-card,.original-design-card,.r13-card,.cfs-admin-status-card,.cfs-admin-action){
+  border-color:#304c5c!important;box-shadow:none!important;
+}
+html[data-cfs-r51-design] :is(.shop-featured-card,.original-design-card,.r13-card){border-radius:14px!important;background:linear-gradient(135deg,#132639,#0b1c2b)!important;overflow:hidden}
+html[data-cfs-r51-design] :is(.shop-featured-card,.original-design-card,.r13-card):hover{border-color:#589991!important}
+html[data-cfs-r51-design] :is(.footer,.brand-footer,.public-footer,.gaming-footer){background-color:#091521!important;border-top-color:#2b4953!important}
+/* Keep native interactive disclosure markers accessible; no invented decorative controls. */
+html[data-cfs-r51-design] summary{cursor:pointer}
+html[data-cfs-r51-design] :is(.ws-assets-card,.sm-library,.sm-settings,.cut-workspace){min-width:0}
+@media(max-width:760px){
+  html[data-cfs-r51-design] .cfs-r23-top .cfs-r14-top-inner{min-height:56px!important}
+  html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean .cfs-r27-directory{margin-top:17px}
+  html[data-cfs-r51-design] .cfs-r31-workbar{align-items:stretch}
+  html[data-cfs-r51-design] .sm-heading h1{font-size:clamp(24px,5.2vw,31px)!important}
+  html[data-cfs-r51-design] .gaming-hero{border-radius:15px!important}
+}
+@media(max-width:390px){
+  html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean a.cfs-r20-studio-card{
+    min-height:64px!important;flex-direction:row!important;justify-content:flex-start!important;
+    padding:10px 30px 10px 54px!important;gap:6px!important;
+  }
+  html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean a.cfs-r20-studio-card:before{width:31px;height:31px;left:10px;font-size:16px}
+  html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean a.cfs-r20-studio-card span{margin-left:auto;font-size:10px!important}
+  html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean a.cfs-r20-studio-card strong{font-size:12px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ html[data-cfs-r51-design] *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}
+}
+
+/* R51 finishing pass: title scale wins over legacy section headings. */
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean .cfs-r27-suite-title h1{
+ font-size:clamp(25px,3vw,34px)!important;line-height:1.14!important;
+ margin:0!important;font-weight:825!important;letter-spacing:-.04em!important;
+}
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean .cfs-r27-suite-title{
+ display:flex!important;align-items:baseline!important;gap:12px!important;
+}
+html[data-cfs-r51-design].cfs-r20-suite body.cfs-r23-clean .cfs-r27-suite-title p{
+ font-size:12px!important;margin:0!important;
+}

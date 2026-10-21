@@ -1,0 +1,65 @@
+/* R16 | clarity pass. A small, non-destructive theme layer. */
+:root{--r16-card:#0a1b30;--r16-edge:#1b4569;--r16-accent:#32baff}
+.cfs-r14-clean{font-size:15px;line-height:1.45}
+.cfs-r14-clean h1{letter-spacing:-.045em!important}
+.cfs-r14-clean :is(.r14-ops-dashboard,.cfs-ai-panel,.ws-shell,.ub-shell,.original-designs){box-shadow:none!important}
+.cfs-r14-clean :is(.cfs-r7-hub-bottom p,.ws-topbar p,.cfs-admin-section-head p,.cfs-admin-action p,.cfs-admin-hero p,.original-design-copy p){max-width:72ch;line-height:1.45}
+/* One navigation, one task. Preserve the underlying functions and permissions. */
+.cfs-r14-clean.cfs-ai-page .cfs-ai-hero{padding-top:16px;align-items:center}
+.cfs-r14-clean.cfs-ai-page .cfs-ai-hero h1{font-size:clamp(34px,4vw,53px);margin:3px 0 6px}
+.cfs-r14-clean.cfs-ai-page .cfs-ai-hero p{font-size:13px;line-height:1.5}
+.cfs-r14-clean.cfs-ai-page .cfs-ai-metrics{display:none}
+.cfs-r14-clean.cfs-ai-page .cfs-ai-shell{padding-top:12px}
+.cfs-r14-clean.cfs-ai-page .cfs-ai-tabs{margin:14px 0 12px}
+.r16-ai-help{margin:12px 0 16px;padding:12px 16px;border:1px solid #205379;border-radius:11px;background:#081b2e;color:#cbe6f8}
+.r16-ai-help summary{font-weight:750;cursor:pointer;color:#8dd6ff}
+.r16-ai-help ol{margin:14px 0;padding-left:25px;display:grid;gap:10px}
+.r16-ai-help code{font-size:12px;overflow-wrap:anywhere;color:#d5eaff}
+.r16-ai-help p{margin:10px 0 0;color:#92b4c9;font-size:12px}
+.r16-ai-help button{font-size:12px!important;padding:7px 12px!important}
+/* Admin: show the essential live tiles. Optional tasks are folded away. */
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hub{row-gap:12px}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hero{padding:16px 20px;min-height:0;margin:8px 0 0}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hero h1{font-size:clamp(26px,3vw,37px)}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hero p{margin:5px 0 12px;font-size:13px}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-side{position:sticky;top:88px;gap:3px;min-height:0;padding:11px}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-side a{padding:9px 12px;font-size:13px}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard{padding:18px;margin:0}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard .r14-ops-header{margin-bottom:12px}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard .r14-ops-grid{gap:9px}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard .r14-stat{padding:13px;min-height:80px}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard .r14-stat>strong{font-size:clamp(18px,2vw,26px);margin:5px 0}
+.cfs-r14-clean.cfs-admin-hub-page .r14-stat small{display:none}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard h2{font-size:20px}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-line{margin-top:15px}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hero-actions .btn{font-size:12px}
+.cfs-r14-clean.cfs-admin-hub-page .r16-admin-more{min-width:0;border:1px solid #1a4568;border-radius:10px;margin:4px 0;background:#07192a}
+.cfs-r14-clean.cfs-admin-hub-page .r16-admin-more>summary{padding:13px 16px;font-weight:700;cursor:pointer;color:#b6dfff}
+.cfs-r14-clean.cfs-admin-hub-page .r16-admin-more[open]>summary{border-bottom:1px solid #1a4568}
+.cfs-r14-clean.cfs-admin-hub-page .r16-admin-more .cfs-admin-status-grid,.cfs-r14-clean.cfs-admin-hub-page .r16-admin-more .cfs-admin-section{margin:12px}
+.cfs-r14-clean.cfs-admin-hub-page .r15-owner-console{margin:10px 0 25px;padding:17px}
+.cfs-r14-clean.cfs-admin-hub-page .r15-owner-head p,.cfs-r14-clean.cfs-admin-hub-page .r15-owner-card>p:first-of-type{font-size:12px}
+/* Widget studio: the creation view begins above the fold after a click. */
+.cfs-r14-clean .ws-view{scroll-margin-top:100px}
+.cfs-r14-clean .ws-topbar{padding-block:10px;margin-block:0}
+.cfs-r14-clean .ws-topbar h1{font-size:clamp(27px,3vw,39px)}
+.cfs-r14-clean .ws-topbar p{font-size:13px;margin:5px 0}
+.cfs-r14-clean .cfs-r7-hub:has(+ .ws-topbar){display:none}
+.cfs-r14-clean .creator-tool-entry:has([data-action="open-create"]){padding-block:13px;margin-block:8px}
+.cfs-r14-clean .creator-tool-entry:has([data-action="open-create"]) .creator-tool-path,
+.cfs-r14-clean .creator-tool-entry:has([data-action="open-create"]) .creator-tool-entry-head p,
+.cfs-r14-clean .ws-role-boundary,.cfs-r14-clean .ws-simple-guide-dashboard{display:none!important}
+/* Builder retains its own five steps; don't repeat the six-section landing steps above. */
+.cfs-r14-clean .cfs-r7-hub:has(+ .container + #builderApp),
+.cfs-r14-clean .cfs-r7-hub:has(~ #builderApp){display:none}
+/* Public design previews: no broken image icons for locked private ZIP resources. */
+.r16-file-chip{display:inline-flex;align-items:center;padding:9px 11px;border:1px solid #225275;background:#091e31;color:#b6ddf6;font-size:12px;border-radius:8px;line-height:1.35}
+.design-detail-thumbs:has(.r16-file-chip){display:flex;flex-wrap:wrap;gap:7px}
+.shop-scene-stage .r16-world-cover{background-repeat:no-repeat;background-size:cover;background-position:center}
+.shop-scene-stage .shop-scene-camera img[hidden],.shop-scene-stage .shop-scene-alert img[hidden]{display:none!important}
+.shop-scene-stage .shop-scene-camera:not(.has-private-asset),.shop-scene-stage .shop-scene-alert:not(.has-private-asset){border:1px dashed #4b7d9c;background:rgba(5,15,27,.85)}
+.shop-scene-stage .shop-scene-alert:not(.has-private-asset):after{content:'DEMO-ALERT · PRIVATES PNG';display:block;font-size:11px;color:#a2d5fb;padding:12px}
+.cfs-r14-clean .original-design-detail-page .shop-scene-preview{margin-top:12px}
+.cfs-r14-clean .original-design-detail-page .design-detail-note{font-size:12px}
+@media(max-width:800px){.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hub{display:block}.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-side{position:static;display:flex;flex-direction:row;flex-wrap:wrap;margin:8px 0}.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-side strong{width:100%}.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard .r14-ops-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cfs-r14-clean .cfs-r14-top-inner{min-height:56px}}
+@media(prefers-reduced-motion:reduce){.cfs-r14-clean *{scroll-behavior:auto!important}}

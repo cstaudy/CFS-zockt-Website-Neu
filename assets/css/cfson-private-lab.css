@@ -1,0 +1,23 @@
+/* CFSON owner-only UX; server gates HTML + API. CSS is presentation only. */
+[data-cfson-lab-entry][hidden] { display: none !important; }
+.cfson-lab { width: min(1120px, calc(100% - 36px)); margin: 34px auto 80px; }
+.cfson-lab .cfson-kicker { display:inline-flex; align-items:center; gap:.5rem; color:#b0c9dc; font-size:.8rem; text-transform:uppercase; letter-spacing:.12em; font-weight:800; }
+.cfson-lab .cfson-kicker::before { content:''; display:inline-block; background:#42dcaf; width:8px; height:8px; border-radius:50%; }
+.cfson-lab h1 { font-size: clamp(2rem, 4vw, 3.4rem); line-height:1.08; margin: 14px 0; color:#f8fcff; }
+.cfson-lab p { color:#b8c5d3; line-height:1.7; }
+.cfson-lab .cfson-hero { background:linear-gradient(135deg,rgba(23,40,67,.95),rgba(6,12,27,.98)); border:1px solid rgba(137,178,221,.24); border-radius:22px; padding:clamp(22px,4vw,48px); box-shadow:0 20px 45px rgba(0,0,0,.24); }
+.cfson-lab .cfson-chip { border:1px solid rgba(251,193,94,.48); color:#ffdaa0; border-radius:99px; padding:5px 11px; font-size:.78rem; white-space:nowrap; display:inline-flex; }
+.cfson-lab .cfson-status { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:26px; padding:15px 19px; border:1px solid rgba(142,167,200,.23); border-radius:14px; background:#091423; }
+.cfson-lab .cfson-status strong { color:#fff; font-size:1.03rem; }
+.cfson-lab .cfson-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:18px; }
+.cfson-lab .cfson-card { padding:24px; border-radius:17px; border:1px solid rgba(137,178,221,.20); background:rgba(9,19,35,.92); }
+.cfson-lab .cfson-card h2 { font-size:1.15rem; margin:0 0 8px; color:#f4faff; }
+.cfson-lab .cfson-card p { font-size:.94rem; margin:0 0 20px; }
+.cfson-lab .cfson-card small { color:#ffcb84; font-weight:700; }
+.cfson-lab .cfson-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:25px; }
+.cfson-lab .cfson-actions a { display:inline-flex; text-decoration:none; color:#ebfbff; background:#192a42; border:1px solid rgba(148,198,242,.28); padding:12px 18px; border-radius:10px; font-weight:700; }
+.cfson-lab .cfson-actions a:focus-visible { outline:3px solid #99e5fd; outline-offset:3px; }
+.cfson-lab .cfson-note { font-size:.86rem; padding:15px 0; }
+@media (max-width:850px) { .cfson-lab .cfson-grid { grid-template-columns:1fr; } }
+
+.cfson-lab .cfson-local-check { margin:16px 0 0; border-left:3px solid #2c9bc1; padding:8px 12px; background:rgba(12,31,51,.64); font-size:.9rem; }

@@ -1,0 +1,4 @@
+/* R40 · compact export feedback in the existing “Weitere Exporte” drawer. */
+.sm-r40-export-status{display:block;max-width:48ch;margin:3px 0 8px;font-size:11px;line-height:1.5;color:#a9c7da;overflow-wrap:anywhere}
+.sm-more-actions #exportPng{font-weight:700;color:#8ce5f2}
+.sm-more-actions #exportPng:disabled{opacity:.6;cursor:wait}

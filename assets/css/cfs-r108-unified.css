@@ -1,0 +1,160 @@
+/* R108 · Unified, compact creator pages. Cosmetic / navigational only; no API or auth changes. */
+body[data-cfs-r108-view] {--r108-panel:#081b2e;--r108-border:#1c506c;--r108-cyan:#32ccf6;--r108-text:#c4d8e6;}
+body[data-cfs-r108-view] main>.r108-context {
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 18px;
+ max-width:1380px;width:100%;margin:11px auto 13px;padding:9px 13px;min-height:42px;
+ background:#061728;border:1px solid #163b54;border-radius:10px;color:#a5c0d4;
+ font:500 12px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:0;
+}
+body[data-cfs-r108-view] .r108-context-path,
+body[data-cfs-r108-view] .r108-context-actions {display:flex;align-items:center;flex-wrap:wrap;gap:9px;min-width:0}
+body[data-cfs-r108-view] .r108-context a{color:#a9d0e5!important;text-decoration:none!important;font-weight:550!important;}
+body[data-cfs-r108-view] .r108-context a:hover {color:#39d5ff!important;}
+body[data-cfs-r108-view] .r108-context strong {color:#f2fbff;font-size:12px;font-weight:750;}
+body[data-cfs-r108-view] .r108-context-actions a {border:1px solid #22506b;border-radius:7px;padding:5px 9px;white-space:nowrap;}
+body[data-cfs-r108-view] .r108-context :is(a,summary):focus-visible {outline:2px solid #33d9ff;outline-offset:3px;}
+/* Uniform short introductions: remove enormous billboard feel without removing a real control. */
+body[data-cfs-r108-view] :is(.account-hero,.scene-hero,.stream-studio-hero,.cut-hero,.page-hero,.sm-heading,.ws-topbar,.audio-status-shell) {
+ min-height:0!important;margin-top:0!important;margin-bottom:13px!important;padding-top:14px!important;padding-bottom:14px!important;
+ box-shadow:none!important;border-radius:12px!important;
+}
+body[data-cfs-r108-view] :is(.account-hero,.scene-hero,.stream-studio-hero,.cut-hero,.page-hero) h1 {
+ font-size:clamp(23px,2.7vw,32px)!important;line-height:1.17!important;letter-spacing:-.025em!important;margin:5px 0 7px!important;
+}
+body[data-cfs-r108-view] :is(.account-hero,.scene-hero,.stream-studio-hero,.cut-hero,.page-hero) p {
+ font-size:12px!important;line-height:1.55!important;max-width:850px!important;margin-bottom:0!important;color:#b5cddb!important;
+}
+body[data-cfs-r108-view] :is(.account-card,.management-summary-card,.integration-group,.stream-status-strip,.scene-sidebar,.scene-library) {
+ box-shadow:none!important;border-radius:12px!important;
+}
+body[data-cfs-r108-view] .page-hero{padding-inline:18px!important;}
+body[data-cfs-r108-view] .management-summary-grid{gap:11px!important;margin-block:12px!important;}
+body[data-cfs-r108-view] .management-summary-card{padding:16px!important;min-height:0!important;}
+body[data-cfs-r108-view] .management-summary-card h2{font-size:18px!important;margin:6px 0!important;}
+body[data-cfs-r108-view] .management-summary-card p{font-size:12px!important;line-height:1.55!important;}
+body[data-cfs-r108-view] .management-summary-card .card-actions{margin-top:12px!important;}
+/* Account uses exactly four clearly-labelled tabs and short cards. Hidden panels stay hidden. */
+body[data-cfs-r108-view="account"] .account-shell{max-width:1180px!important;}
+body[data-cfs-r108-view="account"] .account-tabs{gap:8px!important;margin:0 0 14px!important;padding:4px!important;}
+body[data-cfs-r108-view="account"] .account-tabs>button{min-height:42px!important;padding:10px 12px!important;font-size:12px!important;}
+body[data-cfs-r108-view="account"] .account-grid{gap:12px!important;}
+body[data-cfs-r108-view="account"] .account-card{padding:17px!important;}
+body[data-cfs-r108-view="account"] .account-card h2{font-size:19px!important;}
+body[data-cfs-r108-view="account"] .account-section-intro{padding-block:3px 10px!important;}
+body[data-cfs-r108-view="account"] .account-section-intro h2{font-size:21px!important;margin:5px 0!important;}
+body[data-cfs-r108-view="account"] .account-tab-panel[hidden]{display:none!important;}
+/* Streams: diagnostics not a fifth permanent navigation tile. */
+body[data-cfs-r108-view="stream-studio"] .stream-operator-nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr)) auto!important;gap:8px!important;margin-block:8px 12px!important;align-items:stretch;}
+body[data-cfs-r108-view="stream-studio"] .stream-operator-nav>a {min-width:0!important;min-height:54px!important;padding:10px!important;}
+body[data-cfs-r108-view="stream-studio"] .stream-operator-nav>a strong{font-size:11px!important;}
+body[data-cfs-r108-view="stream-studio"] .stream-operator-nav>a small{font-size:10px!important;}
+body[data-cfs-r108-view="stream-studio"] .r108-nav-more{position:relative;align-self:stretch;min-width:95px;}
+body[data-cfs-r108-view="stream-studio"] .r108-nav-more>summary{display:flex;align-items:center;justify-content:space-between;gap:7px;cursor:pointer;border:1px solid var(--r108-border);background:var(--r108-panel);border-radius:9px;color:#dbf6ff;padding:10px 12px;min-height:54px;font-weight:700;font-size:11px;list-style:none;}
+body[data-cfs-r108-view="stream-studio"] .r108-nav-more>summary::-webkit-details-marker{display:none}
+body[data-cfs-r108-view="stream-studio"] .r108-nav-more>a{display:block;position:absolute;right:0;top:calc(100% + 5px);z-index:20;width:max-content;max-width:220px;border:1px solid var(--r108-border);border-radius:9px;background:#0a263a;padding:12px;color:#d9f5ff;text-decoration:none;box-shadow:0 12px 20px #0006;}
+body[data-cfs-r108-view="stream-studio"] .stream-status-strip{padding:11px!important;gap:7px!important;}
+body[data-cfs-r108-view="stream-studio"] .stream-status-strip>div{padding:6px 10px!important;min-width:0;}
+body[data-cfs-r108-view="stream-studio"] .stream-operator-heading{margin-block:8px!important;}
+/* Compact studio workflow strips and directory cards. */
+body[data-cfs-r108-view] .cfs-r52-flow{padding:9px 12px!important;min-height:0!important;margin:9px auto 13px!important;gap:10px!important;}
+body[data-cfs-r108-view] .cfs-r52-flow-actions{gap:6px!important;}
+body[data-cfs-r108-view] .cfs-r52-flow-actions>button{min-height:33px!important;padding:6px 10px!important;}
+body[data-cfs-r108-view="creator-suite"] .cfs-r20-suite-hub{max-width:1160px!important;padding:12px 16px 22px!important;}
+body[data-cfs-r108-view="creator-suite"] .cfs-r27-suite-title h1{font-size:clamp(24px,2.6vw,34px)!important;}
+body[data-cfs-r108-view="creator-suite"] .cfs-r20-suite-category{margin:15px 0 8px!important;font-size:17px!important;}
+body[data-cfs-r108-view="creator-suite"] .cfs-r20-suite-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px!important;}
+body[data-cfs-r108-view="creator-suite"] .cfs-r20-studio-card{min-height:84px!important;padding:12px!important;}
+body[data-cfs-r108-view="creator-suite"] .cfs-ux-primary{margin:10px 0!important;padding:15px!important;}
+body[data-cfs-r108-view="integrations"] .integration-group{padding-block:8px!important;margin-block:10px!important;}
+body[data-cfs-r108-view="integrations"] .integration-group-head{margin-bottom:8px!important;}
+body[data-cfs-r108-view="settings"] .management-policy-panel{padding:13px!important;margin-top:0!important;}
+body[data-cfs-r108-view] .r108-roadmap{margin:12px 0 22px;border:1px solid #1d4562;border-radius:10px;background:#081b2b;}
+body[data-cfs-r108-view] .r108-roadmap>summary{cursor:pointer;padding:13px 15px;font-weight:700;color:#ccefff;list-style:none;}
+body[data-cfs-r108-view] .r108-roadmap>summary::-webkit-details-marker{display:none;}
+body[data-cfs-r108-view] .r108-roadmap>section{margin:0!important;padding:10px!important;}
+@media(max-width:1000px){body[data-cfs-r108-view="stream-studio"] .stream-operator-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important;}body[data-cfs-r108-view="creator-suite"] .cfs-r20-suite-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:680px){
+ body[data-cfs-r108-view] main>.r108-context{margin:8px 0 10px;padding:9px 11px;gap:6px;}
+ body[data-cfs-r108-view] .r108-context-path{gap:5px;font-size:11px;}
+ body[data-cfs-r108-view] .r108-context-actions{width:100%;gap:6px;}
+ body[data-cfs-r108-view] .r108-context-actions a{font-size:11px;padding:5px 7px;}
+ body[data-cfs-r108-view] :is(.account-hero,.scene-hero,.stream-studio-hero,.cut-hero,.page-hero){padding:12px!important;}
+ body[data-cfs-r108-view="account"] .account-tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));}
+ body[data-cfs-r108-view="account"] .account-tabs>button{padding:9px!important;min-width:0;}
+ body[data-cfs-r108-view="creator-suite"] .cfs-r20-suite-grid{grid-template-columns:minmax(0,1fr);}
+ body[data-cfs-r108-view="stream-studio"] .stream-operator-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+ body[data-cfs-r108-view="stream-studio"] .stream-operator-nav>a small{display:none!important;}
+ body[data-cfs-r108-view="stream-studio"] .r108-nav-more{min-width:0;}
+ body[data-cfs-r108-view="stream-studio"] .r108-nav-more>summary{min-height:48px;}
+}
+@media(max-width:380px){body[data-cfs-r108-view="stream-studio"] .stream-operator-nav{grid-template-columns:minmax(0,1fr)!important;}body[data-cfs-r108-view="account"] .account-tabs>button{font-size:11px!important;}}
+@media(prefers-reduced-motion:reduce){body[data-cfs-r108-view] .r108-context *,body[data-cfs-r108-view] .r108-roadmap *{animation:none!important;transition:none!important;}}
+
+
+/* =========================================================
+   R110 — Branded cinematic creator background
+   Shared creator-suite backdrop with subtle CFS logo watermark.
+   ========================================================= */
+body[data-cfs-r108-view]{
+  position:relative;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(20,140,255,.14), transparent 24%),
+    radial-gradient(circle at 80% 8%, rgba(39,208,255,.08), transparent 18%),
+    linear-gradient(180deg,#030814 0%,#020712 42%,#02060d 100%)!important;
+}
+body[data-cfs-r108-view]::before,
+body[data-cfs-r108-view]::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+body[data-cfs-r108-view]::before{
+  z-index:-3;
+  background:
+    linear-gradient(130deg, rgba(14,95,178,.10) 0%, transparent 18%, transparent 82%, rgba(33,176,255,.12) 100%),
+    url('/assets/img/brand/cfs-site-background-r110.webp') center top / min(1420px, 94vw) auto no-repeat;
+  opacity:.28;
+}
+body[data-cfs-r108-view]::after{
+  z-index:-2;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(39,208,255,.08), transparent 22%),
+    linear-gradient(180deg, rgba(1,4,10,.18) 0%, rgba(1,4,10,.24) 20%, rgba(1,4,10,.48) 50%, rgba(1,4,10,.78) 100%);
+}
+body[data-cfs-r108-view] :is(header,main,footer){position:relative;z-index:1}
+body[data-cfs-r108-view] .site-header,
+body[data-cfs-r108-view] .sm-header{
+  background:rgba(2,7,17,.76)!important;
+  backdrop-filter:blur(18px);
+  box-shadow:0 16px 44px rgba(0,0,0,.18);
+}
+body[data-cfs-r108-view] :is(.r106-panel,.creator-next-step,.creator-dashboard-diagnostics-v166,.beginner-status-item,.beginner-system-summary,.creator-stream-ready,.creator-operation-card,.creator-tool-summary,.creator-tool-entry-grid>.beginner-tool,.cfs-r20-studio-card,.cfs-ux-primary,.account-card,.management-summary-card,.integration-group,.stream-status-strip,.scene-sidebar,.scene-library,.page-hero,.stream-operator-shell,.account-shell,.workspace-surface,.builder-shell,.builder-toolbar,.builder-preview,.builder-sidebar,.builder-panel){
+  background:linear-gradient(145deg, rgba(7,21,36,.92), rgba(4,10,18,.90))!important;
+  backdrop-filter:blur(8px);
+  box-shadow:0 18px 65px rgba(0,0,0,.16)!important;
+}
+body[data-cfs-r108-view] :is(.r106-panel,.creator-next-step,.creator-dashboard-diagnostics-v166,.account-card,.management-summary-card,.integration-group,.stream-status-strip,.scene-sidebar,.scene-library,.page-hero,.builder-toolbar,.builder-preview,.builder-sidebar,.builder-panel)::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  background:linear-gradient(180deg, rgba(89,180,255,.07), transparent 24%);
+}
+@media(max-width:900px){
+  body[data-cfs-r108-view]::before{background:
+    linear-gradient(130deg, rgba(14,95,178,.10) 0%, transparent 18%, transparent 82%, rgba(33,176,255,.12) 100%),
+    url('/assets/img/brand/cfs-site-background-r110.webp') center top / 145% auto no-repeat;opacity:.24}
+}
+@media(max-width:640px){
+  body[data-cfs-r108-view]::before{background:
+    linear-gradient(180deg, rgba(10,71,132,.13) 0%, transparent 18%),
+    url('/assets/img/brand/cfs-site-background-r110.webp') center top / 185% auto no-repeat;opacity:.18}
+}
+
+/* R149: OBS help is one visible contextual shortcut, without expanding the R108 two-action breadcrumb. */
+body[data-cfs-r108-view] .r149-obs-shortcut{max-width:1380px;margin:0 auto 10px;padding:0 13px;text-align:right;font:600 12px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;}
+body[data-cfs-r108-view] .r149-obs-shortcut a{color:#8fdcf7;text-decoration:underline;text-underline-offset:3px;}
+body[data-cfs-r108-view] .r149-obs-shortcut a:focus-visible{outline:2px solid #33d9ff;outline-offset:3px;}

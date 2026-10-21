@@ -1,0 +1,16 @@
+/* R62: small personal template controls inside existing compact starter gallery. */
+.ws-r62-personal{display:grid;gap:8px;min-width:0;padding:12px 0 0;border-top:1px solid #2a4656}
+.ws-r62-personal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-width:0}
+.ws-r62-personal-head>div{display:grid;gap:3px}.ws-r62-personal-head strong{font-size:12px;letter-spacing:.07em;color:#e7fffd}.ws-r62-personal-head small,#wsR62PersonalStatus{font-size:11px;color:#a4c8d4}
+#wsR62PersonalSearch{box-sizing:border-box;width:min(100%,270px);min-width:0;height:36px;padding:7px 10px;border-radius:8px;border:1px solid #3c6573;background:#102839;color:#e4fbff;font:500 12px system-ui,sans-serif}
+.ws-r62-personal-cards{display:grid;gap:6px;min-width:0}
+.ws-r62-personal-card{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px;border:1px solid #264858;border-radius:9px;background:#0c2534;min-width:0}
+.ws-r62-personal-symbol{display:grid;place-items:center;flex:0 0 34px;height:34px;border-radius:8px;background:#143f4b;color:#80e4df;font-size:20px}
+.ws-r62-personal-label{display:grid;gap:3px;flex:1 1 155px;min-width:0}.ws-r62-personal-label strong{color:#ecffff;font-size:12px;overflow-wrap:anywhere}.ws-r62-personal-label small{font-size:10px;color:#a8c4d1}
+.ws-r62-personal-actions{display:flex;flex-wrap:wrap;gap:5px}
+.ws-r62-personal-actions button{min-height:32px;padding:6px 9px;font:700 10px system-ui,sans-serif;border-radius:7px;border:1px solid #38677b;background:#113b4b;color:#e2faff;cursor:pointer}
+.ws-r62-personal-actions button:first-child{background:#0d5260;border-color:#27989c}.ws-r62-personal-actions button:last-child{color:#ffceca;border-color:#815052;background:#3c242b}
+.ws-r62-personal-actions button:disabled{opacity:.45;cursor:not-allowed}
+.ws-r62-personal-actions button:focus-visible,#wsR62PersonalSearch:focus-visible{outline:2px solid #7ff5eb;outline-offset:2px}
+.ws-r62-personal-empty{padding:9px;margin:0;color:#a9c6d1;font-size:12px}
+@media(max-width:520px){.ws-r62-personal-head{align-items:stretch}#wsR62PersonalSearch{width:100%;max-width:none}.ws-r62-personal-card{align-items:start}.ws-r62-personal-actions{width:100%;margin-left:44px}.ws-r62-personal-actions button{flex:1 1 auto}}

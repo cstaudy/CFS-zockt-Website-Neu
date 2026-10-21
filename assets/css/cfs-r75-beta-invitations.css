@@ -1,0 +1,24 @@
+/* R75 · Private, accessible owner beta invitations */
+.r75-invitations{margin:18px 0 22px;background:#061b2e;border:1px solid #29526d;border-radius:14px;padding:20px}
+.r75-invite-heading{display:flex;align-items:start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.r75-invite-heading h3{margin:6px 0;color:#f1faff}.r75-invite-heading p,.r75-hint,.r75-launch-control p{color:#aac6d9;line-height:1.5}
+.r75-gate-badge{background:#192a3a;border:1px solid #6c8597;border-radius:20px;padding:8px 11px;color:#e1f5ff;font-size:.86rem}
+.r75-gate-badge.is-open{border-color:#45cfbd;background:#073e41}
+.r75-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}
+.r75-select-existing,.r75-launch-control{background:#091e32;border:1px solid #1c415d;border-radius:10px;padding:15px;min-width:0}
+.r75-select-existing label{display:block;font-weight:650;margin-bottom:8px}.r75-inline{display:flex;gap:8px;flex-wrap:wrap}
+.r75-inline input{min-width:0;flex:1 1 180px;padding:10px;border:1px solid #366181;color:#fff;background:#071222;border-radius:8px;font:inherit}
+.r75-candidates{display:grid;gap:7px;margin-top:10px}.r75-candidate{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #25435a}
+.r75-candidate span{overflow-wrap:anywhere;font-size:.9rem}.r75-send-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0}
+.r75-preview{background:#020e1a;border:1px solid #2f566d;border-radius:9px;padding:12px;margin-top:12px}
+.r75-preview pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;font:inherit;font-size:.88rem;color:#dbeffb}
+.r75-tester-select{accent-color:#26aaff;margin-right:7px}.r75-hint{font-size:.88rem}
+.r75-invitations button:focus-visible,.r75-invitations input:focus-visible{outline:2px solid #83d9ff;outline-offset:3px}
+@media(max-width:780px){.r75-controls{grid-template-columns:1fr}.r75-invitations{padding:14px}.r75-inline input{width:100%}}
+
+/* R76: compact operational overview without another navigation section */
+.r76-preflight{border:1px solid #25465d;border-radius:9px;padding:10px 13px;background:#092235;margin-top:12px;color:#bdd7e7}
+.r76-preflight summary{cursor:pointer;color:#e3f6ff;font-weight:650}
+.r76-preflight p{margin:9px 0 5px}.r76-preflight ul{margin:6px 0 0 17px;padding:0;line-height:1.7}
+.r76-delivery-summary{color:#b9dbea;padding:12px 0 2px;font-size:.9rem;overflow-wrap:anywhere}
+.r76-cancel-invite{border-color:#b47b54!important;color:#ffe0c8!important}

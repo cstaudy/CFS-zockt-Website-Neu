@@ -1,0 +1,150 @@
+/* R84: shared, low-noise visual language across the four workspaces.
+   Intentionally presentation-only. No changes to auth, beta permissions, OBS or paused Nexus. */
+body[data-cfs-r84-compact="1"] {
+  --r84-bg: #091320;
+  --r84-panel: #112235;
+  --r84-panel-raised: #152b3b;
+  --r84-border: #294657;
+  --r84-type: #eff6fa;
+  --r84-muted: #b8cad5;
+  --r84-accent: #74dcd1;
+  background: var(--r84-bg) !important;
+  color: var(--r84-type);
+}
+body[data-cfs-r84-compact="1"] :is(.container,.cfs-r20-suite-hub,.cfs-ux-suite) {max-width: 1180px;}
+/* Retain the genuine square logo mark, not an adjacent duplicated wordmark. */
+body[data-cfs-r84-compact="1"] :is(.creator-site-header,.public-site-header) {
+  background: #091521 !important;
+  border-bottom: 1px solid var(--r84-border) !important;
+  box-shadow: none !important;
+}
+body[data-cfs-r84-compact="1"] :is(.creator-header-inner,.cfs-public-header-inner) {
+  max-width: 1180px; min-height: 64px; gap: 12px;
+}
+body[data-cfs-r84-compact="1"] :is(.creator-brand,.cfs-public-brand) {
+  flex: 0 0 auto; min-width: 48px; min-height: 52px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px; line-height: 1;
+}
+body[data-cfs-r84-compact="1"] :is(.creator-brand,.cfs-public-brand) > img {
+  width: 46px !important; height: 46px !important; max-width: 46px !important;
+  object-fit: contain !important; filter: none !important; content: normal !important;
+}
+body[data-cfs-r84-compact="1"] :is(.creator-site-header,.public-site-header) :is(a,button,summary):focus-visible,
+body[data-cfs-r84-compact="1"] main :is(a,button,input,select,textarea,summary):focus-visible {
+  outline: 2px solid var(--r84-accent) !important; outline-offset: 3px;
+}
+body[data-cfs-r84-compact="1"] :is(.creator-nav,.public-nav) a {
+  border-radius: 8px; text-decoration: none;
+}
+body[data-cfs-r84-compact="1"] main h1 {letter-spacing: -.035em;line-height: 1.14;}
+body[data-cfs-r84-compact="1"] main h2 {letter-spacing: -.025em;line-height: 1.22;}
+/* Dashboard: one content rhythm with clear cards and no additional glow. */
+body[data-cfs-r84-compact="1"] :is(.creator-dashboard-hero,.creator-next-step,.creator-dashboard-actions-v166,.shop-hero,.shop-discovery,.original-designs,.cfs-admin-hero,.r14-ops-dashboard,.cfs-ux-primary) {
+  border: 1px solid var(--r84-border) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+body[data-cfs-r84-compact="1"] :is(.creator-dashboard-hero,.shop-hero,.cfs-admin-hero,.cfs-ux-primary) {
+  background: linear-gradient(115deg,#142c3b,#102230) !important;
+}
+body[data-cfs-r84-compact="1"] :is(.creator-next-step,.creator-dashboard-actions-v166,.shop-discovery,.original-designs,.r14-ops-dashboard) {
+  background: var(--r84-panel) !important;
+}
+body[data-cfs-r84-compact="1"] :is(.shop-library-summary,.r14-stat,.creator-dashboard-actions-grid-v166>a,.cfs-ux-primary-actions>a) {
+  box-shadow: none !important; border-color: var(--r84-border) !important;
+}
+body[data-cfs-r84-compact="1"] :is(.creator-dashboard-hero,.shop-hero,.cfs-admin-hero) h1 {
+  font-size: clamp(29px, 3.3vw, 43px) !important;
+  text-shadow: none !important;
+  margin-bottom: 10px;
+}
+body[data-cfs-r84-compact="1"] :is(.creator-dashboard-hero,.shop-hero,.cfs-admin-hero) p {
+  line-height: 1.55; max-width: 64ch;
+}
+body[data-cfs-r84-compact="1"] :is(.shop-hero,.cfs-admin-hero) {margin-top: 18px !important;}
+body[data-cfs-r84-compact="1"] :is(.creator-dashboard-actions-v166,.shop-discovery,.original-designs) {margin-block: 16px !important;}
+body[data-cfs-r84-compact="1"] :is(.creator-next-step,.r14-ops-dashboard) {margin-block: 14px !important;}
+body[data-cfs-r84-compact="1"] .cfs-r27-suite-title p {max-width: 55ch;}
+body[data-cfs-r84-compact="1"] .cfs-ux-primary {max-width: 1180px;}
+body[data-cfs-r84-compact="1"] .shop-hero-copy>h1 span {color: inherit;}
+body[data-cfs-r84-compact="1"] :is(.btn,.sm-btn,.cfs-r20-studio-card) {box-shadow: none !important;}
+@media (max-width: 760px) {
+  body[data-cfs-r84-compact="1"] :is(.creator-header-inner,.cfs-public-header-inner) {min-height: 60px;gap: 8px;}
+  body[data-cfs-r84-compact="1"] :is(.creator-brand,.cfs-public-brand) > img {
+    width: 40px !important;height: 40px !important;max-width: 40px !important;
+  }
+  body[data-cfs-r84-compact="1"] :is(.creator-dashboard-hero,.shop-hero,.cfs-admin-hero,.cfs-ux-primary) {
+    padding: 18px !important; border-radius: 12px !important;
+  }
+  body[data-cfs-r84-compact="1"] :is(.creator-dashboard-hero,.shop-hero,.cfs-admin-hero) h1 {
+    font-size: clamp(27px,7vw,34px) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-cfs-r84-compact="1"] :is(.creator-site-header,.public-site-header) * {transition:none !important;}
+}
+
+/* R84: clear three-choice primary journey; no oversized nested first card. */
+body[data-cfs-r84-compact="1"] .cfs-ux-primary-actions {
+  display: grid !important; grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+  align-items: stretch; gap: 10px !important; margin-top: 14px !important;
+}
+body[data-cfs-r84-compact="1"] .cfs-ux-primary-actions > a {
+  display:flex !important; align-items:center; justify-content:space-between;
+  width:100% !important; min-width:0 !important; min-height:64px !important;
+  padding:15px !important; margin:0 !important;
+  border:1px solid var(--r84-border) !important; border-radius:12px !important;
+  background:#102637 !important; color:var(--r84-type) !important;
+  text-decoration:none !important; font-size:15px !important;
+}
+body[data-cfs-r84-compact="1"] .cfs-ux-primary-actions > a:first-child {
+  background:#15534f !important; border-color:#379b91 !important;
+}
+/* Operational areas: section switcher as a real grouped navigation, not one text line. */
+body[data-cfs-r84-compact="1"] .cfs-admin-side {
+  display:flex !important; flex-wrap:wrap; align-items:center; gap:6px !important;
+  margin:14px 0 16px !important; padding:10px !important;
+  border:1px solid var(--r84-border) !important; border-radius:12px !important;
+  background:#102232 !important; position:static !important; width:auto !important;
+}
+body[data-cfs-r84-compact="1"] .cfs-admin-side > a {
+  display:inline-flex !important; align-items:center; justify-content:center;
+  min-height:38px !important; padding:7px 10px !important; margin:0 !important;
+  border:1px solid transparent !important; border-radius:8px !important;
+  color:#c1d6e1 !important; background:transparent !important;
+  text-decoration:none !important; font-size:13px !important;
+}
+body[data-cfs-r84-compact="1"] .cfs-admin-side > a:hover,
+body[data-cfs-r84-compact="1"] .cfs-admin-side > a.active {
+  color:#fff !important; background:#1a3949 !important; border-color:#356070 !important;
+}
+@media (max-width:760px) {
+  body[data-cfs-r84-compact="1"] .cfs-ux-primary-actions {grid-template-columns:1fr !important;}
+  body[data-cfs-r84-compact="1"] .cfs-ux-primary-actions > a {min-height:46px !important;padding:12px 14px !important;}
+  body[data-cfs-r84-compact="1"] .cfs-admin-side {gap:3px !important; padding:6px !important;}
+  body[data-cfs-r84-compact="1"] .cfs-admin-side > a {min-height:36px !important;}
+}
+/* Override the historical v198 injected wordmark in the public suite header. */
+body[data-cfs-r84-compact="1"][data-cfs-brand-v198] .cfs-public-brand > img[data-logo-fallback] {
+  content: url('/assets/img/brand/cfs-zockt-mark-clean.png') !important;
+  width:46px !important;height:46px !important;max-width:46px !important;
+  object-fit:contain !important;
+}
+@media (max-width:760px) {
+  body[data-cfs-r84-compact="1"][data-cfs-brand-v198] .cfs-public-brand > img[data-logo-fallback] {
+    width:40px !important;height:40px !important;max-width:40px !important;
+  }
+}
+
+/* R85: picture wrapper keeps the original PNG fallback without changing logo dimensions. */
+body[data-cfs-r84-compact="1"] :is(.creator-brand,.cfs-public-brand) > .cfs-r85-logo-picture { display: contents; }
+body[data-cfs-r84-compact="1"] :is(.creator-brand,.cfs-public-brand) > .cfs-r85-logo-picture > img {
+  width:46px !important; height:46px !important; max-width:46px !important;
+  object-fit:contain !important; filter:none !important; content:normal !important;
+}
+@media (max-width:760px) {
+  body[data-cfs-r84-compact="1"] :is(.creator-brand,.cfs-public-brand) > .cfs-r85-logo-picture > img {
+    width:40px !important;height:40px !important;max-width:40px !important;
+  }
+}

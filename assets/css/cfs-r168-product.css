@@ -1,0 +1,53 @@
+/* R168 | CFS Zockt product design foundation
+ * Shared with public pages, Creator Suite and CFSON Lab. Scope intentionally
+ * limited to navigation, logo, focus and compact page spacing. */
+:root {
+  --cfs-brand-ink: #030b16;
+  --cfs-brand-panel: #091827;
+  --cfs-brand-accent: #38c4f5;
+  --cfs-brand-accent-strong: #149cff;
+  --cfs-brand-outline: #24475f;
+  --cfs-brand-text: #f3f9ff;
+  --cfs-brand-muted: #a1b9c9;
+  --cfs-brand-radius: 14px;
+}
+html { scroll-behavior: smooth; }
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--cfs-brand-accent) !important;
+  outline-offset: 3px;
+}
+:where(.site-header, .gaming-header, .creator-site-header) {
+  border-bottom-color: var(--cfs-brand-outline);
+}
+:where(.site-header, .gaming-header, .creator-site-header)
+:where(.brand-logo-link, .creator-brand, .r104-brand) img {
+  object-fit: contain;
+}
+:where(.site-header, .gaming-header, .creator-site-header) a[aria-current="page"] {
+  color: var(--cfs-brand-text);
+  text-decoration-color: var(--cfs-brand-accent);
+}
+:where(.public-nav, .creator-nav, .r104-nav) a { text-underline-offset: .3em; }
+:where(.public-nav, .creator-nav, .r104-nav) a:hover { color: var(--cfs-brand-accent); }
+:where(.cfs-r20-studio-card, .cfs-community-card, .shop-featured-grid > *, .original-designs .original-design-card) {
+  border-radius: var(--cfs-brand-radius);
+}
+/* Compact but not tiny on touchscreens. */
+@media (max-width: 720px) {
+  :where(.cfs-r20-suite-hub, .cfson-lab) { padding-inline: clamp(12px, 3.5vw, 22px); }
+  :where(.cfs-r20-suite-grid, .cfs-community-cards) { gap: 12px; }
+  :where(.cfs-r20-studio-card, .cfs-community-card) { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+/* Shop: a catalog with an honest, unobtrusive purchasing status. */
+.cfs-shop-v172 .cfs-r168-shop-availability {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
+  margin: 0 0 16px; padding: 10px 14px;
+  border: 1px solid var(--cfs-brand-outline);
+  border-radius: 10px; background: var(--cfs-brand-panel);
+  color: var(--cfs-brand-muted); font-size: .86rem; line-height: 1.4;
+}
+.cfs-shop-v172 .cfs-r168-shop-availability strong { color: var(--cfs-brand-text); }
+.cfs-shop-v172 .cfs-r168-shop-availability a { color: var(--cfs-brand-accent); }
+.cfs-shop-v172 .shop-hero { margin-bottom: 12px; }
+.cfs-shop-v172 .cfs-r6-shop-shortcuts { margin-bottom: 18px; }

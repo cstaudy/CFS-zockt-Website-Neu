@@ -1,0 +1,17 @@
+/* R56 · Compact and accessible multi-layer management in Widget Studio. */
+.ws-layer-panel .cfs-r56-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.ws-layer-panel .cfs-r56-layer-toolbar{display:flex;gap:5px;align-items:center;min-width:0;padding:8px 8px 4px;flex-wrap:wrap}
+.ws-layer-panel .cfs-r56-layer-toolbar input{height:34px;min-width:110px;flex:1 1 120px;max-width:100%;padding:5px 9px;background:#0b1c2b;border:1px solid #355367;border-radius:8px;color:#edf8fa;font:inherit;font-size:11px;box-sizing:border-box}
+.ws-layer-panel .cfs-r56-layer-toolbar button,.ws-layer-panel .cfs-r56-batch button{height:32px;border-radius:7px;border:1px solid #31516a;background:#10263b;color:#d9f0f2;padding:5px 7px;font-size:10px;cursor:pointer;white-space:nowrap}
+.ws-layer-panel .cfs-r56-layer-toolbar button:disabled{opacity:.4;cursor:default}
+.ws-layer-panel .cfs-r56-batch{display:flex;align-items:center;gap:4px;padding:6px 8px;flex-wrap:wrap;border-bottom:1px solid #22394a}
+.ws-layer-panel .cfs-r56-batch[hidden]{display:none!important}
+.ws-layer-panel .cfs-r56-batch span{flex:1 1 100%;font-size:11px;color:#98dacf;font-weight:800}
+.ws-layer-panel .cfs-r56-batch button{height:29px}
+.ws-layer-panel .cfs-r56-layer-help{margin:0;padding:2px 9px 5px;color:#9db2c1;font-size:10px;line-height:1.4}
+.ws-layer-panel .cfs-r56-empty{padding:12px 8px;color:#9db2c1;font-size:11px;line-height:1.5}
+.ws-layer-panel{grid-template-rows:auto auto auto auto minmax(0,1fr)!important}
+.ws-layer-panel .ws-layer-row{max-width:100%}
+.ws-layer-panel button:focus-visible,.ws-layer-panel input:focus-visible{outline:2px solid #6de1d3;outline-offset:2px}
+@media(max-width:540px){.ws-layer-panel .cfs-r56-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.ws-layer-panel .cfs-r56-layer-toolbar{padding:6px}.ws-layer-panel .cfs-r56-layer-toolbar button{flex:0 0 auto}.ws-layer-panel .cfs-r56-batch{padding:5px}}

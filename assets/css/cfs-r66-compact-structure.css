@@ -1,0 +1,112 @@
+/* R66 UX1: clear information hierarchy without touching routes, auth, widgets or live engines. */
+:root { --cfs-ux-ink:#eef6f9; --cfs-ux-muted:#a9becb; --cfs-ux-line:#355160; --cfs-ux-accent:#77deca; }
+.cfs-r23-top .cfs-r14-top-inner {max-width:1260px!important;gap:12px!important}
+.cfs-r23-top .cfs-r14-links {gap:3px;align-items:center}
+.cfs-r23-top .cfs-r14-links a {font-size:12px!important;font-weight:690;padding:9px 11px!important;letter-spacing:0!important}
+.cfs-r23-top .r14-mark {font-size:15px!important}
+.cfs-r23-top .cfs-r14-links a[aria-current] {box-shadow:inset 0 0 0 1px #508c8a20}
+/* Primary workflow on the Creator Suite: task-first, not another competing editor. */
+html.cfs-r20-suite body.cfs-r23-clean .cfs-ux-suite {width:min(1120px,calc(100% - 32px))!important;margin:23px auto 30px!important}
+html.cfs-r20-suite .cfs-ux-suite .cfs-r27-suite-title {display:block!important;margin-bottom:18px}
+html.cfs-r20-suite .cfs-ux-suite .cfs-r27-suite-title h1 {margin:0 0 5px!important;font-size:clamp(27px,3.2vw,39px)!important}
+html.cfs-r20-suite .cfs-ux-suite .cfs-r27-suite-title p {margin:0!important;font-size:13px!important;line-height:1.5;color:var(--cfs-ux-muted)!important}
+.cfs-ux-primary {display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,.7fr);gap:10px 24px;align-items:center;padding:24px 26px 16px;margin-bottom:16px;border:1px solid #4d7b7c;border-radius:17px;background:linear-gradient(120deg,#163b43 0%,#0e2736 62%,#0c1c2c 100%);box-shadow:0 15px 34px #02081338}
+.cfs-ux-kicker {display:block;color:#83e4cf;font-size:10px;font-weight:850;letter-spacing:.15em}
+.cfs-ux-primary h2 {font-size:clamp(19px,2.5vw,28px)!important;line-height:1.19;margin:7px 0 9px!important}
+.cfs-ux-primary p {font-size:13px;color:#c4d6dd;margin:0;line-height:1.55}
+.cfs-ux-primary-actions {display:grid;gap:8px}
+.cfs-ux-primary-actions a {display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:43px;text-decoration:none;padding:10px 13px;border:1px solid #426777;border-radius:10px;background:#162f3e;color:#e6f6fa;font-weight:760;font-size:13px;transition:background .15s,border-color .15s}
+.cfs-ux-primary-actions a:hover {border-color:#7bd2c7;background:#214657}
+.cfs-ux-primary-actions a#cfsStructurePrimary {background:#267569;border-color:#5fbba5;color:#fff}
+.cfs-ux-primary-actions a#cfsStructurePrimary:hover {background:#338a7c}
+.cfs-ux-primary .cfs-ux-clarifier {grid-column:1/-1;font-size:11px;margin-top:7px;padding-top:10px;border-top:1px solid #456470;color:#b1ccd3}
+html.cfs-r20-suite .cfs-ux-suite .cfs-r31-workbar {padding:9px 11px!important;min-height:51px!important;margin:0 0 12px!important;background:#101e2b!important;border:1px solid #314959!important}
+.cfs-ux-suite .cfs-r31-quick:empty {display:none}
+.cfs-ux-suite .cfs-r31-workbar .cfs-r31-search {margin-left:auto}
+.cfs-ux-suite .cfs-r31-search input {min-height:37px;width:min(340px,100%)}
+html.cfs-r20-suite .cfs-ux-suite .cfs-r20-suite-category {font-size:14px!important;color:#e0eff2!important;letter-spacing:0!important;text-transform:none!important;margin:18px 0 9px!important}
+html.cfs-r20-suite body.cfs-r23-clean .cfs-ux-suite .cfs-r20-suite-grid {grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important}
+html.cfs-r20-suite body.cfs-r23-clean .cfs-ux-suite a.cfs-r20-studio-card {min-height:96px!important;justify-content:center;padding:16px 27px 16px 59px!important;border-radius:12px!important;line-height:1.25}
+html.cfs-r20-suite .cfs-ux-suite .cfs-r20-studio-card strong {font-size:14px!important}
+html.cfs-r20-suite .cfs-ux-suite .cfs-r20-studio-card span {font-size:11px!important;color:#adcad2}
+/* Dashboard first actions now mirror Builder navigation; diagnostics remain in disclosures. */
+body.cfs-r22-dashboard .creator-dashboard-actions-head-v166 strong {font-size:16px!important}
+body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166>a {justify-content:flex-start!important}
+/* Builder: three clear phases, controls keep their original IDs and event handlers. */
+#ub65Mount .ub65-head {padding:4px 0 13px}
+#ub65Mount .ub65-head h1 {font-size:clamp(25px,3vw,35px)!important;background:none;color:#eef5ff!important}
+#ub65Mount .ub65-head p {max-width:700px;font-size:12px}
+#ub65Mount .ub65-tabs {gap:5px;padding:11px 0 13px}
+#ub65Mount .ub65-tabs button {padding:8px 13px;border-radius:8px;min-height:37px}
+#ub65Mount .ub65-tabs button.active {background:#22595b;border-color:#5eb4a9}
+#ub65Mount .ub65-tabs .ub65-advanced-link {font-size:11px;font-weight:610}
+#ub65Mount .ub65-main {grid-template-columns:minmax(275px,324px) minmax(0,1fr);gap:16px}
+#ub65Mount .ub65-settings {display:grid;gap:0;padding:16px;border-radius:14px;align-content:start}
+#ub65Mount .ub65-sidebar-header {padding-bottom:11px;margin-bottom:10px}
+#ub65Mount .ub65-group {display:grid;gap:10px;padding:12px 0 15px;border-bottom:1px solid #2a4356;min-width:0}
+#ub65Mount .ub65-group:last-of-type {border-bottom:0;padding-bottom:8px}
+#ub65Mount .ub65-group-title {color:#a1e3d5;font-size:11px;letter-spacing:.035em;font-weight:850}
+#ub65Mount .ub65-group .ub65-divider {display:none}
+#ub65Mount .ub65-group label {font-size:11px;gap:4px}
+#ub65Mount .ub65-group input:not([type=range]),#ub65Mount .ub65-group select {height:37px}
+#ub65Mount .ub65-group .ub65-2col {gap:8px}
+#ub65Mount .ub65-details {margin-top:7px;padding-top:10px}
+#ub65Mount .ub65-work-area {align-content:start;gap:12px}
+#ub65Mount .ub65-stage-shell {padding:16px;min-height:230px}
+#ub65Mount .ub65-toolbar {gap:7px;align-items:stretch}
+#ub65Mount .ub65-toolbar button {min-height:39px;padding:8px 11px;font-size:11px;white-space:normal}
+#ub65Mount .ub65-note {padding:9px 12px;font-size:11px;line-height:1.5}
+#ub65Mount .ub65-quick-gallery {border:1px solid #2d485c;border-radius:12px;background:#0e1d2b;min-width:0}
+#ub65Mount .ub65-quick-gallery>summary {display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:12px 14px;font-weight:750;font-size:12px;color:#e8f4fb}
+#ub65Mount .ub65-quick-gallery>summary span {font-size:11px;color:#a0b7c8;font-weight:480}
+#ub65Mount .ub65-quick-gallery[open]>summary {border-bottom:1px solid #2d485c}
+#ub65Mount .ub65-quick-gallery .ub65-gallery-header {padding:11px 12px}
+#ub65Mount .ub65-quick-gallery .ub65-gallery {padding:0 12px 13px}
+#ub65Mount .ub65-assets {margin-top:0;padding:12px;background:#0d2030;border-radius:12px}
+#ub65Mount .ub65-drop {min-height:55px;padding:9px}
+#ub65Mount .ub65-subpage {max-width:1380px;min-height:300px}
+/* Keyboard + reduced motion; compact mobile stacking, never conceal primary actions. */
+.cfs-ux-primary a:focus-visible,.cfs-ux-suite a:focus-visible,#ub65Mount summary:focus-visible {outline:2px solid #88e5da!important;outline-offset:3px}
+@media(max-width:900px) {
+  html.cfs-r20-suite body.cfs-r23-clean .cfs-ux-suite .cfs-r20-suite-grid {grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .cfs-ux-primary {grid-template-columns:1fr;gap:16px}
+  .cfs-ux-primary .cfs-ux-clarifier {grid-column:auto}
+}
+@media(max-width:760px) {
+  .cfs-r23-top .cfs-r14-top-inner {max-width:none;padding:7px 12px!important}
+  .cfs-r23-top .cfs-r14-links {display:grid;gap:2px}
+  .cfs-r23-top .cfs-r14-links a {display:block;padding:11px 12px!important;font-size:13px!important}
+  #ub65Mount .ub65-main {grid-template-columns:1fr}
+  #ub65Mount .ub65-settings {grid-template-columns:1fr}
+  #ub65Mount .ub65-group {grid-column:auto}
+  #ub65Mount .ub65-head {gap:6px}
+}
+@media(max-width:480px) {
+  html.cfs-r20-suite body.cfs-r23-clean .cfs-ux-suite {width:calc(100% - 20px)!important;margin-top:15px!important}
+  .cfs-ux-primary {padding:17px 14px 13px;border-radius:13px}
+  .cfs-ux-primary h2 {font-size:21px!important}
+  .cfs-ux-primary-actions a {min-height:45px}
+  html.cfs-r20-suite body.cfs-r23-clean .cfs-ux-suite .cfs-r20-suite-grid {grid-template-columns:1fr!important}
+  html.cfs-r20-suite body.cfs-r23-clean .cfs-ux-suite a.cfs-r20-studio-card {min-height:65px!important}
+  .cfs-ux-suite .cfs-r31-workbar {flex-wrap:wrap}
+  .cfs-ux-suite .cfs-r31-workbar .cfs-r31-search {width:100%}
+  .cfs-ux-suite .cfs-r31-search input {width:100%}
+  #ub65Mount .ub65-toolbar {grid-template-columns:repeat(2,minmax(0,1fr))}
+  #ub65Mount .ub65-toolbar button {font-size:11px;min-width:0}
+  #ub65Mount .ub65-quick-gallery>summary {display:grid;gap:3px}
+}
+@media(prefers-reduced-motion:reduce) {.cfs-ux-primary-actions a {transition:none}}
+
+/* The primary CTA retains the established studio-card selector for older regression checks; it renders as a button here. */
+html.cfs-r20-suite body.cfs-r23-clean .cfs-ux-primary-actions #cfsStructurePrimary {display:flex!important;position:static!important;min-height:43px!important;padding:10px 13px!important;gap:12px!important;background:#267569!important;border-color:#5fbba5!important;box-shadow:none!important;justify-content:space-between!important;align-items:center!important}
+html.cfs-r20-suite .cfs-ux-primary-actions #cfsStructurePrimary::before {content:none!important;display:none!important}
+html.cfs-r20-suite .cfs-ux-primary-actions #cfsStructurePrimary:hover {background:#338a7c!important}
+
+/* R66 UX1 screenshot fixes: clear heading alignment, primary CTA, nonintrusive media input. */
+html.cfs-r20-suite body.cfs-r23-clean .cfs-ux-suite .cfs-r27-suite-title {display:grid!important;justify-content:start!important;gap:4px!important}
+html.cfs-r20-suite body.cfs-r23-clean .cfs-ux-suite .cfs-r27-suite-title h1 {margin:0!important}
+html.cfs-r20-suite .cfs-ux-primary-actions #cfsStructurePrimary {flex-direction:row!important;text-align:left!important}
+.cfs-ux-search-heading {font-size:12px;font-weight:740;color:#c3d9df}
+.cfs-ux-suite .cfs-r31-search input {font-size:13px!important;font-weight:500!important}
+#ub65Mount #ub65File {position:absolute!important;width:1px!important;height:1px!important;max-width:1px!important;max-height:1px!important;clip-path:inset(50%)!important;overflow:hidden!important;padding:0!important;border:0!important}
+@media(max-width:480px) {.cfs-ux-search-heading {display:none}}

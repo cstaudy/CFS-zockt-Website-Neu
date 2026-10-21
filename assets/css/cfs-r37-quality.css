@@ -1,0 +1,5 @@
+/* R37: Compact and accessible pixel-verified PNG quality feedback. */
+#wsWidgetConverter .ws-r37-quality{display:block;color:#a9cad9;font-size:11px;line-height:1.45;min-height:1.5em;max-width:100%;overflow-wrap:anywhere}
+#wsWidgetConverter .ws-r37-quality[data-quality="check"]{color:#ffcc80}
+#wsWidgetConverter .ws-r37-quality[data-quality="ok"]{color:#a7e9cf}
+#wsWidgetConverter .ws-r37-quality:empty{display:none}

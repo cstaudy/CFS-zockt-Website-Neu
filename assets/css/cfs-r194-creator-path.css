@@ -1,0 +1,24 @@
+/* R194: unaufdringlicher Creator-Arbeitsweg, isoliert von Editoren/Stream-Logik. */
+.r194-path { margin: clamp(1rem,2vw,1.5rem) auto; padding: clamp(1rem,2vw,1.5rem); background: #0c1e32; color: #edf7ff; border: 1px solid #28516f; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.13); max-width: 1200px; }
+.r194-path *, .r194-path *::before, .r194-path *::after { box-sizing: border-box; }
+.r194-path-intro { margin-bottom: 1rem; }
+.r194-path-eyebrow { color: #82dfff; font-size: .76rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 .35rem; }
+.r194-path h2 { color: #fff; margin: 0 0 .45rem; font-size: clamp(1.18rem, 2.1vw, 1.55rem); line-height: 1.25; letter-spacing: normal; }
+.r194-path-intro > p:not(.r194-path-eyebrow) { margin: 0; color: #c2d4e6; max-width: 80ch; font-size: .94rem; line-height: 1.5; }
+.r194-path-steps { padding: 0; margin: 0; list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: .7rem; }
+.r194-path-steps > li { min-width: 0; margin: 0; padding: 0; list-style: none; }
+.r194-path-steps a { display: flex; align-items: flex-start; gap: .65rem; min-height: 111px; padding: .95rem; color: #edf7ff; text-decoration: none; background: #122a44; border: 1px solid #355775; border-radius: 12px; transition: background .15s ease, border-color .15s ease; }
+.r194-path-steps a:hover { background: #1c3854; border-color: #71d5ff; color: #fff; text-decoration: none; }
+.r194-path-steps a:focus-visible { outline: 3px solid #ffe18a; outline-offset: 3px; }
+.r194-path-steps .is-current a { border-color: #67d7f7; background: #17425e; box-shadow: inset 0 0 0 1px rgba(103,215,247,.35); }
+.r194-path-number { flex: 0 0 auto; font: 800 .87rem/1.25 system-ui,sans-serif; padding: .4rem; border-radius: 8px; color: #072037; background: #82dfff; }
+.r194-path-step { display: flex; flex-direction: column; min-width: 0; gap: .34rem; flex: 1; }
+.r194-path-step strong { color: #fff; font-size: .9rem; line-height: 1.3; }
+.r194-path-step small { color: #c4d6e8; font-size: .78rem; line-height: 1.45; }
+.r194-path-arrow { color: #8be8ff; font-weight: 700; }
+.r194-path-note { color: #adcade; font-size: .78rem; margin: .8rem 0 0; line-height: 1.5; }
+/* On desktop the widget and scene pages use narrower inner shells. */
+.ws-page > .r194-path, .scene-shell > .r194-path, .stream-studio-shell > .r194-path { width: calc(100% - 2rem); }
+@media(max-width: 980px) { .r194-path-steps { grid-template-columns: repeat(2,minmax(0,1fr)); } .r194-path-steps a { min-height: 94px; } }
+@media(max-width: 580px) { .r194-path { margin: 1rem; padding: .9rem; } .r194-path-steps { grid-template-columns: 1fr; gap: .5rem; } .r194-path-steps a { min-height: 0; } .ws-page > .r194-path, .scene-shell > .r194-path, .stream-studio-shell > .r194-path { width: auto; } }
+@media(prefers-reduced-motion: reduce) { .r194-path-steps a { transition: none; } }

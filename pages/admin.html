@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="de" data-cfs-r51-design>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#020812">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>CFS Admin | cfs_zockt</title>
+  <link rel="icon" href="/assets/img/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/cfs-theme-v3.css">
+  <link rel="stylesheet" href="/assets/css/cfs-unified-v172.css" data-cfs-unified-v172>
+  <link rel="stylesheet" href="/assets/css/cfs-brand-unified-v192.css" data-cfs-brand-v192>
+  <link rel="stylesheet" href="/assets/css/cfs-brand-v197.css" data-cfs-brand-v197>
+  <link rel="stylesheet" href="/assets/css/admin-hub-v197.css">
+  <script src="/assets/js/cfs-shell-v3.js" defer></script>
+  <link rel="stylesheet" href="/assets/css/cfs-brand-v198.css" data-cfs-brand-v198>
+  <link rel="stylesheet" href="/assets/css/cfs-product-v199.css" data-cfs-product-v199>
+  <link rel="stylesheet" href="/assets/css/cfs-neon-redesign-v32071.css" data-cfs-neon-redesign>
+  <link rel="stylesheet" href="/assets/css/cfs-surface-v32073.css" data-cfs-surface="v32073">
+<link rel="stylesheet" href="/assets/css/cfs-r14-redesign.css?v=R14"><script src="/assets/js/cfs-r14-shell.js?v=R14" defer></script><link rel="stylesheet" href="/assets/css/cfs-r16-clarity.css?v=R16"><link rel="stylesheet" href="/assets/css/cfs-r17-quiet.css?v=R17">  <link rel="stylesheet" href="/assets/css/cfs-r19-professional.css?v=R19">
+  <script src="/assets/js/cfs-r19-workspace.js?v=R19" defer></script>
+  <link rel="stylesheet" href="/assets/css/cfs-r51-design-system.css?v=R51" data-cfs-r51-design>
+  <link rel="stylesheet" href="/assets/css/cfs-r84-workspaces.css?v=R84" data-cfs-r84-workspaces>
+  <link rel="stylesheet" href="/assets/css/cfs-r138-navigation.css?v=R138" data-cfs-r138>
+  <link rel="stylesheet" href="/assets/css/cfs-r168-product.css?v=R168" data-cfs-product-brand="R168">
+</head>
+<body data-cfs-r84-compact="1" data-cfs-product-v199="1" class="cfs-r6-ui creator-workspace cfs-admin-hub-page" data-cfs-brand-v192="1" data-cfs-brand-v197="1" data-cfs-brand-v198="1">
+<header class="site-header creator-site-header">
+  <div class="container header-inner creator-header-inner">
+    <a class="creator-brand cfs-neon-brand" href="/pages/admin.html" aria-label="CFS Admin Startseite">
+      <picture class="cfs-r85-logo-picture"><source type="image/webp" srcset="/assets/img/brand/cfs-zockt-mark-clean-lossless.webp"><img class="cfs-neon-brand-logo creator-brand-logo" src="/assets/img/brand/cfs-zockt-mark-clean.png" alt="cfs_zockt"></picture>
+    </a>
+    <button class="mobile-toggle creator-mobile-toggle" data-mobile-toggle type="button" aria-label="Navigation öffnen" aria-expanded="false">MENÜ</button>
+    <nav class="nav creator-nav" data-nav data-creator-nav aria-label="Admin Navigation">
+<a data-creator-link href="/pages/dashboard.html">DASHBOARD</a>
+<a data-creator-link href="/pages/stream-studio.html">STREAM STUDIO</a>
+<a data-creator-link href="/pages/creator-suite.html">MEINE TOOLS</a>
+<a data-creator-link href="/pages/integrations.html">VERBINDUNGEN</a>
+<a data-creator-link href="/pages/account.html">ACCOUNT</a>
+<details class="creator-nav-more" data-creator-more><summary>MEHR</summary><div class="creator-nav-more-menu"><div class="r138-nav-group"><span class="r138-nav-group-label">Erstellen & Gestalten</span><a data-creator-link href="/pages/widget-studio.html">WIDGET STUDIO</a><a data-creator-link href="/pages/scene-studio.html">SCENE STUDIO</a><a data-creator-link href="/pages/universal-builder.html">UNIVERSAL BUILDER</a><a data-creator-link href="/pages/stream-maker.html">STREAM MAKER</a><a data-creator-link href="/pages/cut-studio.html">CUT STUDIO</a><a data-creator-link href="/pages/audio-studio.html">AUDIO STUDIO</a><a data-creator-link href="/pages/games.html">GAMES</a><a data-creator-link href="/pages/editor.html">CREATOR EDITOR</a></div><div class="r138-nav-group"><span class="r138-nav-group-label">Kanäle & Geräte</span><a data-creator-link href="/pages/tiktok.html">TIKTOK</a><a data-creator-link href="/pages/launcher.html">LAUNCHER</a><a data-creator-link href="/pages/launcher-connect.html">GERÄT VERBINDEN</a><a data-creator-link href="/pages/shop.html">SHOP</a></div><div class="r138-nav-group"><span class="r138-nav-group-label">Verwalten</span><a data-creator-link href="/pages/setup.html">SETUP</a><a data-creator-link href="/pages/settings.html">EINSTELLUNGEN</a><a data-creator-link href="/">ÖFFENTLICHE WEBSITE</a></div></div></details>
+<button class="creator-logout" data-logout type="button">LOGOUT</button>
+</nav>
+  </div>
+</header>
+
+
+<main class="container cfs-admin-hub">
+<nav class="cfs-admin-side" aria-label="Adminbereiche">
+  <a class="active" href="#r14-ops">▣ Übersicht</a>
+  <a href="#r14-finance">€ Einnahmen & Stripe</a>
+
+  <a href="/pages/admin-creators.html#adminCreatorsPanel">◎ Creator</a>
+  <a href="/pages/admin-creators.html#adminFinancePanel">◈ Finanzbericht</a>
+  <a href="/pages/admin-creators.html#adminSupportPanel">◇ Support</a>
+  <a href="/pages/admin-creators.html">▣ Produkte & Betrieb</a>
+  <a href="/pages/technical-status.html">◉ Systemstatus</a>
+  <a href="/pages/admin-creators.html#adminSecurity">⛨ Sicherheit</a>
+</nav>
+  <section class="cfs-admin-hero">
+    <div class="cfs-admin-hero-copy">
+      <span class="cfs-admin-eyebrow">PRIVAT · ADMIN</span>
+      <h1>Admin Control</h1>
+      <p>Creator, Shop und Freigaben verwalten.</p>
+      <div class="cfs-admin-hero-actions">
+        <a class="btn primary" href="#r17-shop-drop">Shop verwalten</a>
+        <a class="btn" href="/pages/admin-creators.html">CREATOR CONTROL</a>
+      </div>
+    </div>
+    <aside class="cfs-admin-identity" aria-live="polite">
+      <small>ANGEMELDETER ADMIN</small>
+      <strong id="adminDisplayName">wird geprüft …</strong>
+      <span id="adminEmail">–</span>
+    </aside>
+  </section>
+
+  <section class="r14-ops-dashboard" id="r14-ops" aria-labelledby="r14-ops-title">
+  <div class="r14-ops-header"><div><span class="r14-kicker">PRIVATER BEREICH · LIVE-DATEN</span><h2 id="r14-ops-title">Deine Übersicht</h2><p id="r14-ops-state" class="r14-ops-empty" role="status" aria-live="polite">Administratorberechtigung wird geprüft …</p></div><button id="r14-refresh" type="button">↻ Daten aktualisieren</button></div>
+  <div class="r14-ops-grid" aria-label="Admin Kennzahlen">
+    <article class="r14-stat"><span>Creator-Konten</span><strong id="r14-creators">–</strong><small>Alle registrierten Konten</small></article>
+    <article class="r14-stat"><span>Shop-Produkte</span><strong id="r14-products">–</strong><small>Erfasste Produkte, nicht Verkäufe</small></article>
+    <article class="r14-stat"><span>Veröffentlichte Shop-Angebote</span><strong id="r14-published">–</strong><small>Kein Checkout-Nachweis</small></article>
+    <article class="r14-stat"><span>Website-Entwürfe</span><strong id="r14-drafts">–</strong><small>Noch nicht veröffentlicht</small></article>
+  </div>
+  <div class="r14-ops-line" id="r14-finance">
+    <div class="r14-ops-header"><div><span class="r14-kicker">FINANZEN · NUR SIGNIERTE STRIPE-WEBHOOKS</span><h2>Einnahmen & Zahlungen</h2></div><label>Monat <input id="r14-finance-month" type="month" aria-label="Monat für Finanzbericht"></label></div>
+    <div class="r14-ops-grid" aria-label="Finanzkennzahlen">
+      <article class="r14-stat"><span>Brutto bezahlt · EUR</span><strong id="r14-gross">–</strong><small>Nur bestätigte Rechnungsereignisse</small></article>
+      <article class="r14-stat"><span>Erstattungen · EUR</span><strong id="r14-refunds">–</strong><small>Zugeordnete Erstattungen</small></article>
+      <article class="r14-stat"><span>Saldo vor Gebühren · EUR</span><strong id="r14-net">–</strong><small>Weder Gewinn noch Auszahlung</small></article>
+      <article class="r14-stat"><span>Bezahlte Rechnungen</span><strong id="r14-invoices">–</strong><small>Stripe-Ereignisse des Monats</small></article>
+    </div>
+    <p id="r14-finance-state" class="r14-finance-note" role="status" aria-live="polite">Finanzdaten benötigen die frische Admin-Sicherheitsfreigabe. Beträge werden nicht geschätzt.</p>
+    <div id="r14-other-currencies" class="r14-ops-finance-rows"></div>
+    <div class="r14-ops-actions"><a href="/pages/admin-creators.html#adminSecurity">Admin-Schutz entsperren</a><a href="/pages/admin-creators.html#adminFinancePanel">Detaillierten Finanzbericht öffnen</a></div>
+  </div>
+  <div class="r14-ops-line" id="r14-ai" hidden>
+    <div class="r14-ops-header"><div><span class="r14-kicker">CFS AI · STATUS VOM BACKEND</span><h2>KI & System</h2></div><a class="btn" href="/pages/cfs-ai.html">CFS AI öffnen ↗</a></div>
+    <div class="r14-ops-grid">
+      <article class="r14-stat"><span>AI-Gateway</span><strong id="r14-ai-gateway">–</strong><small>Konfiguration, kein erfundener Modellstatus</small></article>
+      <article class="r14-stat"><span>Ollama / AI-Service</span><strong id="r14-ai-service">–</strong><small>Online nur bei positivem Service-Signal</small></article>
+      <article class="r14-stat"><span>Bridge-Worker</span><strong id="r14-bridge">–</strong><small>Heartbeat jünger als 45 Sekunden</small></article>
+      <article class="r14-stat"><span>AI-Transport</span><strong id="r14-transport">–</strong><small>Servergemeldeter Modus</small></article>
+    </div>
+  </div>
+  <div class="r14-ops-actions"><a href="/pages/admin-creators.html">Creator & Shop verwalten</a><a href="/pages/admin-creators.html#adminSupportPanel">Support bearbeiten</a><a href="/pages/technical-status.html">Systemdiagnose</a><a href="/pages/admin-creators.html#adminReleasePanel">Beta & Freigaben</a></div>
+</section>
+<section class="r17-shop-drop" id="r17-shop-drop" aria-labelledby="r17-drop-title">
+  <div class="r17-drop-head"><div><p class="r17-eyebrow">PRIVATER SHOP · ENTWÜRFE</p><h2 id="r17-drop-title">Bilder zum Shop hinzufügen</h2><p>PNG, JPG oder WebP ablegen. Das Bild wird im privaten PostgreSQL-Speicher als unveröffentlichter Shop-Entwurf gesichert.</p></div><a href="/pages/admin-creators.html#adminBundleFactoryPanel">Alle Entwürfe und Rechte prüfen →</a></div>
+  <div class="r17-drop-zone" id="r17DropZone" tabindex="0" role="button" aria-label="Shop-Bilder auswählen oder hier ablegen">
+    <strong>Bild hierher ziehen oder auswählen</strong><span>Maximal 20 MB pro Datei · Keine automatische Veröffentlichung</span>
+    <input id="r17DropInput" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" multiple aria-label="Shop-Bilder auswählen">
+  </div>
+  <p id="r17DropStatus" class="r17-drop-status" aria-live="polite" role="status">Nur für angemeldete Admins. Rechteprüfung bleibt erforderlich.</p>
+  <div id="r17DropDrafts" class="r17-drop-drafts" aria-live="polite"></div>
+</section>
+<details class="r16-admin-more"><summary>Technische Statusdetails</summary>
+<section class="cfs-admin-status-grid" aria-label="Systemstatus">
+    <article class="cfs-admin-status-card" id="adminWebsiteStatus"><span>WEBSITE</span><strong>NICHT GEPRÜFT</strong><small>Warte auf bestätigte Admin-API.</small></article>
+    <article class="cfs-admin-status-card" id="adminAiStatus"><span>CFS AI</span><strong>PRÜFEN …</strong><small>Gateway-Status wird geladen.</small></article>
+    <article class="cfs-admin-status-card" id="adminBridgeStatus"><span>BRIDGE</span><strong>PRÜFEN …</strong><small>Worker-Heartbeat wird geladen.</small></article>
+    <article class="cfs-admin-status-card" id="adminTransportStatus"><span>TRANSPORT</span><strong>–</strong><small>Cloud ↔ Laptop.</small></article>
+  </section>
+  </details>
+  <div class="cfs-admin-error" id="adminHubError" hidden role="status"></div>
+
+  <details class="r16-admin-more"><summary>Weitere Admin-Werkzeuge</summary>
+  <section class="cfs-admin-section">
+    <div class="cfs-admin-section-head"><div><span>WERKZEUGE</span><h2>Alles Wichtige an einem Ort.</h2></div><p>Die eigentlichen Berechtigungen bleiben serverseitig geschützt. Diese Oberfläche ist nur der zentrale Einstieg.</p></div>
+    <div class="cfs-admin-action-grid">
+      
+      <a class="cfs-admin-action" href="/pages/admin-creators.html#adminFinancePanel"><span>FINANZEN</span><strong>Einnahmen & Verkäufe</strong><p>Stripe-Abos und Zahlungsereignisse prüfen. Pakete bleiben bis zum Checkout-Rollout gesperrt.</p><em>ÖFFNEN →</em></a>
+      <a class="cfs-admin-action" href="/pages/admin-creators.html"><span>ADMIN</span><strong>Creator Control</strong><p>Creator-Verwaltung, Release- und Operations-Funktionen.</p><em>ÖFFNEN →</em></a>
+      <a class="cfs-admin-action" href="/pages/dashboard.html"><span>SUITE</span><strong>Creator Dashboard</strong><p>Zur normalen Creator Suite und den Produktionswerkzeugen.</p><em>ÖFFNEN →</em></a>
+      <a class="cfs-admin-action" href="/pages/technical-status.html"><span>STATUS</span><strong>Technischer Status</strong><p>Website-, Launcher- und Integrationsstatus prüfen.</p><em>ÖFFNEN →</em></a>
+      <a class="cfs-admin-action" href="/pages/account.html#account-security"><span>SECURITY</span><strong>Account & Sicherheit</strong><p>Passkeys, MFA, Sessions und Account-Sicherheit verwalten.</p><em>ÖFFNEN →</em></a>
+
+      <a class="cfs-admin-action" href="/pages/settings.html"><span>SETTINGS</span><strong>Einstellungen</strong><p>Creator- und Projektoptionen zentral öffnen.</p><em>ÖFFNEN →</em></a>
+    </div>
+  </section>
+  </details>
+  <!-- Hidden by default. Display only after server confirms the configured owner. -->
+  <section id="r15-owner-console" class="r15-owner-console" hidden aria-labelledby="r15-title">
+    <div class="r15-owner-head">
+      <div><span class="r14-kicker">OWNER ONLY · NICHT ÖFFENTLICH</span><h2 id="r15-title">Privater Download & Beta-Verwaltung</h2>
+      <p>Der Server prüft deine bestätigte Owner-E-Mail. Öffentliche Beta und kostenpflichtige Verkäufe bleiben unverändert gesperrt.</p></div>
+      <a href="/pages/admin-creators.html#adminSecurity">Admin-Schutz entsperren ↗</a>
+    </div>
+    <div class="r15-owner-grid">
+      <article class="r15-owner-card">
+        <span class="r14-kicker">WINDOWS · PRIVATER DOWNLOAD</span>
+        <h3>cfs_zockt Admin für PC</h3>
+        <p>Download nur nach Login und erneuter Sicherheitsbestätigung. Das Paket ist Quellcode zum Windows-Build, sofern keine separate signierte Desktop-ZIP privat hinterlegt wurde.</p>
+        <p id="r15-download-status" role="status" aria-live="polite">Prüfe Download und Freigabe …</p>
+        <a class="btn" id="r15-admin-download" href="/api/admin/desktop/download" hidden>Admin für Windows herunterladen</a>
+      </article>
+      <article class="r15-owner-card">
+        <span class="r14-kicker">BETA · VORBEREITUNG</span><h3>Tester für später vormerken</h3>
+        <p>Vormerken vergibt keine Beta-Rechte. Freigabe erst nach Registrierung, bestätigter E-Mail und deiner ausdrücklichen Entscheidung.</p>
+        <form id="r15-beta-form" class="r15-beta-form">
+          <label>E-Mail <input id="r15-beta-email" type="email" maxlength="254" autocomplete="off" required placeholder="tester@beispiel.de"></label>
+          <label>Name / Alias <input id="r15-beta-label" type="text" maxlength="80" autocomplete="off" placeholder="optional"></label>
+          <label>Notiz <textarea id="r15-beta-notes" maxlength="500" rows="2" placeholder="Testziel oder Einladung für später"></textarea></label>
+          <button type="submit" id="r15-beta-add">Tester vormerken</button>
+        </form>
+      </article>
+    </div>
+    <section class="r75-invitations" aria-labelledby="r75-invitations-title">
+      <div class="r75-invite-heading">
+        <div><span class="r14-kicker">R75 · NUR OWNER</span><h3 id="r75-invitations-title">Beta-Tester auswählen &amp; einladen</h3>
+          <p>Du entscheidest, wann deine Website bereit ist. Bis zu deiner ausdrücklichen Freigabe sind E-Mail-Einladungen und neue Beta-Zugänge gesperrt.</p></div>
+        <span id="r75-gate-label" class="r75-gate-badge" role="status">Einladungen gesperrt</span>
+      </div>
+      <div class="r75-controls">
+        <div class="r75-select-existing">
+          <label for="r75-candidate-query">Bestehenden Creator suchen (Name oder E-Mail)</label>
+          <div class="r75-inline"><input id="r75-candidate-query" type="search" minlength="3" maxlength="80" autocomplete="off" placeholder="Mindestens drei Zeichen"><button type="button" id="r75-candidate-search">Suchen</button></div>
+          <div id="r75-candidates" class="r75-candidates" aria-live="polite"></div>
+          <p class="r75-hint">Noch nicht registrierte Personen kannst du oben per E-Mail vormerken. Das verschickt nichts.</p>
+        </div>
+        <div class="r75-launch-control">
+          <strong>Einladungsphase – von dir freizugeben</strong>
+          <p id="r75-launch-help">Gesperrt: Tester auswählen und Einladungen ansehen ist möglich. Senden und neue Zugänge freigeben erst nach deiner Entscheidung.</p>
+          <button type="button" id="r75-launch-toggle">Beta-Einladungen freigeben</button>
+        </div>
+      </div>
+      <details class="r76-preflight"><summary>Vor dem Beta-Start noch zu prüfen</summary>
+        <p>Diese Erinnerung startet nichts und erteilt keine Rechte. Erst wenn du mit der Website zufrieden bist, entscheidest du über <strong>BETA STARTEN</strong>.</p>
+        <ul><li>Echte Staging-Anmeldung und getrennte Testkonten abgenommen</li><li>OBS und Bild-/ZIP-Exporte mit der installierten Version geprüft</li><li>E-Mail-Zustellung und Datenschutzinformationen geprüft</li><li>Feedback- und Rückmeldeweg für Tester festgelegt</li></ul>
+      </details>
+      <div class="r76-delivery-summary" id="r76-delivery-summary" role="status" aria-live="polite">Versandstatus wird geladen.</div>
+      <div class="r75-send-controls">
+        <p id="r75-selected-count">0 Tester ausgewählt</p>
+        <button type="button" id="r75-preview-button" disabled>E-Mail-Vorschau</button>
+        <button type="button" id="r75-send-button" disabled>Ausgewählte einladen</button>
+        <button type="button" id="r76-refresh-deliveries">Versandstatus aktualisieren</button>
+      </div>
+      <div class="r75-preview" id="r75-preview" hidden><strong>Vorschau – keine E-Mail versandt</strong><pre id="r75-preview-text"></pre></div>
+      <p id="r75-message" class="r75-hint" role="status" aria-live="polite">Der Versand ist vor deiner Freigabe deaktiviert.</p>
+    </section>
+    <div class="r15-owner-list">
+      <div class="r15-owner-head"><div><h3>Private Tester-Liste</h3><p id="r15-beta-status" role="status" aria-live="polite">Benötigt entsperrten Admin-Schutz.</p></div>
+        <button type="button" id="r15-beta-refresh">Liste aktualisieren</button></div>
+      <div id="r15-beta-list" class="r15-beta-rows"></div>
+      <p class="r15-beta-footnote">Beta-Freigaben gelten nur für einzelne bestätigte Creator-Accounts. Keine automatische öffentliche Veröffentlichung, kein bezahlter Checkout. Tester-Daten nicht an Dritte weitergeben.</p>
+    </div>
+    <section class="r77-owner-feedback" aria-labelledby="r77-owner-feedback-title">
+      <div class="r77-feedback-head"><div><span class="r14-kicker">R77 · BETA-QUALITÄT</span><h3 id="r77-owner-feedback-title">Feedback und Fehlerberichte</h3><p>Tester-Berichte aus dem vorhandenen Beta-Center. Das Öffnen dieser Übersicht startet keine Beta und versendet keine Nachrichten.</p></div><button type="button" id="r77-feedback-refresh">Berichte aktualisieren</button></div>
+      <p id="r77-feedback-summary" role="status" aria-live="polite">Nur mit freigeschaltetem Owner-Admin-Schutz sichtbar.</p>
+      <div class="r77-feedback-toolbar"><label for="r77-feedback-filter">Status</label><select id="r77-feedback-filter"><option value="open">Offene Berichte</option><option value="all">Alle Berichte</option><option value="critical">Kritisch</option><option value="closed">Abgeschlossen</option></select></div>
+      <div id="r77-feedback-list" class="r77-feedback-list"></div>
+      <p class="r77-feedback-foot">Testversion und Zeitpunkt werden pro Bericht angezeigt. Berichte ändern weder Beta-Rechte noch den Einladungsstatus. <a href="/pages/admin-creators.html#adminBetaPanel">Erweiterte Beta-Auswertung öffnen</a></p>
+    </section>
+  </section>
+</main>
+
+<script src="/assets/js/app.js"></script><script src="/assets/js/cfs-r17-shop-drop.js?v=R17" defer></script>
+<script src="/assets/js/page-admin-v197.js"></script>
+<link rel="stylesheet" href="/assets/css/cfs-r15-owner-console.css?v=R15">
+<script src="/assets/js/cfs-r15-owner-console.js?v=R15" defer></script>
+<link rel="stylesheet" href="/assets/css/cfs-r77-beta-feedback.css?v=R77">
+<script src="/assets/js/cfs-r77-beta-feedback.js?v=R77" defer></script>
+<link rel="stylesheet" href="/assets/css/cfs-r75-beta-invitations.css?v=R75">
+<script src="/assets/js/cfs-r75-beta-invitations.js?v=R75" defer></script>
+<script src="/assets/js/cfs-product-v199.js" defer></script>
+<script src="/assets/js/cfs-r14-admin-overview.js?v=R14" defer></script></body>
+</html>

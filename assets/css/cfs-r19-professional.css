@@ -1,0 +1,134 @@
+/* CFS R19 · Leiser Produkt-Workspace. Gestaltet nach bewährten UI-Mustern;
+   keine Fremd-Assets, keine Änderungen an Shop-/Auth-/Studio-Logik. */
+html.cfs-r19 {
+  --r19-bg:#070f1d;--r19-surface:#0d1b2d;--r19-surface-2:#12233a;
+  --r19-line:#263950;--r19-text:#edf3f9;--r19-mute:#aec0d0;--r19-cyan:#79d1dd;
+  color-scheme:dark;scroll-padding-top:88px;
+}
+html.cfs-r19 body {font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;letter-spacing:normal;color:var(--r19-text);background-color:var(--r19-bg);}
+html.cfs-r19 :is(h1,h2,h3,h4) {font-family:inherit;letter-spacing:-.035em;line-height:1.18;text-wrap:balance;}
+html.cfs-r19 p {text-wrap:pretty;}
+html.cfs-r19 :is(a,button,summary,input,textarea,select):focus-visible {outline:2px solid var(--r19-cyan)!important;outline-offset:3px;}
+html.cfs-r19 :is(.btn,.gaming-btn,button) {transition:background-color .16s ease,border-color .16s ease,transform .16s ease;}
+html.cfs-r19 :is(.btn,.gaming-btn):not(:disabled):active {transform:translateY(1px);}
+html.cfs-r19 :is(.btn.primary,.gaming-btn-primary,.tone-action.primary,.sm-primary) {background:#168ba8!important;border:1px solid #4eb7cc!important;color:#fff!important;box-shadow:none!important;text-shadow:none!important;}
+html.cfs-r19 :is(.btn.primary,.gaming-btn-primary,.tone-action.primary,.sm-primary):hover {background:#187e98!important;}
+html.cfs-r19 :is(input,select,textarea) {font-family:inherit;}
+html.cfs-r19 :is(.eyebrow,.section-kicker,.gaming-kicker,.cfs-r18-kicker){letter-spacing:.075em;font-weight:700;}
+html.cfs-r19 body :is(.glow,.neon-glow) {animation:none!important;}
+html.cfs-r19 .cfs-r19-skip {position:fixed;top:-100px;left:12px;z-index:99999;background:#d9f8ff;color:#062339;padding:10px 16px;border-radius:8px;font-weight:700;}
+html.cfs-r19 .cfs-r19-skip:focus {top:9px;}
+/* Navigation: muted chrome, workspace gets the attention. */
+html.cfs-r19 .cfs-r14-top {background:rgba(8,18,32,.98)!important;border-bottom:1px solid var(--r19-line)!important;box-shadow:none!important;}
+html.cfs-r19 .cfs-r14-top-inner {max-width:1380px;gap:14px;min-height:64px;padding:9px clamp(12px,2.3vw,26px);}
+html.cfs-r19 .cfs-r14-top .r14-mark img {filter:none;width:32px;height:32px;}
+html.cfs-r19 .cfs-r14-top .r14-mark {font-size:1rem;letter-spacing:-.02em;}
+html.cfs-r19 .cfs-r14-links {gap:4px;}
+html.cfs-r19 .cfs-r14-links a,html.cfs-r19 .cfs-r14-account a {font-size:.84rem;font-weight:600;padding:9px 10px;}
+html.cfs-r19 .cfs-r14-links a:hover,html.cfs-r19 .cfs-r14-links a[aria-current='page'] {background:#172c42;border-color:transparent;color:#e8f7fc;}
+html.cfs-r19 .cfs-r14-account a:last-child {background:#19384b!important;border:1px solid #31596b!important;color:#eaf8fb!important;}
+html.cfs-r19 .creator-site-header {background:#091727;border-color:var(--r19-line);box-shadow:none;}
+html.cfs-r19 .creator-nav a,html.cfs-r19 .creator-nav-more>summary {letter-spacing:normal;font-size:.83rem;}
+/* Workbench: concise orientation followed by the actual editor. */
+html.cfs-r19-studio .cfs-r18-workflow {background:var(--r19-surface)!important;border:1px solid var(--r19-line)!important;
+ box-shadow:none!important;border-radius:14px!important;padding:clamp(17px,2.1vw,28px)!important;margin-top:20px!important;margin-bottom:20px!important;max-width:1320px;}
+html.cfs-r19-studio .cfs-r18-workflow-heading {max-width:920px;}
+html.cfs-r19-studio .cfs-r18-kicker {display:none;}
+html.cfs-r19-studio .cfs-r18-title {font-size:clamp(1.55rem,2.5vw,2.15rem)!important;letter-spacing:-.045em;margin-top:9px;}
+html.cfs-r19-studio .cfs-r18-subtitle {color:var(--r19-mute);margin-top:5px;line-height:1.48;max-width:760px;font-size:.95rem;}
+html.cfs-r19-studio .cfs-r18-steps {gap:7px;margin-top:19px;}
+html.cfs-r19-studio .cfs-r18-step-link {background:#112339;border:1px solid #2a4158;border-radius:9px;padding:9px 13px;
+ font-size:.84rem;color:#dce8f3;min-height:43px;box-shadow:none;}
+html.cfs-r19-studio .cfs-r18-step-link:hover {border-color:var(--r19-cyan);background:#18354a;}
+html.cfs-r19-studio .cfs-r18-step-link.cfs-r19-first-step {border-color:#3b7b8a;background:#193b4b;}
+html.cfs-r19-studio .cfs-r18-step-number {width:22px;height:22px;background:#26495b;color:#e5fafd;}
+html.cfs-r19-studio .cfs-r18-workflow-actions {margin-top:6px;}
+html.cfs-r19-studio .cfs-r18-info-toggle {text-decoration:none;color:#9abac9;font-size:.8rem;}
+html.cfs-r19-studio .cfs-r18-info-toggle:hover {text-decoration:underline;color:#d4f3ff;}
+html.cfs-r19 .cfs-r19-trail {display:flex;align-items:center;gap:8px;font-size:.78rem;color:#95b0c1;}
+html.cfs-r19 .cfs-r19-trail a {color:#8dd2df;text-decoration:none;}
+html.cfs-r19 .cfs-r19-trail a:hover {text-decoration:underline;}
+html.cfs-r19 .cfs-r19-trail [aria-current] {color:#b6c6d3;}
+/* Real studio work surfaces: preserve all original button IDs, form controls and functions. */
+html.cfs-r19-studio :is(#cutApp,#alertToneStudio,#wsApp,#streamDockWorkspace,.scene-workspace,#builderApp,#editorForm,.device-management) {scroll-margin-top:110px;}
+html.cfs-r19-studio :is(.cut-mode-panel,.cut-jobs-panel,.device-management,.scene-workspace,.tone-control) {box-shadow:none!important;}
+html.cfs-r19-studio :is(.cut-mode-panel,.device-management) {border-radius:13px;border-color:var(--r19-line);}
+html.cfs-r19-studio .cut-mode-panel {background:#0c1d2e;}
+html.cfs-r19-studio #alertToneStudio {background:#0c1b2c!important;border-color:var(--r19-line)!important;}
+html.cfs-r19-studio .tone-control {border-color:#293e53;}
+html.cfs-r19-studio .device-management h2 {font-size:clamp(1.15rem,2vw,1.45rem);}
+html.cfs-r19-studio .device-management-head p {color:var(--r19-mute);max-width:680px;line-height:1.5;}
+html.cfs-r19-studio .release-orbit {filter:none;}
+html.cfs-r19-studio .release-hero {min-height:0;}
+html.cfs-r19-studio .cut-hero {min-height:0;}
+/* Suite directory: descriptive cards, not marketing boxes. */
+html.cfs-r19-suite .cfs-r18-suite-hub {background:none!important;border:0!important;box-shadow:none!important;padding:clamp(16px,2vw,26px) 10px!important;max-width:1190px;}
+html.cfs-r19-suite .cfs-r18-title {font-size:clamp(2rem,4vw,3rem);letter-spacing:-.05em;}
+html.cfs-r19-suite .cfs-r18-suite-cards {grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:25px;}
+html.cfs-r19-suite .cfs-r18-suite-card {position:relative;padding:19px;min-height:150px;gap:8px;border:1px solid var(--r19-line);background:#102136;border-radius:12px;transition:background .18s,border .18s,transform .18s;}
+html.cfs-r19-suite .cfs-r18-suite-card:hover {background:#152c42;border-color:#457b88;transform:translateY(-2px);}
+html.cfs-r19-suite .cfs-r18-suite-card strong {font-size:1.08rem;}
+html.cfs-r19-suite .cfs-r18-suite-card span:not(.cfs-r19-card-arrow) {font-size:.86rem;color:#b0c3d1;line-height:1.4;}
+html.cfs-r19-suite .cfs-r19-card-category {display:block;color:#81c9d5;font-size:.71rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;}
+html.cfs-r19-suite .cfs-r19-card-arrow {position:absolute;right:17px;top:15px;color:#79bac9;}
+html.cfs-r19-suite .cfs-r18-suite-background {border-top:1px solid var(--r19-line);margin-top:22px;padding-top:12px;}
+html.cfs-r19-suite .cfs-r18-suite-background summary {font-size:.85rem;color:#9bb6c8;}
+/* Public landing/shop/admin: accessible hierarchy, no fake revenue, no design-original exposure. */
+html.cfs-r19-home .gaming-hero {box-shadow:none!important;border-color:var(--r19-line)!important;border-radius:14px!important;}
+html.cfs-r19-home .gaming-hero-copy {max-width:680px;}
+html.cfs-r19-home .gaming-hero h1 {line-height:1.06;}
+html.cfs-r19-home .gaming-hero-copy>p {color:#b6c9d6;}
+html.cfs-r19-home .gaming-section:not(.gaming-hero) {scroll-margin-top:88px;}
+html.cfs-r19-home .gaming-why-v180 {border-top:1px solid #1b3147;}
+html.cfs-r19-home .gaming-stream-layout :is(article,aside) {box-shadow:none;}
+html.cfs-r19-shop .shop-hero,html.cfs-r19-shop .shop-discovery {box-shadow:none!important;border-color:var(--r19-line)!important;}
+html.cfs-r19-shop .original-design-grid {gap:14px;}
+html.cfs-r19-shop .original-design-card {background:var(--r19-surface)!important;border-color:var(--r19-line)!important;}
+html.cfs-r19-admin .r14-ops-dashboard {box-shadow:none!important;border-color:var(--r19-line);background:var(--r19-surface);}
+html.cfs-r19-admin .r14-stat {background:#102136;border-color:#2b4056;}
+html.cfs-r19-admin .cfs-admin-status-card {box-shadow:none!important;}
+html.cfs-r19-dashboard .creator-dashboard-hero {box-shadow:none!important;border-color:var(--r19-line)!important;}
+/* Quick switcher: keyboard-accessible, non-modal controls retain their normal behavior. */
+html.cfs-r19 .cfs-r19-switch {display:inline-flex;align-items:center;justify-content:center;gap:10px;flex:none;
+ background:#10253a;border:1px solid #2b4d63;border-radius:9px;min-height:38px;padding:7px 11px;color:#e2f1fa;font:600 .84rem system-ui,sans-serif;white-space:nowrap;cursor:pointer;}
+html.cfs-r19 .cfs-r19-switch:hover {background:#19394d;border-color:#539aaa;}
+html.cfs-r19 .cfs-r19-switch kbd {font:600 .7rem system-ui,sans-serif;color:#a3c1cd;background:#1d3346;border:1px solid #375267;border-radius:5px;padding:2px 5px;}
+html.cfs-r19 .cfs-r19-dialog {border:1px solid #36576b;border-radius:16px;padding:0;background:#0c1a2a;color:#eff7fd;width:min(92vw,610px);max-height:min(82vh,750px);box-shadow:0 24px 80px #0009;}
+html.cfs-r19 .cfs-r19-dialog::backdrop {background:rgba(0,7,17,.72);backdrop-filter:blur(3px);}
+html.cfs-r19 .cfs-r19-dialog-inner {padding:14px;}
+html.cfs-r19 .cfs-r19-dialog-top {display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+html.cfs-r19 .cfs-r19-search {min-width:0;flex:1;background:#10243a;border:1px solid #37546b;border-radius:10px;color:#f5f9fc;padding:13px 14px;font-size:1rem;}
+html.cfs-r19 .cfs-r19-search::placeholder {color:#9fb7c7;}
+html.cfs-r19 .cfs-r19-close {background:#14283a;color:#d7e7f0;border:1px solid #34506a;border-radius:9px;padding:12px;cursor:pointer;}
+html.cfs-r19 .cfs-r19-results {max-height:min(54vh,510px);overflow-y:auto;overscroll-behavior:contain;}
+html.cfs-r19 .cfs-r19-group {color:#80bdc9;text-transform:uppercase;letter-spacing:.1em;font-weight:750;font-size:.7rem;padding:14px 8px 7px;}
+html.cfs-r19 .cfs-r19-result {display:flex;align-items:center;justify-content:space-between;gap:16px;border-radius:9px;padding:11px 12px;color:#e7f2f8;text-decoration:none;}
+html.cfs-r19 .cfs-r19-result:hover,html.cfs-r19 .cfs-r19-result:focus-visible,html.cfs-r19 .cfs-r19-result.is-current {background:#173349;text-decoration:none;}
+html.cfs-r19 .cfs-r19-result-text {display:grid;gap:3px;}
+html.cfs-r19 .cfs-r19-result-text strong {font-weight:690;font-size:.91rem;}
+html.cfs-r19 .cfs-r19-result-text small {color:#a9becc;font-size:.81rem;}
+html.cfs-r19 .cfs-r19-result-arrow {color:#85bccb;font-size:.76rem;white-space:nowrap;}
+html.cfs-r19 .cfs-r19-note,html.cfs-r19 .cfs-r19-empty {color:#9bb4c4;font-size:.76rem;line-height:1.5;margin:13px 6px 3px;}
+@media(max-width:1080px) {
+ html.cfs-r19-suite .cfs-r18-suite-cards {grid-template-columns:repeat(2,minmax(0,1fr));}
+ html.cfs-r19 .cfs-r19-switch kbd {display:none;}
+}
+@media(max-width:760px) {
+ html.cfs-r19 .cfs-r14-top-inner {gap:8px;}
+ html.cfs-r19 .cfs-r19-switch {padding:8px 10px;min-height:38px;}
+ html.cfs-r19 .cfs-r14-links {order:3;width:100%;}
+ html.cfs-r19-studio .cfs-r18-workflow {margin-top:10px!important;padding:18px!important;}
+ html.cfs-r19-studio .cfs-r18-steps {display:grid;grid-template-columns:1fr;}
+ html.cfs-r19-suite .cfs-r18-suite-cards {grid-template-columns:repeat(2,minmax(0,1fr));}
+ html.cfs-r19-suite .cfs-r18-suite-card {min-height:145px;padding:14px;}
+ html.cfs-r19-home .gaming-hero-grid {grid-template-columns:1fr;}
+}
+@media(max-width:440px) {
+ html.cfs-r19 .cfs-r19-dialog-top {flex-wrap:wrap;}
+ html.cfs-r19 .cfs-r19-close {font-size:.8rem;}
+ html.cfs-r19-suite .cfs-r18-suite-cards {grid-template-columns:1fr;}
+ html.cfs-r19-suite .cfs-r18-suite-card {min-height:105px;}
+}
+@media(prefers-reduced-motion:reduce) {
+ html.cfs-r19 :is(.cfs-r18-suite-card,.btn,.gaming-btn,button) {transition:none!important;animation:none!important;}
+}

@@ -1,0 +1,12 @@
+/* R48 · Export quality decision inline in existing personal design section. */
+.cfs-r48-export-gate[hidden]{display:none!important}
+.cfs-r48-export-gate{display:grid;gap:7px;min-width:0}
+.cfs-r48-export-gate[data-status="blocked"]{border-left:3px solid #f07886}
+.cfs-r48-export-gate[data-status="warning"]{border-left:3px solid #e5b961}
+.cfs-r48-export-gate[data-status="ready"]{border-left:3px solid #64d6bd}
+.cfs-r48-export-gate>small{display:block;line-height:1.5;color:var(--muted,#a1b3c8)}
+.cfs-r48-export-issue{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;padding:7px 9px;border:1px solid rgba(240,120,134,.28);border-radius:8px}
+.cfs-r48-export-issue span{flex:1;min-width:0;overflow-wrap:anywhere;font-size:.83rem}
+.cfs-r48-export-issue button,.cfs-r48-export-actions button{cursor:pointer;border:1px solid rgba(142,184,216,.45);color:inherit;border-radius:8px;background:rgba(28,64,97,.6);padding:7px 9px;font-weight:650;font-size:.75rem}
+.cfs-r48-export-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:420px){.cfs-r48-export-issue{align-items:flex-start;flex-direction:column}.cfs-r48-export-issue button{align-self:flex-end}}

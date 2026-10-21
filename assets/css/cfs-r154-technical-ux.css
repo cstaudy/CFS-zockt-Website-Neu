@@ -1,0 +1,11 @@
+/* R154: Audio working editor first; background/roadmap stay accessible but closed. */
+body[data-cfs-r108-view="audio-studio"] .r154-audio-intro {margin:0 0 18px;max-width:850px;color:#b5dbea;font-size:14px;line-height:1.6}
+body[data-cfs-r108-view="audio-studio"] .r154-audio-technical {margin:18px 0;border:1px solid #1d5874;border-radius:12px;background:#061a29;padding:0 16px}
+body[data-cfs-r108-view="audio-studio"] .r154-audio-technical > summary {cursor:pointer;font-size:14px;font-weight:700;color:#bce6f9;padding:14px 0;list-style:revert}
+body[data-cfs-r108-view="audio-studio"] .r154-audio-technical > summary:focus-visible {outline:2px solid #65deff;outline-offset:4px}
+body[data-cfs-r108-view="audio-studio"] .r154-audio-technical .r131-module-entry {margin:4px 0 14px}
+body[data-cfs-r108-view="audio-studio"] .r154-audio-technical #audioWorkspace {margin:0 0 16px}
+@media(max-width:620px){body[data-cfs-r108-view="audio-studio"] .r154-audio-technical {padding:0 12px}}
+
+/* Fix scene workflow heading overflowing narrow viewports. */
+body[data-cfs-r108-view="scene-studio"] .cfs-r52-flow-title {white-space:normal;overflow-wrap:anywhere;line-height:1.45;flex:0 1 100%}

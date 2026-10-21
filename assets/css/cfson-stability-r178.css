@@ -1,0 +1,11 @@
+/* R178: private offline model UI, intentionally separate from any live controls. */
+.cfson-stability{margin-top:20px;background:#091929;border:1px solid #416680;border-radius:16px;padding:20px;color:#e8f6ff}
+.cfson-stability h3{color:#fff;margin:0 0 10px;font-size:1.2rem}
+.cfson-stability p{line-height:1.6}
+.cfson-stability-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:14px 0}
+.cfson-stability-controls label{display:grid;gap:5px;font-weight:700;font-size:.9rem;min-width:170px}
+.cfson-stability-controls select{border:1px solid #6084a3;border-radius:8px;background:#10253c;color:#fff;padding:9px;font:inherit}
+.cfson-lab .cfson-stability button{font:inherit;font-weight:750;border-radius:9px;background:#155475;border:1px solid #7ccce4;color:#fff;padding:10px 14px;cursor:pointer}
+.cfson-lab .cfson-stability button:disabled{opacity:.5;cursor:not-allowed}
+.cfson-stability pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;background:#040d17;border-radius:10px;border:1px solid #2c516c;padding:14px;color:#cfeafa;line-height:1.8;min-height:90px;font-size:.86rem}
+.cfson-stability .cfson-warning{font-size:.88rem;color:#ffd9a7}

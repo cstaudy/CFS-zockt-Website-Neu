@@ -1,0 +1,63 @@
+/* R17: simpler typography and information hierarchy. No offsite fonts / scripts. */
+body.cfs-r17-simplified{font-family:"Segoe UI Variable","Aptos","Segoe UI",system-ui,sans-serif!important;font-size:15px;line-height:1.55;letter-spacing:0;color:#e6f1fb;background-color:#040d18}
+.cfs-r17-simplified :is(h1,h2,h3,h4){font-family:"Segoe UI Variable Display","Segoe UI Variable","Aptos Display",system-ui,sans-serif!important;letter-spacing:-.028em!important;line-height:1.18;text-transform:none}
+.cfs-r17-simplified :is(button,input,select,textarea){font:inherit}
+.cfs-r17-simplified :is(.r14-stat,.cfs-admin-status-card,.shop-featured-card,.original-design-card,.cfs-r6-entry-card){box-shadow:none!important;border-radius:13px!important}
+.cfs-r17-simplified .cfs-r14-top{background:#051526;border-bottom-color:#264b68;box-shadow:none}
+.cfs-r17-simplified .cfs-r14-top-inner{min-height:60px;max-width:1320px}
+.cfs-r17-simplified .cfs-r14-links a{font-size:13px;font-weight:600;letter-spacing:0}
+.cfs-r17-simplified :is(a,button){-webkit-tap-highlight-color:transparent}
+.cfs-r17-simplified nav a[href="/pages/cfs-ai.html"],.cfs-r17-simplified .r17-ai-paused,.cfs-r17-simplified .r17-hidden-tech{display:none!important}
+.cfs-r17-simplified .shop-hero{padding:20px 24px!important}
+.cfs-r17-simplified .shop-hero h1{font-size:clamp(30px,3vw,40px)!important}
+.cfs-r17-simplified .shop-hero-copy p{max-width:48ch;font-size:14px;line-height:1.55}
+.cfs-r17-simplified :is(.shop-discovery,.original-designs,.r14-ops-dashboard){background:#071b2d!important;border:1px solid #24465e!important;box-shadow:none!important}
+.cfs-r17-simplified .original-designs{padding:18px!important}
+.cfs-r17-simplified .original-design-grid{gap:12px!important}
+.cfs-r17-simplified .original-design-copy{padding:12px!important}
+.cfs-r17-simplified.cfs-shop-v172 .cfs-r6-shop-status{font-size:12px}
+.cfs-r17-simplified.cfs-admin-hub-page .cfs-admin-hub{max-width:1320px;grid-template-columns:190px minmax(0,1fr);gap:15px}
+.cfs-r17-simplified.cfs-admin-hub-page .cfs-admin-side{min-height:0!important;background:#071b2d!important;border-color:#24465e!important}
+.cfs-r17-simplified.cfs-admin-hub-page .cfs-admin-hero{background:#071b2d!important;border:1px solid #24465e!important;padding:17px 20px!important}
+.cfs-r17-simplified.cfs-admin-hub-page .cfs-admin-hero h1{font-size:32px!important}
+.cfs-r17-simplified.cfs-admin-hub-page .r14-ops-dashboard{padding:18px!important}
+.cfs-r17-simplified.cfs-admin-hub-page .r14-ops-dashboard .r14-ops-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.cfs-r17-simplified.cfs-admin-hub-page .r14-stat{min-height:83px!important;padding:13px 16px!important;border-color:#23465f!important;background:#07192b!important}
+.cfs-r17-simplified.cfs-admin-hub-page .r14-stat>span{font-size:12px}
+.cfs-r17-simplified.cfs-admin-hub-page .r14-stat>strong{font-size:clamp(21px,2.3vw,29px);margin:6px 0 0}
+.cfs-r17-simplified.cfs-admin-hub-page .r14-ops-line{margin-top:13px;padding-top:12px}
+.cfs-r17-simplified.cfs-admin-hub-page .r15-owner-console{border-color:#224f6f!important}
+.cfs-r17-simplified .r17-shop-drop{padding:20px;background:#071b2d;border:1px solid #2a617f;border-radius:16px;margin:12px 0 18px;min-width:0}
+.cfs-r17-simplified .r17-shop-drop[hidden],.r17-shop-owner-link[hidden]{display:none!important}
+.r17-shop-top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.r17-shop-top h2{margin:5px 0;font-size:23px;color:#f2f8ff}
+.r17-shop-top p{margin:2px 0;color:#a9c4d9;font-size:13px}
+.r17-kicker{display:block;color:#61c8fc;letter-spacing:.12em;font-size:11px;font-weight:800}
+.r17-minor-link{color:#8dd8ff;text-decoration:none;font-size:12px}
+.r17-shop-drop-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px}
+.r17-drop-target{border:2px dashed #2f789f;border-radius:14px;background:#051423;min-height:240px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;cursor:pointer;text-align:center;padding:25px;color:#dff5ff}
+.r17-drop-target:focus-visible{outline:3px solid #62d8ff;outline-offset:3px}
+.r17-drop-target.is-dragging{border-color:#52d0ff;background:#0a3552}
+.r17-drop-target .r17-drop-icon{font-size:32px;color:#5fcbff}
+.r17-drop-target span:not(.r17-drop-icon){font-size:12px;color:#a9c4d9}
+.r17-shop-drop button,.r17-shop-owner-link{border:1px solid #267da9;border-radius:9px;background:#0878bb;color:white;padding:11px 15px;text-decoration:none;font-size:13px;font-weight:700;cursor:pointer}
+.r17-shop-drop button:disabled{opacity:.4;cursor:not-allowed}
+.r17-drop-config{display:flex;flex-direction:column;gap:9px;min-width:0}
+.r17-drop-config label{display:flex;flex-direction:column;gap:5px;color:#afcde0;font-size:12px}
+.r17-drop-config input:not([type=checkbox]){border-radius:8px;border:1px solid #2c5776;background:#051322;color:#eef8ff;padding:10px 12px;min-width:0;width:100%}
+.r17-drop-config label.r17-check-label{flex-direction:row;align-items:center;gap:9px;color:#e3f3fe}
+.r17-file-selection{max-height:92px;overflow:auto;font-size:12px;overflow-wrap:anywhere;color:#b3d7ef;margin:0}
+.r17-shop-hint{font-size:11px;line-height:1.5;color:#a7c2d7;margin:0}
+.r17-shop-status{margin-top:14px;border:1px solid #235475;padding:11px 13px;background:#061525;color:#a7ddfa;border-radius:9px;font-size:12px;overflow-wrap:anywhere}
+.r17-shop-status[data-error="true"]{border-color:#915e3a;color:#ffce9a}
+.r17-shop-owner-link{display:inline-flex;margin:15px 0 0;align-items:center}
+@media(max-width:1020px){.cfs-r17-simplified.cfs-admin-hub-page .cfs-admin-hub{grid-template-columns:1fr}.r17-shop-drop-layout{grid-template-columns:1fr}.r17-drop-target{min-height:180px}}
+@media(max-width:700px){.cfs-r17-simplified.cfs-admin-hub-page .r14-ops-dashboard .r14-ops-grid{grid-template-columns:1fr 1fr}.r17-shop-top h2{font-size:20px}}
+@media(max-width:440px){.cfs-r17-simplified.cfs-admin-hub-page .r14-ops-dashboard .r14-ops-grid{grid-template-columns:1fr}}
+
+.cfs-r17-simplified .r17-shop-owner-panel[hidden]{display:none!important}
+.cfs-r17-simplified .r17-shop-owner-panel{margin:12px 0 16px;border:1px solid #254961;background:#061725;border-radius:13px}
+.cfs-r17-simplified .r17-shop-owner-panel>summary{cursor:pointer;padding:13px 18px;color:#97dbff;font-weight:750;font-size:13px;list-style:none}
+.cfs-r17-simplified .r17-shop-owner-panel>summary:before{content:"＋ ";color:#4cbbf6}
+.cfs-r17-simplified .r17-shop-owner-panel[open]>summary{border-bottom:1px solid #254961}
+.cfs-r17-simplified .r17-shop-owner-panel .r17-shop-drop{margin:12px}

@@ -1,0 +1,12 @@
+/* R138: exactly five primary Creator destinations; grouped detail links retain access to every tool. */
+.creator-nav .r138-nav-group{display:grid;gap:1px;margin:0;padding:3px 0 8px;min-width:0}
+.creator-nav .r138-nav-group+.r138-nav-group{border-top:1px solid rgba(83,175,222,.16);padding-top:9px}
+.creator-nav .r138-nav-group-label{display:block;padding:8px 11px 4px;color:#69cfff;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.creator-nav .creator-nav-more-menu{min-width:256px;max-height:min(68vh,650px);overflow-y:auto;overscroll-behavior:contain}
+.creator-nav .r138-nav-group>a{display:block;min-height:35px;line-height:1.4;padding:8px 11px}
+.creator-nav .r138-nav-group>a:focus-visible{outline:2px solid #65dcff;outline-offset:-2px;color:white;background:#14334a}
+@media(max-width:760px){
+ .creator-site-header .creator-nav.open{max-height:calc(100dvh - 76px);overflow-y:auto}
+ .creator-nav .creator-nav-more-menu{max-height:none;overflow:visible;min-width:0}
+ .creator-nav .r138-nav-group>a{min-height:44px;display:flex;align-items:center}
+}

@@ -1,0 +1,132 @@
+/* R115 · Widget/Scene Studio preview-first: existing editor DOM is unchanged. */
+body[data-cfs-r108-view="widget-studio"] .ws-editor-grid-v2 {
+  grid-template-columns:minmax(158px,192px) minmax(0,1fr) minmax(210px,258px)!important;
+}
+body[data-cfs-r108-view="scene-studio"] .scene-workspace {
+  grid-template-columns:minmax(166px,205px) minmax(0,1fr) minmax(208px,254px)!important;
+  align-items:start;
+}
+body[data-cfs-r108-view="scene-studio"] .scene-editor,
+body[data-cfs-r108-view="widget-studio"] .ws-canvas-column-v2{min-width:0}
+body.r115-panels-ready .r115-view-switch {
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  width:100%;margin:8px 0 10px;padding:6px;border:1px solid rgba(52,137,191,.42);
+  border-radius:12px;background:rgba(3,16,29,.93);
+}
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"] .r115-view-switch {margin:0;border-radius:0;border-inline:0}
+body.r115-panels-ready .r115-view-button {
+  display:inline-flex;align-items:center;justify-content:center;min-height:39px;
+  padding:8px 12px;border:1px solid transparent;border-radius:8px;
+  background:transparent;color:#adccdf;cursor:pointer;
+  font:700 11px/1.3 system-ui,-apple-system,Segoe UI,sans-serif;
+}
+body.r115-panels-ready .r115-view-button[aria-pressed="true"] {
+  border-color:rgba(40,176,246,.8);background:rgba(7,62,98,.9);color:white;
+}
+body.r115-panels-ready .r115-view-button:hover {background:rgba(12,70,106,.7);color:#fff}
+body.r115-panels-ready .r115-view-button:focus-visible {outline:2px solid #75dcff;outline-offset:2px}
+/* Full-width preview: hide only secondary columns, never preview or publishing tools. */
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="canvas"] .ws-editor-grid-v2 {grid-template-columns:minmax(0,1fr)!important}
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="canvas"] .ws-editor-grid-v2>.ws-editor-left-v2,
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="canvas"] .ws-editor-grid-v2>.ws-editor-right-v2{display:none!important}
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="tools"] .ws-editor-grid-v2,
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="properties"] .ws-editor-grid-v2 {grid-template-columns:minmax(0,1fr)!important}
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="tools"] .ws-editor-grid-v2>.ws-canvas-column-v2,
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="tools"] .ws-editor-grid-v2>.ws-editor-right-v2,
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="properties"] .ws-editor-grid-v2>.ws-canvas-column-v2,
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="properties"] .ws-editor-grid-v2>.ws-editor-left-v2{display:none!important}
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="tools"] .ws-editor-grid-v2>.ws-editor-left-v2,
+body.r115-panels-ready[data-cfs-r108-view="widget-studio"][data-r115-mode="properties"] .ws-editor-grid-v2>.ws-editor-right-v2 {
+  display:block!important;max-height:none!important;overflow:visible!important;
+}
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="canvas"] .scene-workspace,
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="tools"] .scene-workspace,
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="properties"] .scene-workspace{grid-template-columns:minmax(0,1fr)!important}
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="canvas"] .scene-workspace>.scene-sidebar,
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="canvas"] .scene-workspace>.scene-library,
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="tools"] .scene-workspace>.scene-editor,
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="tools"] .scene-workspace>.scene-library,
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="properties"] .scene-workspace>.scene-editor,
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="properties"] .scene-workspace>.scene-sidebar{display:none!important}
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="tools"] .scene-workspace>.scene-sidebar,
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"][data-r115-mode="properties"] .scene-workspace>.scene-library{
+  display:block!important;position:static;max-height:none;grid-column:auto;
+}
+@media(max-width:1100px){
+  body[data-cfs-r108-view="scene-studio"] .scene-workspace {grid-template-columns:minmax(160px,190px) minmax(0,1fr)!important}
+  body[data-cfs-r108-view="scene-studio"] .scene-workspace>.scene-library {grid-column:1/-1;position:static;max-height:none}
+}
+@media(max-width:960px){
+  body[data-cfs-r108-view="widget-studio"] .ws-editor-grid-v2 {grid-template-columns:minmax(0,1fr)!important}
+}
+@media(max-width:760px){
+  body[data-cfs-r108-view="scene-studio"] .scene-workspace {grid-template-columns:minmax(0,1fr)!important}
+  body.r115-panels-ready .r115-view-switch {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:6px}
+  body.r115-panels-ready .r115-view-button {width:100%;min-height:44px;padding:9px 7px}
+  body.r115-panels-ready[data-cfs-r108-view="widget-studio"] .ws-stage-wrap-v2 {min-height:400px!important;padding:14px!important}
+  body.r115-panels-ready[data-cfs-r108-view="scene-studio"] .scene-stage-wrap {min-height:400px;padding:12px}
+}
+@media(prefers-reduced-motion:reduce){body.r115-panels-ready .r115-view-button{transition:none!important}}
+/* Correct an inherited off-screen editor offset on narrow layouts. */
+@media(max-width:960px){
+  body[data-cfs-r108-view="widget-studio"] .ws-editor-v2{
+    left:0!important;width:100%!important;margin:0!important;transform:none!important;
+  }
+  body[data-cfs-r108-view="widget-studio"] .ws-canvas-toolbar-v2,
+  body[data-cfs-r108-view="widget-studio"] .ws-test-controls-v2,
+  body[data-cfs-r108-view="widget-studio"] .ws-canvas-tools{
+    min-width:0;max-width:100%;flex-wrap:wrap!important;
+  }
+}
+@media(max-width:960px){
+  body[data-cfs-r108-view="widget-studio"] .ws-canvas-column-v2{
+    grid-template-columns:minmax(0,1fr)!important;
+    max-width:100%;min-width:0;
+  }
+  body[data-cfs-r108-view="widget-studio"] .ws-canvas-column-v2>*{
+    box-sizing:border-box;max-width:100%;min-width:0;
+  }
+}
+@media(max-width:960px){
+  body[data-cfs-r108-view="widget-studio"] .ws-canvas-footer-v2{
+    display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-start;
+  }
+  body[data-cfs-r108-view="widget-studio"] .ws-footer-hint{margin-left:0;max-width:100%;}
+}
+/* Widget Studio has a legacy 50%-offset full-screen editor; keep it inside the page. */
+body[data-cfs-r108-view="widget-studio"] .ws-editor-v2 {
+  left:0!important;width:100%!important;margin:0!important;transform:none!important;
+}
+/* Avoid overlapping Publish/Preview controls on narrow Widget Studio screens. */
+@media(max-width:760px){
+  body[data-cfs-r108-view="widget-studio"] .ws-editor-appbar {
+    display:flex!important;flex-wrap:wrap;gap:8px!important;
+    height:auto!important;min-height:0;padding:9px!important;align-items:center;
+  }
+  body[data-cfs-r108-view="widget-studio"] .ws-editor-appbar-left,
+  body[data-cfs-r108-view="widget-studio"] .ws-editor-actions {
+    position:static!important;min-width:0;max-width:100%;
+    flex:1 1 100%;display:flex!important;flex-wrap:wrap;gap:6px!important;
+    justify-content:flex-start;align-items:center;
+  }
+  body[data-cfs-r108-view="widget-studio"] .ws-editor-actions>.btn {
+    flex:1 1 125px;white-space:normal;min-height:42px!important;
+  }
+  body[data-cfs-r108-view="widget-studio"] .ws-editor-appbar-center {position:static;min-width:0;flex-wrap:wrap;}
+}
+
+/* R122 – state hint is quiet but available to assistive technology. */
+body.r115-panels-ready .r122-view-feedback {
+  margin-left:auto;padding:4px 8px;color:#a5c9dd;
+  font:500 11px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;
+}
+@media(max-width:760px){
+  body.r115-panels-ready .r122-view-feedback{grid-column:1/-1;margin:0;padding:2px 6px;font-size:10px}
+}
+@media(forced-colors:active){
+  body.r115-panels-ready .r115-view-button[aria-pressed="true"]{outline:2px solid Highlight;outline-offset:-2px}
+}
+
+/* R126: one visible focus control. The original button remains a fallback
+   if the compact JS enhancement is unavailable. */
+body.r115-panels-ready[data-cfs-r108-view="scene-studio"] .scene-hero .cfs-r33-focus-toggle{display:none!important}

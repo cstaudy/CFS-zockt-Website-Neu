@@ -1,0 +1,10 @@
+/* R131 – compact orientation on legacy creator modules. */
+.r131-module-entry{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;margin:10px 0 20px;border:1px solid rgba(53,167,232,.28);border-radius:12px;background:rgba(5,22,41,.72);color:#dbeeff}
+.r131-module-entry .r131-copy{display:grid;gap:3px;min-width:0;flex:1 1 260px}
+.r131-module-entry .r131-copy strong{font-size:.88rem;line-height:1.4}
+.r131-module-entry .r131-copy p{margin:0;color:#b8d5e9;font-size:.85rem;line-height:1.5}
+.r131-module-entry .r131-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.r131-module-entry .r131-actions a{display:inline-flex;align-items:center;min-height:38px;padding:7px 11px;border:1px solid rgba(96,191,244,.45);border-radius:9px;color:#d8f7ff;text-decoration:none;font-size:.83rem;font-weight:700;background:rgba(10,72,110,.26)}
+.r131-module-entry .r131-actions a:hover,.r131-module-entry .r131-actions a:focus-visible{border-color:#66deff;background:rgba(10,111,162,.36);outline-offset:2px}
+.r131-module-entry .r131-tag{color:#9ddcf4;font-size:.7rem;font-weight:800;letter-spacing:.075em;text-transform:uppercase}
+@media(max-width:540px){.r131-module-entry{padding:11px 12px;margin:8px 0 14px}.r131-module-entry .r131-actions{width:100%}.r131-module-entry .r131-actions a{flex:1 1 auto;justify-content:center}}

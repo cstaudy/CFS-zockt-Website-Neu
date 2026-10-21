@@ -1,0 +1,111 @@
+/* R112 — compact, consistent CFS interface polish.
+   Scoped to R111-branded pages; presentation only, no changes to auth / APIs. */
+body.cfs-r111-atmosphere{
+ --r112-border:rgba(62,166,225,.30);
+ --r112-ink:#effaff;
+ --r112-muted:#acc6d7;
+ --r112-panel:rgba(5,18,35,.9);
+}
+/* One visual rhythm across the five creator areas. */
+body.cfs-r111-atmosphere .cfs-global-sidebar{
+ border-right:1px solid rgba(55,140,197,.21)!important;
+ background:linear-gradient(180deg,rgba(4,16,32,.94),rgba(3,10,23,.9))!important;
+ backdrop-filter:blur(14px);
+}
+body.cfs-r111-atmosphere .cfs-global-sidebar>a.cfs-sidebar-link{
+ border:1px solid transparent!important; border-radius:11px!important;
+ margin:3px 7px!important; padding:11px 12px!important;
+ font-weight:650!important;line-height:1.35!important;
+ transition:background .16s ease,border-color .16s ease,color .16s ease;
+}
+body.cfs-r111-atmosphere .cfs-global-sidebar>a.cfs-sidebar-link.active{
+ background:linear-gradient(95deg,rgba(12,112,174,.30),rgba(10,48,89,.52))!important;
+ border-color:rgba(51,188,244,.54)!important;
+ box-shadow:inset 3px 0 #27c9ff!important;
+}
+body.cfs-r111-atmosphere .cfs-global-sidebar>a.cfs-sidebar-link:hover{
+ background:rgba(15,79,124,.40)!important; color:#f5fbff!important;
+}
+/* Navigation and orientation need similar scales everywhere. */
+body.cfs-r111-atmosphere .r108-context{
+ background:rgba(4,18,32,.87)!important;
+ border-color:var(--r112-border)!important;
+ border-radius:11px!important;
+ min-height:39px!important;
+}
+body.cfs-r111-atmosphere .r108-context-actions a{
+ background:rgba(7,37,61,.65)!important;
+ border-radius:8px!important;
+}
+body.cfs-r111-atmosphere .r106-page-intro h1,
+body.cfs-r111-atmosphere .account-hero h1,
+body.cfs-r111-atmosphere .ub65-head h1{
+ letter-spacing:-.028em!important;line-height:1.12!important;
+}
+/* Consistent slim, readable cards and links. Controls remain operable. */
+body.cfs-r111-atmosphere :is(.r106-shortcuts>a,.r106-tool-grid>a,.r106-panel,
+  .account-card,.cfs-r20-studio-card,.management-summary-card,.integration-group,
+  .ub65-settings,.ub65-stage-shell,.stream-status-strip,.scene-sidebar,.scene-library){
+ border-radius:13px!important;
+ border-color:var(--r112-border)!important;
+ box-shadow:0 13px 36px rgba(0,0,0,.20),inset 0 1px rgba(96,198,255,.045)!important;
+}
+body.cfs-r111-atmosphere :is(.r106-shortcuts>a,.r106-tool-grid>a,.cfs-r20-studio-card){
+ min-width:0;
+ transition:transform .15s ease,border-color .15s ease,background-color .15s ease;
+}
+body.cfs-r111-atmosphere :is(.r106-shortcuts>a,.r106-tool-grid>a,.cfs-r20-studio-card):hover{
+ border-color:rgba(76,205,255,.7)!important;
+}
+body.cfs-r111-atmosphere .r106-shortcuts>a{min-height:85px!important;padding:13px!important;gap:10px!important;}
+body.cfs-r111-atmosphere .r106-tool-grid>a{min-height:72px!important;padding:10px 12px!important;}
+body.cfs-r111-atmosphere .r106-panel{padding:15px!important;}
+body.cfs-r111-atmosphere .r106-panel-title{margin-bottom:10px!important;}
+body.cfs-r111-atmosphere .r106-stream-row{min-height:75px!important;padding:11px!important;}
+body.cfs-r111-atmosphere .r106-panel-hint{margin:0 0 9px!important;}
+/* In the account, the existing four top tabs are the sole sub-navigation. */
+body.cfs-r111-atmosphere[data-cfs-r108-view='account'] .account-hero{
+ margin-bottom:12px!important;padding:13px 17px!important;
+}
+body.cfs-r111-atmosphere[data-cfs-r108-view='account'] .account-tabs{
+ border:1px solid rgba(53,135,188,.27)!important;
+ background:rgba(4,18,32,.88)!important;
+ padding:5px!important;border-radius:12px!important;
+}
+body.cfs-r111-atmosphere[data-cfs-r108-view='account'] .account-tabs>button{
+ min-width:0!important;border-radius:9px!important;
+}
+/* Editors: uninterrupted work area, compact and consistent controls. */
+body.cfs-r111-atmosphere[data-cfs-r109='compact'] #builderApp{max-width:1520px!important;}
+body.cfs-r111-atmosphere[data-cfs-r109='compact'] .ub65-head{margin-bottom:4px!important;}
+body.cfs-r111-atmosphere[data-cfs-r109='compact'] .ub65-tabs{gap:6px!important;}
+body.cfs-r111-atmosphere[data-cfs-r109='compact'] .ub65-tabs button{
+ border-radius:9px!important;min-height:39px!important;
+}
+body.cfs-r111-atmosphere[data-cfs-r109='compact'] .ub65-settings{
+ background:linear-gradient(145deg,rgba(6,22,39,.96),rgba(4,13,25,.93))!important;
+ backdrop-filter:blur(12px);
+}
+body.cfs-r111-atmosphere[data-cfs-r109='compact'] .ub65-stage-shell{
+ background:rgba(3,11,21,.92)!important;
+}
+body.cfs-r111-atmosphere[data-cfs-r109='compact'] .r109-editor-extras>summary{
+ min-height:42px!important;padding:10px 12px!important;
+}
+body.cfs-r111-atmosphere :is(.ub65-toolbar,.stream-operator-nav,.account-tabs){row-gap:8px!important;}
+body.cfs-r111-atmosphere :is(button,a,summary,[role='tab']):focus-visible{
+ outline:2px solid #5de1ff!important;outline-offset:3px!important;
+}
+@media(max-width:760px){
+ body.cfs-r111-atmosphere .r108-context{padding:8px 11px!important;}
+ body.cfs-r111-atmosphere .r106-panel{padding:12px!important;}
+ body.cfs-r111-atmosphere .r106-shortcuts>a{min-height:75px!important;padding:10px!important;}
+ body.cfs-r111-atmosphere .r106-tool-grid>a{min-height:67px!important;}
+ body.cfs-r111-atmosphere[data-cfs-r109='compact'] .ub65-main{grid-template-columns:minmax(0,1fr)!important;}
+}
+@media(max-width:380px){
+ body.cfs-r111-atmosphere .r106-tool-grid{grid-template-columns:minmax(0,1fr)!important;}
+}
+@media(prefers-reduced-motion:reduce){
+ body.cfs-r111-atmosphere :is(.r106-shortcuts>a,.r106-tool-grid>a,.cfs-r20-studio-card,.cfs-sidebar-link){transition:none!important;}
+}

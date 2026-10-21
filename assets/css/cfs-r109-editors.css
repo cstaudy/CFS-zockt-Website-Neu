@@ -1,0 +1,36 @@
+/* R109: compact creator editors, progressive-disclosure UI. Layout only. */
+body[data-cfs-r109="compact"] {--r109-ink:#f0f8ff;--r109-accent:#31c5f3;--r109-line:#17475f}
+body[data-cfs-r109="compact"] #builderApp {max-width:1520px;padding:9px clamp(10px,2vw,22px) 28px!important}
+body[data-cfs-r109="compact"] #builderApp>.r108-context {margin:4px 0 12px;max-width:none}
+body[data-cfs-r109="compact"] .ub65-head{padding:6px 0 11px;gap:12px}
+body[data-cfs-r109="compact"] .ub65-head h1{font-size:clamp(23px,2.4vw,32px)!important;letter-spacing:-.03em}
+body[data-cfs-r109="compact"] .ub65-head p{margin:3px 0 0;font-size:12px}
+body[data-cfs-r109="compact"] .ub65-tabs{padding:10px 0 13px;gap:6px}
+body[data-cfs-r109="compact"] .ub65-tabs button{padding:8px 12px;min-height:37px;border-radius:8px}
+body[data-cfs-r109="compact"] .ub65-main{grid-template-columns:minmax(260px,318px) minmax(0,1fr);gap:12px}
+body[data-cfs-r109="compact"] .ub65-settings{padding:12px;gap:5px;border-color:var(--r109-line);border-radius:12px;background:#071728}
+body[data-cfs-r109="compact"] .ub65-sidebar-header{padding:3px 0 9px;margin:0}
+body[data-cfs-r109="compact"] .ub65-group{gap:7px;padding:9px 0}
+body[data-cfs-r109="compact"] .ub65-group-title{font-size:11px;letter-spacing:.025em;color:#6cdaff}
+body[data-cfs-r109="compact"] .ub65-group input:not([type=range]),body[data-cfs-r109="compact"] .ub65-group select{min-height:35px;height:35px}
+body[data-cfs-r109="compact"] .ub65-group .ub93-layer-tools{gap:5px}
+body[data-cfs-r109="compact"] .ub65-stage-shell{min-height:210px;padding:10px;border-radius:12px}
+body[data-cfs-r109="compact"] .ub65-work-area{gap:9px}
+body[data-cfs-r109="compact"] .ub65-toolbar{gap:6px}
+body[data-cfs-r109="compact"] .ub65-toolbar button{min-height:36px}
+body[data-cfs-r109="compact"] .ub65-note{font-size:11px;padding:8px 10px}
+body[data-cfs-r109="compact"] .ub99-draft-panel{padding:9px 11px}
+body[data-cfs-r109="compact"] .r109-editor-extras{min-width:0;border:1px solid var(--r109-line);border-radius:10px;background:#0a1d30;margin:4px 0}
+body[data-cfs-r109="compact"] .r109-editor-extras>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;padding:11px 12px;font-size:12px;font-weight:750;color:#e4f6ff}
+body[data-cfs-r109="compact"] .r109-editor-extras>summary::-webkit-details-marker{display:none}
+body[data-cfs-r109="compact"] .r109-editor-extras>summary span{font-size:10px;font-weight:500;color:#8cb8d0}
+body[data-cfs-r109="compact"] .r109-editor-extras[open]>summary{border-bottom:1px solid var(--r109-line)}
+body[data-cfs-r109="compact"] .r109-editor-extras>.ub65-group{padding:11px!important;margin:0!important;border:0!important}
+body[data-cfs-r109="compact"] .r109-editor-extras>.ub65-assets{margin:10px;padding:10px}
+body[data-cfs-r109="compact"] .r109-editor-extras>summary:focus-visible{outline:2px solid #53d9ff;outline-offset:3px}
+/* Editor pages use the same typographic rhythm without hiding input/outputs. */
+body[data-cfs-r108-view="widget-studio"] .ws-topbar,body[data-cfs-r108-view="cut-studio"] .cut-hero,body[data-cfs-r108-view="scene-studio"] .scene-hero{margin-bottom:11px!important}
+body[data-cfs-r108-view="widget-studio"] .ws-shell,body[data-cfs-r108-view="cut-studio"] .cut-workspace,body[data-cfs-r108-view="scene-studio"] .scene-workspace{gap:11px!important}
+@media(max-width:860px){body[data-cfs-r109="compact"] .ub65-main{grid-template-columns:minmax(0,1fr)}body[data-cfs-r109="compact"] .ub65-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}body[data-cfs-r109="compact"] .ub65-settings>.ub65-group,body[data-cfs-r109="compact"] .ub65-settings>.r109-editor-extras,body[data-cfs-r109="compact"] .ub65-sidebar-header{grid-column:1/-1}body[data-cfs-r109="compact"] .ub65-stage-shell{min-height:180px}}
+@media(max-width:520px){body[data-cfs-r109="compact"] .ub65-settings{grid-template-columns:minmax(0,1fr)}body[data-cfs-r109="compact"] .ub65-status{display:none}body[data-cfs-r109="compact"] .ub65-tabs button{flex:1 1 auto;font-size:11px}body[data-cfs-r109="compact"] .ub65-toolbar{display:grid;grid-template-columns:1fr 1fr}body[data-cfs-r109="compact"] .ub65-toolbar .ub65-primary{grid-column:1/-1}body[data-cfs-r109="compact"] .ub65-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){body[data-cfs-r109="compact"] *{scroll-behavior:auto!important}}

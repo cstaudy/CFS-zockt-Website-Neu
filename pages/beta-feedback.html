@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="theme-color" content="#061424"><title>Beta-Feedback | CFS Zockt</title><link rel="stylesheet" href="/assets/css/cfs-r77-beta-feedback.css?v=R77">  <link rel="stylesheet" href="/assets/css/cfs-r168-product.css?v=R168" data-cfs-product-brand="R168">
+  <link rel="icon" href="/assets/img/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+</head>
+<body class="r77-feedback-page"><main class="r77-feedback-form-shell">
+<nav aria-label="Zurück"><a href="/pages/creator-suite.html">← Creator Suite</a></nav>
+<p class="r77-kicker">CFS ZOCKT · GESCHLOSSENE BETA</p><h1>Feedback und Fehler melden</h1>
+<p>Nur für angemeldete, freigeschaltete Beta-Tester. Bitte keine Passwörter, Zugangstokens oder privaten OBS-Links einfügen.</p>
+<p id="r77-web-access" role="status" aria-live="polite">Berechtigung wird geprüft …</p>
+<button id="r80-check-access" type="button" class="r80-access-refresh">Zugriff erneut prüfen</button>
+<form id="r77-feedback-form" hidden>
+<label>Art<select name="kind"><option value="bug">Fehler</option><option value="ux">Bedienung</option><option value="idea">Idee</option><option value="other">Sonstiges</option></select></label>
+<label>Dringlichkeit<select name="severity"><option value="medium">Mittel</option><option value="low">Niedrig</option><option value="high">Hoch</option><option value="critical">Kritisch</option></select></label>
+<label>Bereich<select name="category"><option value="other">Allgemein</option><option value="account">Konto / Login</option><option value="widgets">Widgets / Builder</option><option value="scenes">Szenen</option><option value="obs">OBS / Export</option><option value="live">Live-Verbindungen</option></select></label>
+<label>Kurzer Titel<input name="title" required minlength="5" maxlength="160" placeholder="Was ist passiert?"></label>
+<label>Beschreibung und Schritte<textarea name="description" required minlength="10" maxlength="3000" rows="6" placeholder="Was hast du gemacht, was ist passiert und was hast du erwartet?"></textarea></label>
+<label>Getesteter Stand<input name="test_build" maxlength="80" value="CFS R80 · 3.20.71 (Teststand)"></label>
+<button type="submit" id="r77-send-feedback">Bericht speichern</button>
+</form>
+<h2>Meine Meldungen</h2><div id="r77-my-feedback" class="r77-my-feedback">Noch keine Berichte geladen.</div>
+</main><script src="/assets/js/cfs-shell-v3.js" defer></script><script src="/assets/js/app.js"></script><script src="/assets/js/cfs-r77-beta-feedback.js?v=R80" defer></script></body></html>

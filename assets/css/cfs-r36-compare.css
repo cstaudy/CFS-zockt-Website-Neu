@@ -1,0 +1,13 @@
+/* R36 · Vergleich mit dem Original und Reset statt zusätzlicher Kategorien. */
+#wsWidgetConverter .ws-r36-actions{display:flex;gap:8px;flex-wrap:wrap}
+#wsWidgetConverter .ws-r36-actions .btn,#wsWidgetConverter .ws-r36-compare .btn{min-height:34px;font-size:12px;padding:7px 11px;white-space:normal}
+#wsWidgetConverter .ws-r36-compare{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+#wsWidgetConverter .ws-r36-compare small{flex:1;min-width:125px;color:#a5c7d9;font-size:11px;line-height:1.45}
+#wsWidgetConverter .ws-r36-compare button[aria-pressed="true"]{border-color:#4dd6ff;background:rgba(30,153,199,.2);color:#e3faff}
+#wsWidgetConverter .ws-r36-preview-media{position:relative;min-width:0;max-width:100%;display:inline-grid;place-items:center}
+#wsWidgetConverter .ws-r36-preview-media canvas{max-width:100%;max-height:345px;width:auto;height:auto}
+#wsWidgetConverter #wsConverterOriginalPreview{position:absolute;inset:0;width:100%;height:100%;object-position:center;pointer-events:none}
+#wsWidgetConverter #wsConverterOriginalPreview[hidden]{display:none!important}
+@media(max-width:600px){#wsWidgetConverter .ws-r36-compare{align-items:stretch;flex-direction:column;gap:5px}#wsWidgetConverter .ws-r36-compare small{min-width:0}}
+/* Zwischenbreiten: ältere Widget-Schnellwahl war auf mindestens 620px fixiert. */
+@media(min-width:621px) and (max-width:900px){.ws-simple-type-picker{min-width:0;max-width:100%;box-sizing:border-box}}

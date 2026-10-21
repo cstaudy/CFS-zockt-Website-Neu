@@ -1,0 +1,7 @@
+/* R54: compact geometry aids; property controls only. */
+.cfs-r54-safe-fit{display:grid;gap:5px;margin:8px 0;min-width:0}
+.cfs-r54-safe-fit button{min-height:32px;white-space:normal;text-align:center;border-color:rgba(66,203,225,.38)}
+.cfs-r54-safe-fit output,.cfs-r54-box-size{font-size:11px;line-height:1.4;color:#94b9cf;overflow-wrap:anywhere}
+.sm-r39-buttons{flex-wrap:wrap}
+#smR54SafeBox{border-color:rgba(66,203,225,.38)}
+@media(max-width:520px){.cfs-r54-safe-fit button{width:100%}.sm-r39-buttons>*{min-width:0}}

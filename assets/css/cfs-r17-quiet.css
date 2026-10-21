@@ -1,0 +1,36 @@
+/* R17 visual simplification: keep identity, reduce contrast and noise. */
+:root{--r17-edge:#24475d;--r17-focus:#80d7e6}
+body{color:#e7f3fa!important;background:#071727!important;font-size:clamp(15px,1.1vw,17px)}
+body :is(.cfs-r14-top,.site-header){background:#091b2deE!important;border-bottom:1px solid #224153!important}
+body .cfs-r14-links a,body .cfs-r14-account a{font-size:14px!important;font-weight:600!important}
+body :is(.r14-stat,.cfs-admin-action,.shop-route-card,.gaming-community-grid article,.cfs-admin-status-card){background:#10243a!important;border:1px solid var(--r17-edge)!important;border-radius:12px!important;box-shadow:none!important}
+body :is(.gaming-kicker,.r14-kicker,.cfs-admin-eyebrow,.sm-eyebrow){letter-spacing:.055em!important;color:#85c5d6!important}
+body :is(.cfs-admin-hero,.r14-ops-dashboard,.r17-shop-drop){background:#0b2033!important;box-shadow:none!important;border:1px solid var(--r17-edge)!important;border-radius:16px!important}
+body.cfs-admin-hub-page .cfs-admin-side a{font-weight:600}
+body.cfs-admin-hub-page .cfs-admin-hero{min-height:0}
+body.cfs-admin-hub-page .cfs-admin-hero p{max-width:56ch}
+body.cfs-admin-hub-page #r14-ops{margin-bottom:0}
+body.cfs-admin-hub-page #r14-ai{display:none!important}
+body.cfs-admin-hub-page .cfs-admin-action-grid{gap:10px}
+body.cfs-admin-hub-page .r17-shop-drop{padding:clamp(16px,2.4vw,26px);margin:16px 0 24px;min-width:0}
+.r17-drop-head{display:flex;align-items:start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:15px}
+.r17-drop-head h2{font-size:clamp(20px,2.1vw,26px);margin:3px 0 7px}
+.r17-drop-head p{margin:0;color:#b4cddd;max-width:65ch;font-size:14px}
+.r17-drop-head a{color:#87d4e8;font-size:14px;font-weight:650}
+.r17-eyebrow{font-size:11px!important;font-weight:700!important}
+.r17-drop-zone{border:2px dashed #477e91;border-radius:12px;background:#102b40;padding:28px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;cursor:pointer;transition:background .15s}
+.r17-drop-zone.is-dragging,.r17-drop-zone:focus-within{background:#163951;border-color:#84d7e8}
+.r17-drop-zone strong{font-size:17px;color:#edf9fe}
+.r17-drop-zone span,.r17-drop-status{font-size:13px;color:#bdd6e1}
+.r17-drop-zone input{max-width:100%;font-size:13px!important;margin-top:5px;cursor:pointer}
+.r17-drop-zone[aria-busy="true"]{opacity:.72;pointer-events:none}
+.r17-drop-drafts{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:12px}
+.r17-drop-drafts article{display:flex;flex-direction:column;gap:7px;min-width:0;background:#0d2639;border:1px solid #31536a;border-radius:10px;padding:10px}
+.r17-drop-drafts img{width:100%;height:130px;object-fit:contain;background:#061726;border-radius:6px}
+.r17-drop-drafts strong{font-size:13px;overflow-wrap:anywhere}
+.r17-drop-drafts small{font-size:12px;color:#b8d3e3}
+body:has(.gaming-hero) .gaming-community-stats{display:none!important}
+body:has(.gaming-hero) .gaming-section{padding-block:clamp(30px,4vw,56px)!important}
+body:has(.gaming-hero) .gaming-section-head p{max-width:56ch}
+@media(max-width:780px){.r17-drop-head{display:block}.r17-drop-zone{padding:19px 10px}.r17-drop-drafts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:430px){.r17-drop-drafts{grid-template-columns:1fr}}

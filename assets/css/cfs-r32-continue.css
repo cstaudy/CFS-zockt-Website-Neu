@@ -1,0 +1,11 @@
+/* R32: one small resume action; no extra panels, categories or data controls. */
+html.cfs-r20-suite .cfs-r32-resume{
+  display:inline-flex;align-items:center;justify-content:center;max-width:100%;
+  min-height:36px;padding:7px 12px;border:1px solid #35667f;border-radius:9px;
+  background:#0b2936;color:#e2f7ff;font-size:12px;font-weight:700;line-height:1.2;
+  text-decoration:none;overflow-wrap:anywhere
+}
+html.cfs-r20-suite .cfs-r32-resume[hidden]{display:none!important}
+html.cfs-r20-suite .cfs-r32-resume:focus-visible{outline:2px solid #81d2e8;outline-offset:3px}
+html.cfs-r20-suite .cfs-r32-resume:hover{background:#144058;border-color:#5ba2ca}
+@media(max-width:540px){html.cfs-r20-suite .cfs-r32-resume{flex:1 1 100%}}

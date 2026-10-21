@@ -1,0 +1,10 @@
+/* R50: compact shared history controls without extra navigation. */
+.cfs-r50-history{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;max-width:100%}
+.cfs-r50-history button{min-width:30px;min-height:30px;padding:4px 8px;border-radius:8px;border:1px solid rgba(108,166,203,.34);background:rgba(6,20,35,.78);color:#e8f6ff;cursor:pointer;font-size:17px;line-height:1}
+.cfs-r50-history button:hover:not(:disabled){background:rgba(34,104,142,.35)}
+.cfs-r50-history button:disabled{opacity:.36;cursor:not-allowed}
+.cfs-r50-history small{font-size:10px;color:#9fb8c9;white-space:nowrap;margin-inline:4px}
+.cfs-r50-scale{display:flex;align-items:center;gap:6px;justify-content:space-between;margin:5px 0}
+.cfs-r50-scale button{flex:1;min-width:0}
+.cfs-r50-scale output{font-size:12px;min-width:55px;text-align:center;color:#d6f3ff;font-variant-numeric:tabular-nums}
+@media(max-width:600px){.cfs-r50-history small{display:none}.scene-head-actions,.sm-toolbar{flex-wrap:wrap;gap:7px}.cfs-r50-history button{min-height:34px}}

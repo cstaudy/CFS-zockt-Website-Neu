@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="de" data-cfs-r51-design>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#020711">
+  <title>Admin Control Center | cfs_zockt</title>
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/admin-creators.css">
+<link rel="stylesheet" href="/assets/css/admin-finance-v32071.css">
+  <link rel="stylesheet" href="/assets/css/admin-control-center-v181.css">
+  <link rel="stylesheet" href="/assets/css/admin-beta-handbook-v154.css">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <link rel="stylesheet" href="/assets/css/cfs-theme-v3.css">
+  <script src="/assets/js/cfs-shell-v3.js" defer></script>
+  <link rel="stylesheet" href="/assets/css/cfs-brand-unified-v192.css" data-cfs-brand-v192>
+  <link rel="icon" href="/assets/img/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="600x600" href="/assets/img/app-icon.png">
+  <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="/assets/css/cfs-brand-v198.css" data-cfs-brand-v198>
+  <link rel="stylesheet" href="/assets/css/cfs-product-v199.css" data-cfs-product-v199>
+  <link rel="stylesheet" href="/assets/css/admin-cfs-ai-design-v32070.css">
+  <link rel="stylesheet" href="/assets/css/cfs-neon-redesign-v32071.css" data-cfs-neon-redesign>
+  <link rel="stylesheet" href="/assets/css/cfs-surface-v32073.css" data-cfs-surface="v32073">
+<link rel="stylesheet" href="/assets/css/cfs-r14-redesign.css?v=R14"><script src="/assets/js/cfs-r14-shell.js?v=R14" defer></script>  <link rel="stylesheet" href="/assets/css/cfs-r51-design-system.css?v=R51" data-cfs-r51-design>
+  <link rel="stylesheet" href="/assets/css/cfs-r168-product.css?v=R168" data-cfs-product-brand="R168">
+</head>
+<body data-cfs-product-v199="1" data-cfs-brand-v192="1" class="cfs-r6-ui creator-workspace cfs-private-product-v180" data-cfs-brand-v198="1">
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/">cfs_<span>zockt</span></a>
+    <nav class="nav open" style="display:flex">
+      <a href="/pages/dashboard.html">DASHBOARD</a>
+      <a href="/pages/widget-studio.html">WIDGET STUDIO</a>
+      <a href="/pages/scene-studio.html">SCENE STUDIO</a>
+      <a class="active" href="/pages/admin-creators.html">ADMIN</a>
+      <button data-logout>LOGOUT</button>
+    </nav>
+  </div>
+</header>
+
+<main class="container admin-shell">
+  <section class="admin-hero admin-hero-simple">
+    <div>
+      <div class="eyebrow">CFS ROOT · BETA CONTROL</div>
+      <h1>Admin Control Center</h1>
+      <p>Creator verwalten, Beta prüfen und Releases kontrollieren – getrennt in klare Arbeitsbereiche.</p>
+    </div>
+    <button class="btn primary" id="adminRefresh">ALLES AKTUALISIEREN</button>
+  </section>
+
+  <section class="admin-root-access" id="adminRootAccess" aria-label="Root Zugriff">
+    <div class="admin-root-identity">
+      <span class="admin-root-dot" aria-hidden="true"></span>
+      <div>
+        <span class="admin-step">DEIN ADMIN-KONTO</span>
+        <strong id="adminRootName">Root-Zugriff wird geprüft…</strong>
+        <small id="adminRootAccessText">Alle nutzbaren Creator-Suite-Werkzeuge werden für Admin freigeschaltet.</small>
+      </div>
+    </div>
+    <div class="admin-root-badges" aria-label="Admin Freigaben">
+      <span>WIDGETS · VOLL</span>
+      <span>LIVE · VOLL</span>
+      <span>CUT STUDIO · VOLL</span>
+      <span>OBS · VOLL</span>
+      <span>TWITCH · ROADMAP</span>
+    </div>
+    <div class="admin-root-links">
+      <a href="/pages/widget-studio.html">Widget Studio</a>
+      <a href="/pages/cut-studio.html">Cut Studio</a>
+      <a href="/pages/system-check.html">Systemcheck</a>
+      <a href="/pages/dashboard.html">Creator Dashboard</a>
+    </div>
+  </section>
+
+  <section class="admin-security-stepup" id="adminSecurity" aria-label="Admin Sicherheitsfreigabe">
+    <div class="admin-security-stepup-copy">
+      <span class="admin-step">PRIVILEGIERTE SCHREIBAKTIONEN</span>
+      <strong>Admin-Schutz <b id="adminElevationStatus">GESPERRT</b></strong>
+      <small id="adminElevationMeta">Änderungen an Creator-, Moderations-, Beta- und Release-Daten benötigen eine frische Passwortbestätigung.</small>
+    </div>
+    <div class="admin-security-stepup-form">
+      <input id="adminElevationPassword" type="password" autocomplete="current-password" maxlength="128" placeholder="Aktuelles Admin-Passwort" aria-label="Aktuelles Admin-Passwort">
+      <button class="btn primary" id="adminElevationUnlock" type="button">10 MIN. ENTSPERREN</button>
+      <button class="btn" id="adminElevationLock" type="button">SOFORT SPERREN</button>
+    </div>
+    <details class="admin-audit-details">
+      <summary>ADMIN-AUDIT ANZEIGEN</summary>
+      <div class="admin-audit-head"><div><small id="adminAuditMeta">Privilegierte Schreibaktionen werden ohne Request-Body, IP oder User-Agent protokolliert.</small><b id="adminAuditIntegrity" class="admin-audit-integrity">INTEGRITÄT WIRD GEPRÜFT</b></div><div class="admin-audit-actions"><button class="btn" id="refreshAdminAudit" type="button">AKTUALISIEREN</button><button class="btn" id="exportAdminAudit" type="button">FORENSIK-EXPORT</button></div></div>
+      <div id="adminAuditList" class="admin-audit-list"><div class="admin-empty">Audit wird geladen…</div></div>
+    </details>
+  </section>
+
+  <section class="admin-start" aria-label="Admin Schnellzugriff">
+    <div class="admin-start-head">
+      <div>
+        <span class="admin-step">SCHNELLZUGRIFF</span>
+        <h2>Was möchtest du machen?</h2>
+      </div>
+      <p>Öffne nur den Bereich, den du gerade brauchst. Technische Details bleiben sonst eingeklappt.</p>
+    </div>
+    <div class="admin-start-grid">
+      <button class="admin-start-card" type="button" data-admin-open="adminAiDesignPanel">
+        <span class="admin-start-icon">AI</span><strong>CFS AI Designs</strong>
+        <small>Entwürfe, Freigaben, Export und lokale KI steuern</small>
+      </button>
+      <button class="admin-start-card" type="button" data-admin-open="adminControlCenterPanel">
+        <span class="admin-start-icon">00</span>
+        <strong>Website & Produkte</strong>
+        <small>Dein privater Arbeitsbereich für Website, Games, Bundles, Einzelstücke & Releases</small>
+      </button>
+      <button class="admin-start-card active" type="button" data-admin-open="adminCreatorsPanel">
+        <span class="admin-start-icon">01</span>
+        <strong>Creator verwalten</strong>
+        <small>Accounts, TikTok, Launcher, Widgets, Scenes & Beta</small>
+      </button>
+      <button class="admin-start-card" type="button" data-admin-open="adminReviewsPanel">
+        <span class="admin-start-icon">02</span>
+        <strong>Rezensionen moderieren</strong>
+        <small>Pending prüfen, Texte freigeben oder ablehnen</small>
+      </button>
+      <button class="admin-start-card" type="button" data-admin-open="adminSupportPanel">
+        <span class="admin-start-icon">03</span>
+        <strong>Support & Sicherheit</strong>
+        <small>Private Meldungen prüfen und bearbeiten</small>
+      </button>
+      <button class="admin-start-card" type="button" data-admin-open="adminBetaPanel">
+        <span class="admin-start-icon">04</span>
+        <strong>Beta prüfen</strong>
+        <small>Feedback, Test-Sessions & RC-Readiness</small>
+      </button>
+      <button class="admin-start-card" type="button" data-admin-open="adminFinancePanel">
+        <span class="admin-start-icon">€</span><strong>Finanzen & Einnahmen</strong>
+        <small>Stripe-Zahlungen, Abo-Umsätze und Paketverkauf-Status</small>
+      </button>
+      <button class="admin-start-card" type="button" data-admin-open="adminProductionPanel">
+        <span class="admin-start-icon">05</span>
+        <strong>Production prüfen</strong>
+        <small>Config Doctor, Billing & Release Evidence</small>
+      </button>
+      <button class="admin-start-card" type="button" data-admin-open="adminReleasePanel">
+        <span class="admin-start-icon">06</span>
+        <strong>Release entscheiden</strong>
+        <small>Acceptance, Cohorts & GO / NO-GO</small>
+      </button>
+      <button class="admin-start-card" type="button" data-admin-open="adminIncidentPanel">
+        <span class="admin-start-icon">07</span>
+        <strong>Incident steuern</strong>
+        <small>Status, Wartung & Security Lockdown</small>
+      </button>
+    </div>
+  </section>
+
+  <section class="admin-overview">
+    <div class="admin-section-heading compact">
+      <div>
+        <span class="admin-step">STATUSÜBERSICHT</span>
+        <h2>Creator Suite auf einen Blick</h2>
+      </div>
+      <p>Diese Werte zeigen dir sofort, ob irgendwo Aufmerksamkeit nötig ist.</p>
+    </div>
+    <div class="admin-kpis">
+      <article><span>CREATOR</span><strong id="kCreators">–</strong></article>
+      <article><span>TIKTOK VERBUNDEN</span><strong id="kTikTok">–</strong></article>
+      <article><span>SYNC FRISCH</span><strong id="kSync">–</strong></article>
+      <article><span>LAUNCHER ONLINE</span><strong id="kLauncher">–</strong></article>
+      <article><span>BETA WARTEND</span><strong id="kBetaPending">–</strong></article>
+      <article><span>BETA AKTIV</span><strong id="kBeta">–</strong></article>
+      <article><span>LIVE JETZT</span><strong id="kLive">–</strong></article>
+    </div>
+  </section>
+
+  <section class="admin-focus" aria-label="Heute wichtig">
+    <div class="admin-section-heading compact">
+      <div><span class="admin-step">HEUTE WICHTIG</span><h2>Was braucht deine Aufmerksamkeit?</h2></div>
+      <p>Nur Auffälligkeiten und offene Aufgaben – keine technischen Detailwände.</p>
+    </div>
+    <div class="admin-focus-grid">
+      <button type="button" data-admin-open="adminCreatorsPanel"><strong id="focusAttention">–</strong><span>Creator prüfen</span><small>Readiness unter 75 %</small></button>
+      <button type="button" data-admin-open="adminCreatorsPanel"><strong id="focusTikTok">–</strong><span>TikTok prüfen</span><small>nicht verbunden / Sync alt</small></button>
+      <button type="button" data-admin-open="adminCreatorsPanel"><strong id="focusLauncher">–</strong><span>Launcher prüfen</span><small>nicht online</small></button>
+      <button type="button" data-admin-open="adminBetaPanel"><strong id="focusFeedback">–</strong><span>Beta Feedback</span><small>offene Meldungen</small></button>
+      <button type="button" data-admin-open="adminReviewsPanel"><strong id="focusReviews">–</strong><span>Rezensionen</span><small>wartet auf Moderation</small></button>
+      <button type="button" data-admin-open="adminSupportPanel"><strong id="focusSupportReports">–</strong><span>Support / Security</span><small>neu oder kritisch</small></button>
+    </div>
+  </section>
+
+
+  <details class="admin-workspace cfs-admin-ai" id="adminAiDesignPanel">
+    <summary class="admin-workspace-summary"><span class="admin-workspace-number">AI</span>
+      <span class="admin-workspace-copy"><strong>CFS AI Designproduktion</strong><small>Lokale KI überwachen, Entwürfe prüfen und manuelle Shop-Exporte erstellen.</small></span>
+      <span class="admin-workspace-toggle">ÖFFNEN</span></summary>
+    <div class="admin-workspace-body">
+      <div class="admin-section-heading"><div><span class="admin-step">3.20.70 · ADMIN ONLY</span>
+        <h2>KI-Designs verwalten</h2><p>Die KI läuft auf deinem Rechner. Du entscheidest über jeden Entwurf. Freigabe exportiert lokal – es findet kein automatisches Live-Deployment statt.</p></div>
+        <button class="btn" id="aiAdminRefresh" type="button">STATUS LADEN</button></div>
+      <div class="cfs-ai-kpis"><article><span>KI & BRIDGE</span><strong id="aiAdminConnection">Nicht geprüft</strong></article>
+        <article><span>OFFENE ENTWÜRFE</span><strong id="aiAdminPending">–</strong></article>
+        <article><span>FREIGEGEBEN (LOKAL)</span><strong id="aiAdminApproved">–</strong></article>
+        <article><span>LETZTER LAUF</span><strong id="aiAdminLastRun">–</strong></article></div>
+      <section class="cfs-bridge-check" aria-label="Verifizierter CFS-AI-Bridge-Status">
+        <h3>Cloud-Bridge prüfen</h3>
+        <p><strong id="aiBridgeProof">Noch nicht geprüft</strong> · Letzter Heartbeat: <span id="aiBridgeHeartbeat">–</span></p>
+        <p id="aiBridgeDetails">Ein lokaler KI-Status ist kein Beweis für eine Website-Verbindung.</p>
+        <button class="btn" type="button" id="aiBridgeVerify">BRIDGE ENDE-ZU-ENDE TESTEN</button>
+        <small>Nur du als Admin kannst diesen Test nach zusätzlicher Sicherheitsfreigabe starten.</small>
+      </section>
+      <p id="aiAdminNotice" class="cfs-ai-notice" role="status">Öffne diesen Bereich, um die Verbindung zu CFS AI zu prüfen.</p>
+      <div class="cfs-ai-admin-settings">
+        <h3>Hintergrund-Erstellung</h3>
+        <label class="cfs-ai-check"><input id="aiAdminEnabled" type="checkbox"> Automatische Entwürfe aktivieren</label>
+        <label>Richtung <input id="aiAdminHint" maxlength="280" placeholder="z. B. futuristisch, dezent, Cyan und Violett"></label>
+        <div class="cfs-ai-admin-nums"><label>Intervall (Stunden) <input id="aiAdminInterval" type="number" min="1" max="168" value="12"></label>
+          <label>Maximal pro Tag <input id="aiAdminMaxDay" type="number" min="1" max="12" value="2"></label>
+          <label>Maximal offene <input id="aiAdminMaxPending" type="number" min="1" max="40" value="12"></label></div>
+        <div class="cfs-ai-actions"><button class="btn primary" id="aiAdminSave" type="button">EINSTELLUNGEN SPEICHERN</button>
+          <button class="btn" id="aiAdminRun" type="button">JETZT ENTWURF ERSTELLEN</button></div>
+        <small>Änderungen benötigen oben die frische Admin-Sicherheitsfreigabe. Der Windows-PC und Ollama müssen eingeschaltet sein.</small>
+      </div>
+      <div class="cfs-ai-gallery-bar"><div><h3>Entwurfsgalerie</h3><p>Vorschauen enthalten keine echten Stream-Events.</p></div>
+        <label>Status <select id="aiAdminFilter"><option value="all">ALLE</option><option value="draft">OFFEN</option><option value="approved">FREIGEGEBEN</option><option value="rejected">ABGELEHNT</option></select></label></div>
+      <div class="cfs-ai-admin-gallery" id="aiAdminGallery"><p>Entwürfe werden geladen, sobald die KI erreichbar ist.</p></div>
+      <div class="cfs-ai-export"><p><strong>Shop-Übergabe</strong> – Nur freigegebene Designs werden in ein lokales ZIP gepackt. Das ZIP muss anschließend geprüft und separat in die Website übernommen werden.</p>
+        <button class="btn" id="aiAdminExport" type="button">SHOP-EXPORT HERUNTERLADEN</button></div>
+    </div>
+  </details>
+
+  <details class="admin-workspace admin-control-center-v181" id="adminControlCenterPanel" open>
+    <summary class="admin-workspace-summary">
+      <span class="admin-workspace-number">00</span>
+      <span class="admin-workspace-copy"><strong>Privates Admin Dashboard</strong><small>Website bearbeiten, Entwürfe prüfen und Produktionsbereiche steuern – nur für cfs_zockt Admin.</small></span>
+      <span class="admin-workspace-toggle">ÖFFNEN</span>
+    </summary>
+    <div class="admin-workspace-body">
+      <div class="admin-section-heading">
+        <div><span class="admin-step">V181 · PRIVATE ADMIN CONTROL CENTER</span><h2>Dein persönlicher Arbeitsbereich</h2><p>Öffentliche Inhalte werden zuerst als Entwurf gespeichert. Erst „Veröffentlichen“ macht den jeweiligen Abschnitt auf der Website sichtbar. Shop-Entwürfe, Assets, Rechte und interne Daten bleiben privat.</p></div>
+        <button class="btn" id="controlCenterRefresh" type="button">STATUS AKTUALISIEREN</button>
+      </div>
+      <div class="admin-private-badge"><b>PRIVATE ADMIN ONLY</b><span>Normale Creator erhalten weder diese Seite noch die Admin-APIs.</span></div>
+      <section class="admin-control-kpis" aria-label="Admin Control Center Status">
+        <article><span>WEBSITE ENTWÜRFE</span><strong id="ccSiteDirty">–</strong><small>noch nicht veröffentlicht</small></article>
+        <article><span>SHOP DRAFTS</span><strong id="ccShopDrafts">–</strong><small>Bundles & Einzelstücke</small></article>
+        <article><span>LIVE PRODUKTE</span><strong id="ccShopPublished">–</strong><small>aktuell veröffentlicht</small></article>
+        <article><span>ASSETS FREIGEGEBEN</span><strong id="ccAssetsApproved">–</strong><small>Rechte geprüft</small></article>
+        <article><span>ASSETS OFFEN</span><strong id="ccAssetsPending">–</strong><small>Rechte noch prüfen</small></article>
+        <article><span>CREATOR</span><strong id="ccCreators">–</strong><small>registrierte Accounts</small></article>
+      </section>
+
+      <div class="admin-control-grid">
+        <section class="admin-control-editor">
+          <div class="admin-control-editor-head"><div><span class="admin-step">WEBSITE STUDIO</span><h3>Öffentliche Website bearbeiten</h3></div><button class="btn" id="siteContentLoad" type="button">ENTWÜRFE LADEN</button></div>
+          <div class="admin-control-toolbar">
+            <label><span>BEREICH</span><select id="siteContentKey"><option value="home.identity">Start & Warum</option><option value="home.games">Games</option><option value="home.community">Community</option><option value="home.creator_entry">Creator Einstieg</option><option value="home.announcement">Update / Hinweis</option></select></label>
+            <div id="siteContentState" class="admin-site-state">Admin-Schutz entsperren und Entwürfe laden.</div>
+          </div>
+          <div id="siteContentForm" class="admin-site-form"><div class="admin-empty">Noch keine Website-Daten geladen.</div></div>
+          <div class="admin-site-actions">
+            <button class="btn" id="sitePreview" type="button">VORSCHAU</button>
+            <button class="btn" id="siteSaveDraft" type="button">ENTWURF SPEICHERN</button>
+            <button class="btn" id="siteRevert" type="button">AUF LIVE ZURÜCK</button>
+            <button class="btn primary" id="sitePublish" type="button">VERÖFFENTLICHEN</button>
+          </div>
+        </section>
+        <aside class="admin-site-preview" aria-live="polite">
+          <div class="admin-control-editor-head"><div><span class="admin-step">PRIVATE VORSCHAU</span><h3>So würde der Abschnitt wirken</h3></div></div>
+          <div id="sitePreviewHost" class="admin-site-preview-host"><div class="admin-empty">Vorschau bleibt ausschließlich in deinem Admin-Bereich.</div></div>
+        </aside>
+      </div>
+
+      <section class="admin-control-links" aria-label="Admin Produktionsbereiche">
+        <button type="button" data-admin-open="adminBundleFactoryPanel"><b>BUNDLES & EINZELSTÜCKE</b><span>Produkte erzeugen, duplizieren, aufwerten und veröffentlichen.</span></button>
+        <button type="button" data-admin-open="adminCreatorsPanel"><b>CREATOR & ACCOUNTS</b><span>Accounts, Beta, Launcher und Verbindungen kontrollieren.</span></button>
+        <button type="button" data-admin-open="adminProductionPanel"><b>PRODUCTION</b><span>Readiness, Konfiguration und technische Evidence prüfen.</span></button>
+        <button type="button" data-admin-open="adminReleasePanel"><b>RELEASES</b><span>Versionen, Acceptance und Freigabeentscheidungen steuern.</span></button>
+      </section>
+    </div>
+  </details>
+
+  <details class="admin-workspace admin-creators-workspace" id="adminCreatorsPanel" open>
+    <summary class="admin-workspace-summary">
+      <span class="admin-workspace-number">01</span>
+      <span class="admin-workspace-copy"><strong>Creator verwalten</strong><small>Der wichtigste Bereich für den täglichen Admin-Alltag.</small></span>
+      <span class="admin-workspace-toggle">ÖFFNEN</span>
+    </summary>
+    <div class="admin-workspace-body">
+      <div class="admin-section-heading">
+        <div><span class="admin-step">CREATOR</span><h2>Accounts & Status</h2></div>
+        <p>Suche zuerst einen Creator. Details und Aktionen erscheinen rechts neben der Liste.</p>
+      </div>
+      <section class="admin-toolbar" aria-label="Creator filtern">
+        <input id="adminSearch" placeholder="Creator, E-Mail oder TikTok suchen…" aria-label="Creator, E-Mail oder TikTok suchen">
+        <select id="adminPlan" aria-label="Creator nach Plan filtern"><option value="all">ALLE PLÄNE</option><option value="free">FREE</option><option value="creator">CREATOR</option><option value="pro">PRO</option></select>
+        <select id="adminBeta" aria-label="Creator nach Beta-Status filtern"><option value="all">ALLE BETA</option><option value="pending">WARTET AUF FREIGABE</option><option value="active">BETA AKTIV</option><option value="paused">BETA PAUSIERT</option><option value="none">KEIN BETA</option></select>
+        <select id="adminHealth" aria-label="Creator nach Kontostatus filtern"><option value="all">ALLE STATUS</option><option value="ready">READY ≥75%</option><option value="attention">BRAUCHT PRÜFUNG</option></select>
+      </section>
+      <section class="admin-layout">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>CREATOR</th><th>VERBINDUNGEN</th><th>INHALTE</th><th>READY</th><th>BETA</th></tr></thead>
+            <tbody id="adminRows"></tbody>
+          </table>
+        </div>
+        <aside class="admin-detail" id="adminDetail"><div class="admin-empty">Creator auswählen.</div></aside>
+      </section>
+    </div>
+  </details>
+
+  <details class="admin-workspace admin-reviews" id="adminReviewsPanel">
+    <summary class="admin-workspace-summary">
+      <span class="admin-workspace-number">02</span>
+      <span class="admin-workspace-copy"><strong>Rezensionen moderieren</strong><small>Öffentliche Merch-Rückmeldungen prüfen, freigeben oder ablehnen.</small></span>
+      <span class="admin-workspace-toggle">ÖFFNEN</span>
+    </summary>
+    <div class="admin-workspace-body">
+      <div class="admin-section-heading">
+        <div><span class="admin-step">COMMUNITY FEEDBACK</span><h2>Rezensions-Moderation</h2></div>
+        <p>Strukturierte Bewertungen zählen automatisch. Freitext bleibt Pending, bis du ihn ausdrücklich freigibst.</p>
+      </div>
+      <section class="admin-kpis review-kpis" aria-label="Rezensionsstatus">
+        <article><span>GESAMT</span><strong id="kReviewsTotal">–</strong></article>
+        <article><span>PENDING</span><strong id="kReviewsPending">–</strong></article>
+        <article><span>APPROVED</span><strong id="kReviewsApproved">–</strong></article>
+        <article><span>REJECTED</span><strong id="kReviewsRejected">–</strong></article>
+        <article><span>MIT KOMMENTAR</span><strong id="kReviewsComments">–</strong></article>
+      </section>
+      <section class="review-toolbar" aria-label="Rezensionen filtern">
+        <select id="reviewStatus" aria-label="Bewertungsstatus wählen"><option value="pending">PENDING</option><option value="approved">APPROVED</option><option value="rejected">REJECTED</option><option value="all">ALLE</option></select>
+        <input id="reviewSearch" maxlength="80" placeholder="Nickname, Kommentar oder Admin-Notiz suchen…" aria-label="Bewertungen durchsuchen">
+        <button class="btn" id="refreshReviews">REZENSIONEN LADEN</button>
+      </section>
+      <div class="review-admin-note">Keine erfundenen Bewertungen: Hier erscheinen ausschließlich Datensätze aus <code>public_reviews</code>. Abgelehnte Freitexte werden nicht öffentlich angezeigt.</div>
+      <section id="reviewAdminList" class="review-admin-list" aria-live="polite"><div class="admin-empty">Rezensionen werden geladen…</div></section>
+    </div>
+  </details>
+
+  <details class="admin-workspace admin-support-reports" id="adminSupportPanel">
+    <summary class="admin-workspace-summary">
+      <span class="admin-workspace-number">03</span>
+      <span class="admin-workspace-copy"><strong>Support & Sicherheit</strong><small>Private Website-Meldungen prüfen, priorisieren und abschließen.</small></span>
+      <span class="admin-workspace-toggle">ÖFFNEN</span>
+    </summary>
+    <div class="admin-workspace-body">
+      <div class="admin-section-heading">
+        <div><span class="admin-step">PRIVATE MELDUNGEN</span><h2>Support- & Security-Inbox</h2></div>
+        <p>Diese Meldungen sind nie öffentlich. Kritische Security-Meldungen werden zuerst sortiert.</p>
+      </div>
+      <section class="admin-kpis support-kpis" aria-label="Supportstatus">
+        <article><span>GESAMT</span><strong id="kSupportTotal">–</strong></article>
+        <article><span>NEU</span><strong id="kSupportNew">–</strong></article>
+        <article><span>IN PRÜFUNG</span><strong id="kSupportReviewing">–</strong></article>
+        <article><span>ERLEDIGT</span><strong id="kSupportResolved">–</strong></article>
+        <article><span>SECURITY NEU</span><strong id="kSupportSecurity">–</strong></article>
+        <article><span>KRITISCH OFFEN</span><strong id="kSupportCritical">–</strong></article>
+      </section>
+      <section class="support-admin-toolbar" aria-label="Support-Meldungen filtern">
+        <select id="supportReportStatus" aria-label="Supportfälle nach Status filtern"><option value="new">NEU</option><option value="reviewing">IN PRÜFUNG</option><option value="resolved">ERLEDIGT</option><option value="rejected">ABGEWIESEN</option><option value="all">ALLE</option></select>
+        <select id="supportReportCategory" aria-label="Supportfälle nach Bereich filtern"><option value="all">ALLE BEREICHE</option><option value="security">SICHERHEIT</option><option value="account">ACCOUNT</option><option value="privacy">DATENSCHUTZ</option><option value="technical">TECHNIK</option><option value="other">SONSTIGES</option></select>
+        <input id="supportReportSearch" maxlength="100" placeholder="Thema, Beschreibung, E-Mail oder Admin-Notiz…" aria-label="Supportfälle durchsuchen">
+        <button class="btn" id="refreshSupportReports">MELDUNGEN LADEN</button>
+      </section>
+      <div class="review-admin-note">Keine Secrets zurückkopieren: Passwörter, Tokens oder Recovery-Codes gehören weder in Admin-Notizen noch in Antworten. Kontakt-E-Mails sind nur für die Bearbeitung der jeweiligen Meldung gedacht.</div>
+      <section id="supportAdminList" class="support-admin-list" aria-live="polite"><div class="admin-empty">Support-Meldungen werden geladen…</div></section>
+      <section class="csp-telemetry" aria-label="CSP Security Telemetrie">
+        <div class="admin-section-heading compact">
+          <div><span class="admin-step">BROWSER SECURITY TELEMETRIE</span><h2>CSP-Verstöße</h2></div>
+          <button class="btn" id="refreshCspReports" type="button">TELEMETRIE LADEN</button>
+        </div>
+        <div class="review-admin-note">Datensparsam aggregiert: keine rohe IP, kein User-Agent, keine Query-Strings und tokenartige Pfadsegmente werden normalisiert. Die Telemetrie dient dazu, echte CSP-Probleme zu finden – nicht zum Besuchertracking.</div>
+        <section class="admin-kpis csp-kpis">
+          <article><span>MELDUNGEN</span><strong id="kCspOccurrences">–</strong></article>
+          <article><span>MUSTER</span><strong id="kCspPatterns">–</strong></article>
+          <article><span>AKTIV 24H</span><strong id="kCspActive">–</strong></article>
+          <article><span>EXTERN BLOCKIERT</span><strong id="kCspExternal">–</strong></article>
+        </section>
+        <section id="cspAdminList" class="csp-admin-list" aria-live="polite"><div class="admin-empty">CSP-Telemetrie wird geladen…</div></section>
+      </section>
+    </div>
+  </details>
+
+  <details class="admin-workspace admin-beta-center" id="adminBetaPanel">
+    <summary class="admin-workspace-summary">
+      <span class="admin-workspace-number">04</span>
+      <span class="admin-workspace-copy"><strong>Beta prüfen</strong><small>Feedback und Test-Sessions nur öffnen, wenn du sie bearbeiten möchtest.</small></span>
+      <span class="admin-workspace-toggle">ÖFFNEN</span>
+    </summary>
+    <div class="admin-workspace-body">
+      <div class="admin-beta-head admin-section-heading">
+        <div><div class="eyebrow">V27 · BETA FEEDBACK & RC</div><h2>Beta Inbox</h2><p>Test-Sessions, reproduzierbare Bugs und Release-Candidate-Readiness.</p></div>
+        <button class="btn" id="refreshBetaInbox">BETA DATEN LADEN</button>
+      </div>
+      <section class="admin-kpis beta-kpis">
+        <article><span>OFFENES FEEDBACK</span><strong id="kFeedbackOpen">–</strong></article>
+        <article><span>CRITICAL</span><strong id="kFeedbackCritical">–</strong></article>
+        <article><span>HIGH</span><strong id="kFeedbackHigh">–</strong></article>
+        <article><span>TESTSESSIONS</span><strong id="kBetaSessions">–</strong></article>
+        <article><span>GETESTETE CREATOR</span><strong id="kTestedCreators">–</strong></article>
+        <article><span>RC SCORE</span><strong id="kRcScore">–</strong></article>
+      </section>
+      <div class="rc-card" id="rcCard"><strong>RELEASE CANDIDATE</strong><span id="rcStatus">Wird geladen…</span><div id="rcChecks"></div></div>
+      <section class="admin-beta-box beta-handbook-admin-box">
+        <div class="admin-beta-box-head"><strong>BETA-TEST-HANDBUCH</strong><span id="betaHandbookAdminSummary">–</span></div>
+        <p class="beta-handbook-admin-copy">Strukturierte Ergebnisse pro Creator und Testschritt. Diagnoseinformationen stammen nur aus dem begrenzten, secret-freien Beta-Snapshot.</p>
+        <div id="betaHandbookAdminList" class="beta-handbook-admin-list"></div>
+      </section>
+      <div class="beta-admin-columns">
+        <section class="admin-beta-box">
+          <div class="admin-beta-box-head"><strong>FEEDBACK INBOX</strong><select id="feedbackFilter" aria-label="Feedback nach Status filtern"><option value="open">OFFEN</option><option value="all">ALLE</option><option value="critical">CRITICAL</option><option value="high">HIGH</option><option value="fixed">FIXED</option></select></div>
+          <div id="feedbackInbox" class="feedback-inbox"></div>
+        </section>
+        <section class="admin-beta-box">
+          <div class="admin-beta-box-head"><strong>LETZTE TESTSESSIONS</strong></div>
+          <div id="betaSessionList" class="beta-session-list"></div>
+        </section>
+      </div>
+    </div>
+  </details>
+
+  <details class="admin-workspace admin-bundle-factory" id="adminBundleFactoryPanel">
+    <summary class="admin-workspace-summary"><span class="admin-workspace-number">04</span><span class="admin-workspace-copy"><strong>Produkt-Umwandler & Bundle Factory</strong><small>Plattform, Produkttyp, Detail und Ausgabeform zentral auswählen.</small></span><span class="admin-workspace-toggle">ÖFFNEN</span></summary>
+    <div class="admin-workspace-body">
+      <div class="admin-section-heading"><div><span class="admin-step">V183 · EIN UMWANDLER</span><h2>Ein zentraler Produkt-Umwandler</h2><p>Alle bisherigen Umwandler laufen hier zusammen. Produkttyp, Plattform, Detail, Stil und Ausgabe als Bundle, Einzelstücke oder beides werden vor der Erzeugung festgelegt.</p></div><button class="btn" id="bundleFactoryRefresh" type="button">AKTUALISIEREN</button></div>
+      <section class="bundle-factory-grid">
+        <article class="bundle-factory-card"><h3>1 · Quellbilder</h3><input id="bundleFactoryFile" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Bilddatei für Bundle auswählen"><button class="btn" id="bundleFactoryUpload" type="button">BILD HOCHLADEN</button><small>Für eine Collection bis zu 6 freigegebene Bilder markieren.</small><div id="bundleFactoryAssets" class="bundle-factory-list"></div></article>
+        <article class="bundle-factory-card"><h3>2 · Rechte</h3><select id="bundleFactoryAsset" aria-label="Bundle-Asset auswählen"></select><select id="bundleFactoryRights" aria-label="Lizenzfreigabe auswählen"><option value="pending">NOCH NICHT FREIGEGEBEN</option><option value="approved">FÜR SHOP-NUTZUNG FREIGEGEBEN</option><option value="rejected">NICHT VERWENDEN</option></select><input id="bundleFactoryRightsSource" maxlength="240" placeholder="Quelle / Lizenz / eigener Upload" aria-label="Herkunft oder Lizenzquelle"><textarea id="bundleFactoryRightsNote" maxlength="1000" placeholder="Interne Rechte-Notiz" aria-label="Notiz zu Nutzungsrechten"></textarea><button class="btn" id="bundleFactorySaveRights" type="button">RECHTE SPEICHERN</button></article>
+        <article class="bundle-factory-card bundle-factory-guide"><h3>3 · Bereit zum Umwandeln</h3><p>Freigegebene Bilder oben markieren. Danach wird ausschließlich der zentrale Umwandler verwendet.</p><small>Keine zweite Bundle-/Widget-/Panel-Erzeugung mehr: Produkttyp, Plattform, Detail, Stil, Ausgabe und Varianten werden unten in einem Ablauf gewählt.</small></article>
+      </section>
+      <section class="admin-unified-converter" id="adminUnifiedConverter">
+        <div class="admin-section-heading compact"><div><span class="admin-step">ZENTRALER UMWANDLER</span><h2>Aus Bildern gezielt Produkte bauen</h2><p>Verwendet die oben markierten, freigegebenen Quellbilder. Entwürfe bleiben privat, bis du sie selbst veröffentlichst.</p></div></div>
+        <div class="admin-converter-grid">
+          <label><span>PRODUKTTYP</span><select id="adminConverterType"><option value="stream_status">STREAM-STATUS</option><option value="overlays">OVERLAYS</option><option value="panels">PANELS / CARDS</option><option value="widgets">PROVIDER-WIDGETS</option><option value="creator_pack">KOMPLETTER CREATOR-PACK</option></select></label>
+          <label><span>PLATTFORM</span><select id="adminConverterPlatform"><option value="twitch">TWITCH</option><option value="tiktok">TIKTOK</option><option value="neutral">PLATTFORMNEUTRAL</option></select></label>
+          <label><span>DETAIL</span><select id="adminConverterDetail"></select></label>
+          <label><span>AUSGABE</span><select id="adminConverterOutput"><option value="bundle_only">NUR BUNDLE</option><option value="singles_only">NUR EINZELSTÜCKE</option><option value="bundle_and_singles">BUNDLE + EINZELSTÜCKE</option></select></label>
+          <label><span>VARIANTEN</span><select id="adminConverterVariants"><option value="1">1 ENTWURF</option><option value="2">2 VARIANTEN</option><option value="4">4 VARIANTEN</option></select></label>
+          <label><span>DESIGN / PRESET</span><select id="adminConverterPreset"><option value="custom">CUSTOM</option><option value="cyber">CYBER</option><option value="gaming">GAMING</option><option value="seasonal">SEASONAL</option><option value="minimal">MINIMAL</option></select></label>
+          <label class="admin-converter-check"><input id="adminConverterBranding" type="checkbox" checked><span>QUELLBILDER ALS BRANDING MITNEHMEN</span></label>
+          <label><span>PRODUKTNAME</span><input id="adminConverterTitle" maxlength="120" placeholder="z. B. Neon Wolf Status Pack"></label>
+          <label><span>COLLECTION</span><input id="adminConverterCollection" maxlength="140" placeholder="z. B. Neon Wolf Collection"></label>
+        </div>
+        <div class="admin-converter-result"><div><b id="adminConverterSummary">–</b><small id="adminConverterHint">Nach der Erzeugung kannst du weiterhin einzelne Produkte oder die komplette Collection duplizieren.</small></div><button class="btn primary" id="adminConverterGenerate" type="button">AUSWAHL UMWANDELN</button></div>
+      </section>
+      <section class="bundle-compare" id="bundleFactoryCompare" hidden><div class="admin-section-heading compact"><div><span class="admin-step">VARIANTENVERGLEICH</span><h2>Bis zu 3 Entwürfe nebeneinander</h2></div><button class="btn" id="bundleFactoryClearCompare" type="button">AUSWAHL LEEREN</button></div><div id="bundleFactoryCompareGrid" class="bundle-compare-grid"></div></section>
+      <section class="bundle-catalog-tools" aria-labelledby="adminCatalogTitle"><div class="admin-section-heading compact"><div><span class="admin-step">V186 · ADMIN-KATALOG</span><h2 id="adminCatalogTitle">Suchen, filtern & Archiv überblicken</h2><p>Filter wirken nur auf den bereits autorisierten privaten Admin-Bestand. Archivierte Inhalte bleiben erhalten und können gezielt reaktiviert werden.</p></div><button class="btn" id="adminCatalogReset" type="button">FILTER ZURÜCKSETZEN</button></div><div class="bundle-catalog-kpis"><button type="button" class="bundle-catalog-kpi active" data-catalog-quick="all"><strong id="adminCatalogProductCount">0</strong><span>PRODUKTE</span></button><div class="bundle-catalog-kpi"><strong id="adminCatalogCollectionCount">0</strong><span>COLLECTIONS</span></div><button type="button" class="bundle-catalog-kpi archive" data-catalog-quick="archived"><strong id="adminCatalogArchivedProductCount">0</strong><span>ARCHIV-PRODUKTE</span></button><div class="bundle-catalog-kpi archive"><strong id="adminCatalogArchivedCollectionCount">0</strong><span>ARCHIV-COLLECTIONS</span></div></div><div class="bundle-catalog-filter-grid"><label><span>SUCHE</span><input id="adminCatalogSearch" type="search" maxlength="120" autocomplete="off" placeholder="Produkt, Collection, Plattform, Version …"></label><label><span>STATUS</span><select id="adminCatalogStatus"><option value="all">ALLE</option><option value="active">NICHT ARCHIVIERT</option><option value="published">IM SHOP</option><option value="draft">ENTWURF</option><option value="mixed">GEMISCHT</option><option value="archived">ARCHIVIERT</option></select></label><label><span>PLATTFORM</span><select id="adminCatalogPlatform"><option value="all">ALLE</option><option value="twitch">TWITCH</option><option value="tiktok">TIKTOK</option><option value="neutral">PLATTFORMNEUTRAL</option></select></label><label><span>ANGEBOT</span><select id="adminCatalogOffer"><option value="all">ALLE</option><option value="bundle">BUNDLES</option><option value="item">EINZELSTÜCKE</option></select></label></div><div class="bundle-catalog-result"><b id="adminCatalogResultSummary">0 Produkte · 0 Collections</b><small id="adminCatalogArchiveSummary">0 archivierte Collections · 0 archivierte Produkte</small></div></section>
+      <section class="bundle-collection-manager"><div class="admin-section-heading compact"><div><span class="admin-step">COLLECTION LIFECYCLE</span><h2>Serien komplett steuern</h2></div><div id="bundleFactoryCollections" class="bundle-collection-summary"></div></div><div id="bundleFactoryCollectionCards" class="bundle-collection-grid"></div></section><section class="bundle-factory-products"><div class="admin-section-heading compact"><div><span class="admin-step">V187 · SHOP ENTWÜRFE</span><h2>Produkte, Cover & Versionen · SVG/PNG/WebP</h2></div></div><div id="bundleFactoryProducts" class="bundle-product-grid"></div></section>
+    </div>
+  </details>
+
+<details class="admin-workspace admin-finance-v32071" id="adminFinancePanel">
+    <summary class="admin-workspace-summary"><span class="admin-workspace-number">€</span><span class="admin-workspace-copy"><strong>Finanzen & Einnahmen</strong><small>Bestätigte Stripe-Zahlungen; nicht die Produktpreise.</small></span><span class="admin-workspace-toggle">ÖFFNEN</span></summary>
+    <div class="admin-workspace-body">
+      <div class="admin-section-heading"><div><div class="eyebrow">FINANZEN · READ ONLY · VERTRAULICH</div><h2>Monatliche Zahlungseingänge</h2><p>Aus tatsächlich signierten Stripe-Webhooks. Anmeldung und starke Admin-Freigabe erforderlich. Dies ist keine Buchhaltungs- oder Steuerabrechnung.</p></div></div>
+      <div class="finance-controls"><label>Monat <input type="month" id="financeMonth" min="2020-01" max="2099-12"></label><button class="btn primary" type="button" id="financeLoad">ZAHLUNGSDATEN PRÜFEN</button><button class="btn" type="button" id="financeCsv" disabled>CSV EXPORT</button></div>
+      <div class="finance-state" id="financeReportStatus" role="status">Noch nicht geladen. Bitte zuerst den Admin-Schutz entsperren.</div>
+      <div class="finance-cards"><article><span>BESTÄTIGTE RECHNUNGEN</span><strong id="financeInvoiceCount">–</strong></article><article><span>AKTIVE ABOS</span><strong id="financeActiveCount">–</strong></article><article><span>PAKETE MIT PREISVORSCHAU</span><strong id="financePreviewCount">–</strong></article></div>
+      <div id="financeCurrencyRows" class="finance-currencies" aria-live="polite"></div>
+      <section class="cfs-bridge-check" aria-label="Shop Kaufabwicklung Freigabestatus"><h3>Einmalige Paketkäufe – Freigabeprüfung</h3><p><strong id="shopCheckoutGate">NICHT GEPRÜFT</strong> · <span id="shopCheckoutGateDetail">Vor dem Freischalten müssen Checkout, Webhook und Kaufberechtigung getestet werden.</span></p><button class="btn" id="shopCheckoutGateLoad" type="button">KAUF-FREIGABE PRÜFEN</button></section>
+      <p id="financeReportWarning" class="finance-state">Historische Daten, Gebühren und Erstattungen können unvollständig sein. Paketverkäufe sind noch nicht aktiviert.</p>
+    </div>
+  </details>
+
+  <details class="admin-workspace admin-production" id="adminProductionPanel">
+    <summary class="admin-workspace-summary">
+      <span class="admin-workspace-number">05</span>
+      <span class="admin-workspace-copy"><strong>Production prüfen</strong><small>Config, Billing und Evidence für technische Abnahmen.</small></span>
+      <span class="admin-workspace-toggle">ÖFFNEN</span>
+    </summary>
+    <div class="admin-workspace-body">
+      <div class="prod-head admin-section-heading">
+        <div><div class="eyebrow">V41 · PRODUCTION EVIDENCE & CONFIG</div><h2>Readiness, Billing & Release Proof</h2><p>Externe Gates werden mit nachvollziehbarer Evidence pro Release geführt.</p></div>
+        <button class="btn" id="refreshProduction">PRODUCTION DATEN LADEN</button>
+      </div>
+      <div class="prod-grid">
+        <article class="prod-card"><span>PRODUCTION SCORE</span><div class="prod-score" id="prodScore">–</div><div id="prodChecks"></div></article>
+        <article class="prod-card"><span>RUNTIME CONFIG DOCTOR</span><div class="config-doctor-score" id="configDoctorScore">–</div><div id="configDoctorChecks" class="config-doctor-checks"></div></article>
+        <article class="prod-card"><span>BILLING SUBSCRIPTIONS</span><div class="stripe-testmode-card"><small>STRIPE TESTMODE E2E</small><strong id="stripeTestmodeStatus">–</strong><span id="stripeTestmodeChecks"></span></div><div id="billingAdminList" class="billing-admin-list"></div></article>
+        <article class="prod-card prod-evidence-card"><span>RELEASE EVIDENCE</span><div class="evidence-form"><select id="prodEvidenceKind" aria-label="Art des Produktionsnachweises"></select><select id="prodEvidenceStatus" aria-label="Status des Produktionsnachweises"><option value="verified">VERIFIED</option><option value="failed">FAILED</option><option value="revoked">REVOKED</option></select><input id="prodEvidenceSource" maxlength="80" value="manual" placeholder="Quelle, z. B. github / windows-test" aria-label="Quelle des Produktionsnachweises"><input id="prodEvidenceReference" maxlength="500" placeholder="Run-URL / Ticket / Referenz" aria-label="Link oder Ticket des Produktionsnachweises"><input id="prodEvidenceSha" maxlength="64" placeholder="Artifact SHA256 optional" aria-label="SHA-256 des Nachweises"><textarea id="prodEvidenceNotes" maxlength="4000" placeholder="Was wurde real geprüft? Gerät, Ablauf, Ergebnis…" aria-label="Ergebnis des Produktionsnachweises"></textarea><button class="btn primary" id="saveProductionEvidence">EVIDENCE SPEICHERN</button></div><div id="prodEvidenceList" class="prod-evidence-list"></div></article>
+      </div>
+    </div>
+  </details>
+
+  <details class="admin-workspace admin-release-ops" id="adminReleasePanel">
+    <summary class="admin-workspace-summary">
+      <span class="admin-workspace-number">06</span>
+      <span class="admin-workspace-copy"><strong>Release entscheiden</strong><small>Acceptance, Beta-Cohorts und finale GO / NO-GO-Entscheidung.</small></span>
+      <span class="admin-workspace-toggle">ÖFFNEN</span>
+    </summary>
+    <div class="admin-workspace-body">
+      <div class="release-ops-head admin-section-heading">
+        <div><div class="eyebrow">V39 · RELEASE OPERATIONS</div><h2>GO / NO-GO Control</h2><p>Windows-, Updater-, Stripe-, OBS- und TikTok-Abnahmen gebündelt in einem Release-Gate.</p></div>
+        <button class="btn" id="refreshReleaseOps">RELEASE OPS LADEN</button>
+      </div>
+      <div class="release-ops-grid">
+        <article class="release-ops-card"><span>AUTOMATISCHE EMPFEHLUNG</span><div class="release-go-status" id="releaseGoStatus">–</div><div class="release-go-score" id="releaseGoScore">–</div><div id="releaseGoChecks"></div></article>
+        <article class="release-ops-card"><span>ACCEPTANCE PROTOKOLL</span><select id="acceptanceProtocol" aria-label="Abnahmeprotokoll auswählen"></select><div id="acceptanceSteps" class="acceptance-steps"></div><input id="acceptanceTarget" placeholder="Testgerät / Ziel" aria-label="Abnahmeziel oder Testgerät"><input id="acceptanceReference" placeholder="Run / Ticket / Referenz" aria-label="Referenz der Abnahme"><textarea id="acceptanceNotes" placeholder="Abnahme-Notizen" aria-label="Abnahme-Notizen"></textarea><button class="btn primary" id="saveAcceptance">ACCEPTANCE SPEICHERN</button></article>
+        <article class="release-ops-card release-cohort-card"><span>BETA COHORTS</span><div class="cohort-create"><select id="cohortStage" aria-label="Beta-Kohortenphase wählen"><option value="pilot">PILOT · 5</option><option value="expanded">EXPANDED · 20</option></select><input id="cohortName" placeholder="Cohort Name" aria-label="Beta-Kohortenname"><input id="cohortTarget" type="number" min="1" max="100" value="5" aria-label="Anzahl der Beta-Testkonten"><button class="btn" id="createCohort">COHORT ERSTELLEN</button></div><div id="releaseCohortList" class="release-cohort-list"></div></article>
+        <article class="release-ops-card"><span>FINALE ENTSCHEIDUNG</span><select id="releaseDecision" aria-label="Freigabeentscheidung wählen"><option value="hold">HOLD</option><option value="no_go">NO-GO</option><option value="go">GO</option></select><textarea id="releaseDecisionRationale" placeholder="Warum ist dieser Release GO / HOLD / NO-GO?" aria-label="Begründung der Freigabeentscheidung"></textarea><button class="btn primary" id="saveReleaseDecision">ENTSCHEIDUNG SPEICHERN</button><div id="releaseDecisionHistory" class="release-decision-history"></div></article>
+      </div>
+    </div>
+  </details>
+
+  <details class="admin-workspace admin-incident" id="adminIncidentPanel">
+    <summary class="admin-workspace-summary">
+      <span class="admin-workspace-number">07</span>
+      <span class="admin-workspace-copy"><strong>Incident & Notfallmodus</strong><small>Öffentlichen Status setzen und riskante Schreibwege kontrolliert einfrieren.</small></span>
+      <span class="admin-workspace-toggle">ÖFFNEN</span>
+    </summary>
+    <div class="admin-workspace-body">
+      <div class="admin-section-heading">
+        <div><div class="eyebrow">PASS 20 · INCIDENT RESPONSE</div><h2>Website Write-Freeze</h2><p>Die Website und der private Support bleiben erreichbar. Wartung oder Security Lockdown pausieren gezielt Creator-/Account-/Review-/Billing-Schreibwege.</p></div>
+        <button class="btn" id="refreshIncidentState" type="button">STATUS LADEN</button>
+      </div>
+      <div class="incident-admin-grid">
+        <article class="incident-admin-card">
+          <span>AKTUELLER STATUS</span>
+          <strong id="incidentCurrentMode">WIRD GELADEN</strong>
+          <small id="incidentCurrentMeta">Notfallstatus wird geprüft.</small>
+        </article>
+        <article class="incident-admin-card incident-admin-controls">
+          <label><span>MODUS</span><select id="incidentMode"><option value="normal">NORMAL</option><option value="degraded">DEGRADED</option><option value="maintenance">WARTUNG</option><option value="security_lockdown">SECURITY LOCKDOWN</option></select></label>
+          <label><span>ÖFFENTLICHE MELDUNG</span><textarea id="incidentPublicMessage" maxlength="240" placeholder="Kurz, sachlich und ohne interne Details."></textarea></label>
+          <label class="incident-revoke"><input id="incidentRevokeSessions" type="checkbox"> <span>Bei SECURITY LOCKDOWN alle anderen Login-Sitzungen widerrufen</span></label>
+          <button class="btn primary" id="saveIncidentState" type="button">INCIDENT-STATUS SPEICHERN</button>
+          <p id="incidentSaveFeedback" class="incident-save-feedback" role="status" aria-live="polite">Status prüfen, dann Änderungen speichern.</p>
+          <small>Änderungen benötigen den 10-Minuten-Admin-Step-up und werden im manipulations-erkennbaren Admin-Audit protokolliert.</small>
+        </article>
+      </div>
+    </div>
+  </details>
+</main>
+<div class="admin-toast" id="adminToast" hidden></div>
+<script src="/assets/js/app.js"></script>
+<script src="/assets/js/admin-creators.js"></script>
+<script src="/assets/js/admin-finance-v32071.js"></script>
+<script src="/assets/js/admin-shop-checkout-gate-v32072.js"></script>
+<script src="/assets/js/admin-control-center-v181.js"></script>
+<script src="/assets/js/admin-bundle-factory-v178.js"></script>
+<script src="/assets/js/admin-cfs-ai-design-v32070.js" defer></script>
+<script src="/assets/js/cfs-product-v199.js" defer></script>
+</body>
+</html>

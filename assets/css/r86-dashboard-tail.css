@@ -1,0 +1,306 @@
+/* R86 source: cfs-r16-clarity.css */
+/* R16 | clarity pass. A small, non-destructive theme layer. */
+:root{--r16-card:#0a1b30;--r16-edge:#1b4569;--r16-accent:#32baff}
+.cfs-r14-clean{font-size:15px;line-height:1.45}
+.cfs-r14-clean h1{letter-spacing:-.045em!important}
+.cfs-r14-clean :is(.r14-ops-dashboard,.cfs-ai-panel,.ws-shell,.ub-shell,.original-designs){box-shadow:none!important}
+.cfs-r14-clean :is(.cfs-r7-hub-bottom p,.ws-topbar p,.cfs-admin-section-head p,.cfs-admin-action p,.cfs-admin-hero p,.original-design-copy p){max-width:72ch;line-height:1.45}
+/* One navigation, one task. Preserve the underlying functions and permissions. */
+.cfs-r14-clean.cfs-ai-page .cfs-ai-hero{padding-top:16px;align-items:center}
+.cfs-r14-clean.cfs-ai-page .cfs-ai-hero h1{font-size:clamp(34px,4vw,53px);margin:3px 0 6px}
+.cfs-r14-clean.cfs-ai-page .cfs-ai-hero p{font-size:13px;line-height:1.5}
+.cfs-r14-clean.cfs-ai-page .cfs-ai-metrics{display:none}
+.cfs-r14-clean.cfs-ai-page .cfs-ai-shell{padding-top:12px}
+.cfs-r14-clean.cfs-ai-page .cfs-ai-tabs{margin:14px 0 12px}
+.r16-ai-help{margin:12px 0 16px;padding:12px 16px;border:1px solid #205379;border-radius:11px;background:#081b2e;color:#cbe6f8}
+.r16-ai-help summary{font-weight:750;cursor:pointer;color:#8dd6ff}
+.r16-ai-help ol{margin:14px 0;padding-left:25px;display:grid;gap:10px}
+.r16-ai-help code{font-size:12px;overflow-wrap:anywhere;color:#d5eaff}
+.r16-ai-help p{margin:10px 0 0;color:#92b4c9;font-size:12px}
+.r16-ai-help button{font-size:12px!important;padding:7px 12px!important}
+/* Admin: show the essential live tiles. Optional tasks are folded away. */
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hub{row-gap:12px}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hero{padding:16px 20px;min-height:0;margin:8px 0 0}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hero h1{font-size:clamp(26px,3vw,37px)}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hero p{margin:5px 0 12px;font-size:13px}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-side{position:sticky;top:88px;gap:3px;min-height:0;padding:11px}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-side a{padding:9px 12px;font-size:13px}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard{padding:18px;margin:0}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard .r14-ops-header{margin-bottom:12px}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard .r14-ops-grid{gap:9px}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard .r14-stat{padding:13px;min-height:80px}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard .r14-stat>strong{font-size:clamp(18px,2vw,26px);margin:5px 0}
+.cfs-r14-clean.cfs-admin-hub-page .r14-stat small{display:none}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard h2{font-size:20px}
+.cfs-r14-clean.cfs-admin-hub-page .r14-ops-line{margin-top:15px}
+.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hero-actions .btn{font-size:12px}
+.cfs-r14-clean.cfs-admin-hub-page .r16-admin-more{min-width:0;border:1px solid #1a4568;border-radius:10px;margin:4px 0;background:#07192a}
+.cfs-r14-clean.cfs-admin-hub-page .r16-admin-more>summary{padding:13px 16px;font-weight:700;cursor:pointer;color:#b6dfff}
+.cfs-r14-clean.cfs-admin-hub-page .r16-admin-more[open]>summary{border-bottom:1px solid #1a4568}
+.cfs-r14-clean.cfs-admin-hub-page .r16-admin-more .cfs-admin-status-grid,.cfs-r14-clean.cfs-admin-hub-page .r16-admin-more .cfs-admin-section{margin:12px}
+.cfs-r14-clean.cfs-admin-hub-page .r15-owner-console{margin:10px 0 25px;padding:17px}
+.cfs-r14-clean.cfs-admin-hub-page .r15-owner-head p,.cfs-r14-clean.cfs-admin-hub-page .r15-owner-card>p:first-of-type{font-size:12px}
+/* Widget studio: the creation view begins above the fold after a click. */
+.cfs-r14-clean .ws-view{scroll-margin-top:100px}
+.cfs-r14-clean .ws-topbar{padding-block:10px;margin-block:0}
+.cfs-r14-clean .ws-topbar h1{font-size:clamp(27px,3vw,39px)}
+.cfs-r14-clean .ws-topbar p{font-size:13px;margin:5px 0}
+.cfs-r14-clean .cfs-r7-hub:has(+ .ws-topbar){display:none}
+.cfs-r14-clean .creator-tool-entry:has([data-action="open-create"]){padding-block:13px;margin-block:8px}
+.cfs-r14-clean .creator-tool-entry:has([data-action="open-create"]) .creator-tool-path,
+.cfs-r14-clean .creator-tool-entry:has([data-action="open-create"]) .creator-tool-entry-head p,
+.cfs-r14-clean .ws-role-boundary,.cfs-r14-clean .ws-simple-guide-dashboard{display:none!important}
+/* Builder retains its own five steps; don't repeat the six-section landing steps above. */
+.cfs-r14-clean .cfs-r7-hub:has(+ .container + #builderApp),
+.cfs-r14-clean .cfs-r7-hub:has(~ #builderApp){display:none}
+/* Public design previews: no broken image icons for locked private ZIP resources. */
+.r16-file-chip{display:inline-flex;align-items:center;padding:9px 11px;border:1px solid #225275;background:#091e31;color:#b6ddf6;font-size:12px;border-radius:8px;line-height:1.35}
+.design-detail-thumbs:has(.r16-file-chip){display:flex;flex-wrap:wrap;gap:7px}
+.shop-scene-stage .r16-world-cover{background-repeat:no-repeat;background-size:cover;background-position:center}
+.shop-scene-stage .shop-scene-camera img[hidden],.shop-scene-stage .shop-scene-alert img[hidden]{display:none!important}
+.shop-scene-stage .shop-scene-camera:not(.has-private-asset),.shop-scene-stage .shop-scene-alert:not(.has-private-asset){border:1px dashed #4b7d9c;background:rgba(5,15,27,.85)}
+.shop-scene-stage .shop-scene-alert:not(.has-private-asset):after{content:'DEMO-ALERT · PRIVATES PNG';display:block;font-size:11px;color:#a2d5fb;padding:12px}
+.cfs-r14-clean .original-design-detail-page .shop-scene-preview{margin-top:12px}
+.cfs-r14-clean .original-design-detail-page .design-detail-note{font-size:12px}
+@media(max-width:800px){.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-hub{display:block}.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-side{position:static;display:flex;flex-direction:row;flex-wrap:wrap;margin:8px 0}.cfs-r14-clean.cfs-admin-hub-page .cfs-admin-side strong{width:100%}.cfs-r14-clean.cfs-admin-hub-page .r14-ops-dashboard .r14-ops-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cfs-r14-clean .cfs-r14-top-inner{min-height:56px}}
+@media(prefers-reduced-motion:reduce){.cfs-r14-clean *{scroll-behavior:auto!important}}
+
+
+/* R86 source: cfs-r19-professional.css */
+/* CFS R19 · Leiser Produkt-Workspace. Gestaltet nach bewährten UI-Mustern;
+   keine Fremd-Assets, keine Änderungen an Shop-/Auth-/Studio-Logik. */
+html.cfs-r19 {
+  --r19-bg:#070f1d;--r19-surface:#0d1b2d;--r19-surface-2:#12233a;
+  --r19-line:#263950;--r19-text:#edf3f9;--r19-mute:#aec0d0;--r19-cyan:#79d1dd;
+  color-scheme:dark;scroll-padding-top:88px;
+}
+html.cfs-r19 body {font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;letter-spacing:normal;color:var(--r19-text);background-color:var(--r19-bg);}
+html.cfs-r19 :is(h1,h2,h3,h4) {font-family:inherit;letter-spacing:-.035em;line-height:1.18;text-wrap:balance;}
+html.cfs-r19 p {text-wrap:pretty;}
+html.cfs-r19 :is(a,button,summary,input,textarea,select):focus-visible {outline:2px solid var(--r19-cyan)!important;outline-offset:3px;}
+html.cfs-r19 :is(.btn,.gaming-btn,button) {transition:background-color .16s ease,border-color .16s ease,transform .16s ease;}
+html.cfs-r19 :is(.btn,.gaming-btn):not(:disabled):active {transform:translateY(1px);}
+html.cfs-r19 :is(.btn.primary,.gaming-btn-primary,.tone-action.primary,.sm-primary) {background:#168ba8!important;border:1px solid #4eb7cc!important;color:#fff!important;box-shadow:none!important;text-shadow:none!important;}
+html.cfs-r19 :is(.btn.primary,.gaming-btn-primary,.tone-action.primary,.sm-primary):hover {background:#187e98!important;}
+html.cfs-r19 :is(input,select,textarea) {font-family:inherit;}
+html.cfs-r19 :is(.eyebrow,.section-kicker,.gaming-kicker,.cfs-r18-kicker){letter-spacing:.075em;font-weight:700;}
+html.cfs-r19 body :is(.glow,.neon-glow) {animation:none!important;}
+html.cfs-r19 .cfs-r19-skip {position:fixed;top:-100px;left:12px;z-index:99999;background:#d9f8ff;color:#062339;padding:10px 16px;border-radius:8px;font-weight:700;}
+html.cfs-r19 .cfs-r19-skip:focus {top:9px;}
+/* Navigation: muted chrome, workspace gets the attention. */
+html.cfs-r19 .cfs-r14-top {background:rgba(8,18,32,.98)!important;border-bottom:1px solid var(--r19-line)!important;box-shadow:none!important;}
+html.cfs-r19 .cfs-r14-top-inner {max-width:1380px;gap:14px;min-height:64px;padding:9px clamp(12px,2.3vw,26px);}
+html.cfs-r19 .cfs-r14-top .r14-mark img {filter:none;width:32px;height:32px;}
+html.cfs-r19 .cfs-r14-top .r14-mark {font-size:1rem;letter-spacing:-.02em;}
+html.cfs-r19 .cfs-r14-links {gap:4px;}
+html.cfs-r19 .cfs-r14-links a,html.cfs-r19 .cfs-r14-account a {font-size:.84rem;font-weight:600;padding:9px 10px;}
+html.cfs-r19 .cfs-r14-links a:hover,html.cfs-r19 .cfs-r14-links a[aria-current='page'] {background:#172c42;border-color:transparent;color:#e8f7fc;}
+html.cfs-r19 .cfs-r14-account a:last-child {background:#19384b!important;border:1px solid #31596b!important;color:#eaf8fb!important;}
+html.cfs-r19 .creator-site-header {background:#091727;border-color:var(--r19-line);box-shadow:none;}
+html.cfs-r19 .creator-nav a,html.cfs-r19 .creator-nav-more>summary {letter-spacing:normal;font-size:.83rem;}
+/* Workbench: concise orientation followed by the actual editor. */
+html.cfs-r19-studio .cfs-r18-workflow {background:var(--r19-surface)!important;border:1px solid var(--r19-line)!important;
+ box-shadow:none!important;border-radius:14px!important;padding:clamp(17px,2.1vw,28px)!important;margin-top:20px!important;margin-bottom:20px!important;max-width:1320px;}
+html.cfs-r19-studio .cfs-r18-workflow-heading {max-width:920px;}
+html.cfs-r19-studio .cfs-r18-kicker {display:none;}
+html.cfs-r19-studio .cfs-r18-title {font-size:clamp(1.55rem,2.5vw,2.15rem)!important;letter-spacing:-.045em;margin-top:9px;}
+html.cfs-r19-studio .cfs-r18-subtitle {color:var(--r19-mute);margin-top:5px;line-height:1.48;max-width:760px;font-size:.95rem;}
+html.cfs-r19-studio .cfs-r18-steps {gap:7px;margin-top:19px;}
+html.cfs-r19-studio .cfs-r18-step-link {background:#112339;border:1px solid #2a4158;border-radius:9px;padding:9px 13px;
+ font-size:.84rem;color:#dce8f3;min-height:43px;box-shadow:none;}
+html.cfs-r19-studio .cfs-r18-step-link:hover {border-color:var(--r19-cyan);background:#18354a;}
+html.cfs-r19-studio .cfs-r18-step-link.cfs-r19-first-step {border-color:#3b7b8a;background:#193b4b;}
+html.cfs-r19-studio .cfs-r18-step-number {width:22px;height:22px;background:#26495b;color:#e5fafd;}
+html.cfs-r19-studio .cfs-r18-workflow-actions {margin-top:6px;}
+html.cfs-r19-studio .cfs-r18-info-toggle {text-decoration:none;color:#9abac9;font-size:.8rem;}
+html.cfs-r19-studio .cfs-r18-info-toggle:hover {text-decoration:underline;color:#d4f3ff;}
+html.cfs-r19 .cfs-r19-trail {display:flex;align-items:center;gap:8px;font-size:.78rem;color:#95b0c1;}
+html.cfs-r19 .cfs-r19-trail a {color:#8dd2df;text-decoration:none;}
+html.cfs-r19 .cfs-r19-trail a:hover {text-decoration:underline;}
+html.cfs-r19 .cfs-r19-trail [aria-current] {color:#b6c6d3;}
+/* Real studio work surfaces: preserve all original button IDs, form controls and functions. */
+html.cfs-r19-studio :is(#cutApp,#alertToneStudio,#wsApp,#streamDockWorkspace,.scene-workspace,#builderApp,#editorForm,.device-management) {scroll-margin-top:110px;}
+html.cfs-r19-studio :is(.cut-mode-panel,.cut-jobs-panel,.device-management,.scene-workspace,.tone-control) {box-shadow:none!important;}
+html.cfs-r19-studio :is(.cut-mode-panel,.device-management) {border-radius:13px;border-color:var(--r19-line);}
+html.cfs-r19-studio .cut-mode-panel {background:#0c1d2e;}
+html.cfs-r19-studio #alertToneStudio {background:#0c1b2c!important;border-color:var(--r19-line)!important;}
+html.cfs-r19-studio .tone-control {border-color:#293e53;}
+html.cfs-r19-studio .device-management h2 {font-size:clamp(1.15rem,2vw,1.45rem);}
+html.cfs-r19-studio .device-management-head p {color:var(--r19-mute);max-width:680px;line-height:1.5;}
+html.cfs-r19-studio .release-orbit {filter:none;}
+html.cfs-r19-studio .release-hero {min-height:0;}
+html.cfs-r19-studio .cut-hero {min-height:0;}
+/* Suite directory: descriptive cards, not marketing boxes. */
+html.cfs-r19-suite .cfs-r18-suite-hub {background:none!important;border:0!important;box-shadow:none!important;padding:clamp(16px,2vw,26px) 10px!important;max-width:1190px;}
+html.cfs-r19-suite .cfs-r18-title {font-size:clamp(2rem,4vw,3rem);letter-spacing:-.05em;}
+html.cfs-r19-suite .cfs-r18-suite-cards {grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:25px;}
+html.cfs-r19-suite .cfs-r18-suite-card {position:relative;padding:19px;min-height:150px;gap:8px;border:1px solid var(--r19-line);background:#102136;border-radius:12px;transition:background .18s,border .18s,transform .18s;}
+html.cfs-r19-suite .cfs-r18-suite-card:hover {background:#152c42;border-color:#457b88;transform:translateY(-2px);}
+html.cfs-r19-suite .cfs-r18-suite-card strong {font-size:1.08rem;}
+html.cfs-r19-suite .cfs-r18-suite-card span:not(.cfs-r19-card-arrow) {font-size:.86rem;color:#b0c3d1;line-height:1.4;}
+html.cfs-r19-suite .cfs-r19-card-category {display:block;color:#81c9d5;font-size:.71rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;}
+html.cfs-r19-suite .cfs-r19-card-arrow {position:absolute;right:17px;top:15px;color:#79bac9;}
+html.cfs-r19-suite .cfs-r18-suite-background {border-top:1px solid var(--r19-line);margin-top:22px;padding-top:12px;}
+html.cfs-r19-suite .cfs-r18-suite-background summary {font-size:.85rem;color:#9bb6c8;}
+/* Public landing/shop/admin: accessible hierarchy, no fake revenue, no design-original exposure. */
+html.cfs-r19-home .gaming-hero {box-shadow:none!important;border-color:var(--r19-line)!important;border-radius:14px!important;}
+html.cfs-r19-home .gaming-hero-copy {max-width:680px;}
+html.cfs-r19-home .gaming-hero h1 {line-height:1.06;}
+html.cfs-r19-home .gaming-hero-copy>p {color:#b6c9d6;}
+html.cfs-r19-home .gaming-section:not(.gaming-hero) {scroll-margin-top:88px;}
+html.cfs-r19-home .gaming-why-v180 {border-top:1px solid #1b3147;}
+html.cfs-r19-home .gaming-stream-layout :is(article,aside) {box-shadow:none;}
+html.cfs-r19-shop .shop-hero,html.cfs-r19-shop .shop-discovery {box-shadow:none!important;border-color:var(--r19-line)!important;}
+html.cfs-r19-shop .original-design-grid {gap:14px;}
+html.cfs-r19-shop .original-design-card {background:var(--r19-surface)!important;border-color:var(--r19-line)!important;}
+html.cfs-r19-admin .r14-ops-dashboard {box-shadow:none!important;border-color:var(--r19-line);background:var(--r19-surface);}
+html.cfs-r19-admin .r14-stat {background:#102136;border-color:#2b4056;}
+html.cfs-r19-admin .cfs-admin-status-card {box-shadow:none!important;}
+html.cfs-r19-dashboard .creator-dashboard-hero {box-shadow:none!important;border-color:var(--r19-line)!important;}
+/* Quick switcher: keyboard-accessible, non-modal controls retain their normal behavior. */
+html.cfs-r19 .cfs-r19-switch {display:inline-flex;align-items:center;justify-content:center;gap:10px;flex:none;
+ background:#10253a;border:1px solid #2b4d63;border-radius:9px;min-height:38px;padding:7px 11px;color:#e2f1fa;font:600 .84rem system-ui,sans-serif;white-space:nowrap;cursor:pointer;}
+html.cfs-r19 .cfs-r19-switch:hover {background:#19394d;border-color:#539aaa;}
+html.cfs-r19 .cfs-r19-switch kbd {font:600 .7rem system-ui,sans-serif;color:#a3c1cd;background:#1d3346;border:1px solid #375267;border-radius:5px;padding:2px 5px;}
+html.cfs-r19 .cfs-r19-dialog {border:1px solid #36576b;border-radius:16px;padding:0;background:#0c1a2a;color:#eff7fd;width:min(92vw,610px);max-height:min(82vh,750px);box-shadow:0 24px 80px #0009;}
+html.cfs-r19 .cfs-r19-dialog::backdrop {background:rgba(0,7,17,.72);backdrop-filter:blur(3px);}
+html.cfs-r19 .cfs-r19-dialog-inner {padding:14px;}
+html.cfs-r19 .cfs-r19-dialog-top {display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+html.cfs-r19 .cfs-r19-search {min-width:0;flex:1;background:#10243a;border:1px solid #37546b;border-radius:10px;color:#f5f9fc;padding:13px 14px;font-size:1rem;}
+html.cfs-r19 .cfs-r19-search::placeholder {color:#9fb7c7;}
+html.cfs-r19 .cfs-r19-close {background:#14283a;color:#d7e7f0;border:1px solid #34506a;border-radius:9px;padding:12px;cursor:pointer;}
+html.cfs-r19 .cfs-r19-results {max-height:min(54vh,510px);overflow-y:auto;overscroll-behavior:contain;}
+html.cfs-r19 .cfs-r19-group {color:#80bdc9;text-transform:uppercase;letter-spacing:.1em;font-weight:750;font-size:.7rem;padding:14px 8px 7px;}
+html.cfs-r19 .cfs-r19-result {display:flex;align-items:center;justify-content:space-between;gap:16px;border-radius:9px;padding:11px 12px;color:#e7f2f8;text-decoration:none;}
+html.cfs-r19 .cfs-r19-result:hover,html.cfs-r19 .cfs-r19-result:focus-visible,html.cfs-r19 .cfs-r19-result.is-current {background:#173349;text-decoration:none;}
+html.cfs-r19 .cfs-r19-result-text {display:grid;gap:3px;}
+html.cfs-r19 .cfs-r19-result-text strong {font-weight:690;font-size:.91rem;}
+html.cfs-r19 .cfs-r19-result-text small {color:#a9becc;font-size:.81rem;}
+html.cfs-r19 .cfs-r19-result-arrow {color:#85bccb;font-size:.76rem;white-space:nowrap;}
+html.cfs-r19 .cfs-r19-note,html.cfs-r19 .cfs-r19-empty {color:#9bb4c4;font-size:.76rem;line-height:1.5;margin:13px 6px 3px;}
+@media(max-width:1080px) {
+ html.cfs-r19-suite .cfs-r18-suite-cards {grid-template-columns:repeat(2,minmax(0,1fr));}
+ html.cfs-r19 .cfs-r19-switch kbd {display:none;}
+}
+@media(max-width:760px) {
+ html.cfs-r19 .cfs-r14-top-inner {gap:8px;}
+ html.cfs-r19 .cfs-r19-switch {padding:8px 10px;min-height:38px;}
+ html.cfs-r19 .cfs-r14-links {order:3;width:100%;}
+ html.cfs-r19-studio .cfs-r18-workflow {margin-top:10px!important;padding:18px!important;}
+ html.cfs-r19-studio .cfs-r18-steps {display:grid;grid-template-columns:1fr;}
+ html.cfs-r19-suite .cfs-r18-suite-cards {grid-template-columns:repeat(2,minmax(0,1fr));}
+ html.cfs-r19-suite .cfs-r18-suite-card {min-height:145px;padding:14px;}
+ html.cfs-r19-home .gaming-hero-grid {grid-template-columns:1fr;}
+}
+@media(max-width:440px) {
+ html.cfs-r19 .cfs-r19-dialog-top {flex-wrap:wrap;}
+ html.cfs-r19 .cfs-r19-close {font-size:.8rem;}
+ html.cfs-r19-suite .cfs-r18-suite-cards {grid-template-columns:1fr;}
+ html.cfs-r19-suite .cfs-r18-suite-card {min-height:105px;}
+}
+@media(prefers-reduced-motion:reduce) {
+ html.cfs-r19 :is(.cfs-r18-suite-card,.btn,.gaming-btn,button) {transition:none!important;animation:none!important;}
+}
+
+
+/* R86 source: cfs-r22-focus.css */
+/* R22 – Homepage & Dashboard: one focus per view; no changes to backend or studio editors. */
+:root { --cfs-r22-panel:#0a1b2a; --cfs-r22-line:#234055; --cfs-r22-accent:#5dc5e6; }
+body.cfs-r22-home,body.cfs-r22-dashboard { font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+body.cfs-r22-home :is(.gaming-hero,.cfs-r6-entry-section,.gaming-streams,.gaming-games,.gaming-community),
+body.cfs-r22-dashboard :is(.creator-dashboard-hero,.creator-next-step-v166,.creator-dashboard-actions-v166) { box-shadow:none!important; }
+body.cfs-r22-home .gaming-hero { max-width:1160px!important; min-height:310px!important; margin-top:18px!important; }
+body.cfs-r22-home .gaming-hero-grid { min-height:310px!important; grid-template-columns:minmax(0,46%) minmax(0,54%)!important; }
+body.cfs-r22-home .gaming-hero-copy { padding:28px clamp(18px,4vw,44px)!important; }
+body.cfs-r22-home .gaming-hero h1 { font-size:clamp(32px,4.6vw,56px)!important; line-height:1.08!important; max-width:550px; }
+body.cfs-r22-home .gaming-hero-copy>p { font-size:clamp(14px,1.25vw,16px)!important; line-height:1.5!important; max-width:44ch; }
+body.cfs-r22-home .gaming-hero-art { min-height:310px!important; }
+body.cfs-r22-home .gaming-hero-actions { margin-top:22px!important; flex-wrap:wrap; }
+body.cfs-r22-home .gaming-section,body.cfs-r22-home .cfs-r6-entry-section { max-width:1160px; margin-left:auto; margin-right:auto; }
+body.cfs-r22-home .cfs-r6-entry-section { padding:26px 0 10px!important; }
+body.cfs-r22-home .cfs-r6-section-heading { margin-bottom:14px; }
+body.cfs-r22-home .cfs-r6-section-heading h2 { font-size:clamp(20px,2.1vw,27px); margin:0; }
+body.cfs-r22-home .cfs-r6-entry-grid { gap:12px; }
+body.cfs-r22-home .cfs-r6-entry-card { padding:20px!important; min-height:128px!important; gap:9px; }
+body.cfs-r22-home .cfs-r6-entry-card strong { font-size:17px; }
+body.cfs-r22-home .gaming-section { padding-block:22px!important; }
+body.cfs-r22-home .gaming-section-head { margin-bottom:14px; }
+body.cfs-r22-home .gaming-section-head h2 { font-size:clamp(23px,2.5vw,32px)!important; line-height:1.2!important; margin:0; }
+body.cfs-r22-home .gaming-community-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; }
+body.cfs-r22-home .gaming-community-grid article { min-height:145px; }
+body.cfs-r22-home .gaming-live-copy { min-width:0; }
+body.cfs-r22-home .gaming-live-copy>.gaming-live-title { margin-bottom:8px; }
+body.cfs-r22-home .gaming-live-status-panel { padding:14px; }
+body.cfs-r22-home .cfs-r22-live-details { margin-top:14px; border-top:1px solid var(--cfs-r22-line); padding-top:10px; }
+body.cfs-r22-home .cfs-r22-live-details>summary { cursor:pointer; font-size:13px; color:#aad3e8; font-weight:650; padding:5px 0; }
+body.cfs-r22-home .cfs-r22-live-details[open]>.gaming-live-platform-status { margin-top:10px; }
+body.cfs-r22-home .cfs-r22-live-details:focus-within,body.cfs-r22-dashboard details:focus-within { outline-color:var(--cfs-r22-accent); }
+body.cfs-r22-home .gaming-games-grid { gap:12px; }
+body.cfs-r22-home :is(.gaming-game-card,.gaming-live-card,.gaming-community-grid article) { box-shadow:none!important; }
+/* Dashboard: four clear actions, one next step; the longer diagnostics stay optional. */
+body.cfs-r22-dashboard>main.creator-dashboard-v166 { max-width:1120px; width:min(100% - 28px,1120px); margin-inline:auto; padding-bottom:50px; }
+body.cfs-r22-dashboard .creator-dashboard-hero { min-height:0!important; padding:24px!important; margin-top:18px!important; margin-bottom:14px!important; }
+body.cfs-r22-dashboard .creator-dashboard-hero h1 { font-size:clamp(27px,3.6vw,40px)!important; line-height:1.15!important; margin:0 0 8px!important; }
+body.cfs-r22-dashboard .creator-dashboard-hero .creator-dashboard-greeting { margin:0!important; font-size:14px!important; }
+body.cfs-r22-dashboard .creator-next-step-v166 { padding:18px 20px!important; margin-bottom:16px; }
+body.cfs-r22-dashboard .creator-next-step-v166 :is(strong,p) { line-height:1.4; }
+body.cfs-r22-dashboard .creator-dashboard-actions-v166 { margin:0 0 16px!important; padding:18px!important; }
+body.cfs-r22-dashboard .creator-dashboard-actions-head-v166 { margin-bottom:12px; align-items:center; }
+body.cfs-r22-dashboard .creator-dashboard-actions-head-v166 strong { font-size:18px; }
+body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr))!important; gap:10px!important; }
+body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166>a { min-width:0; min-height:96px!important; padding:14px!important; align-items:center; gap:10px; }
+body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166>a strong { font-size:14px; overflow-wrap:anywhere; }
+body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166>a b { font-size:22px; }
+body.cfs-r22-dashboard .cfs-r22-manual-live { margin:0 0 12px; border:1px solid var(--cfs-r22-line); border-radius:12px; background:var(--cfs-r22-panel); overflow:hidden; }
+body.cfs-r22-dashboard .cfs-r22-manual-live>summary { list-style:none; cursor:pointer; padding:14px 18px; font-size:14px; font-weight:650; color:#b8d6e9; }
+body.cfs-r22-dashboard .cfs-r22-manual-live>summary::-webkit-details-marker { display:none; }
+body.cfs-r22-dashboard .cfs-r22-manual-live>summary:after { content:'+'; float:right; font-size:18px; line-height:1; }
+body.cfs-r22-dashboard .cfs-r22-manual-live[open]>summary:after { content:'−'; }
+body.cfs-r22-dashboard .cfs-r22-manual-live .cfs-public-live-control { margin:0 12px 12px!important; max-width:none!important; }
+body.cfs-r22-dashboard .creator-dashboard-diagnostics-v166 { margin-top:0; }
+body.cfs-r22-dashboard .creator-dashboard-diagnostics-v166>summary { padding:15px 18px; }
+body.cfs-r22-dashboard .creator-dashboard-diagnostics-v166>summary b { font-size:14px; }
+body.cfs-r22-dashboard .cfs-onboarding-v4 { margin-top:14px; }
+body.cfs-r22-dashboard [hidden],body.cfs-r22-home [hidden] { display:none!important; }
+body.cfs-r22-dashboard :is(.cfs-r22-manual-live,.creator-dashboard-diagnostics-v166)>summary:focus-visible,
+body.cfs-r22-home .cfs-r22-live-details>summary:focus-visible { outline:2px solid var(--cfs-r22-accent); outline-offset:-3px; border-radius:8px; }
+@media (max-width:850px){
+ body.cfs-r22-home .gaming-hero-grid { grid-template-columns:1fr!important; }
+ body.cfs-r22-home .gaming-hero-art { min-height:210px!important; max-height:280px; }
+ body.cfs-r22-home .gaming-community-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166 { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+}
+@media (max-width:520px){
+ body.cfs-r22-home .gaming-hero h1 { font-size:36px!important; }
+ body.cfs-r22-home .gaming-hero-copy { padding:25px 18px!important; }
+ body.cfs-r22-home .cfs-r6-entry-grid,body.cfs-r22-home .gaming-community-grid { grid-template-columns:1fr!important; }
+ body.cfs-r22-home .cfs-r6-entry-card { min-height:96px!important; }
+ body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166 { grid-template-columns:1fr!important; }
+ body.cfs-r22-dashboard .creator-dashboard-actions-grid-v166>a { min-height:66px!important; }
+ body.cfs-r22-dashboard .creator-next-step-v166 { display:flex; flex-direction:column; align-items:stretch; }
+ body.cfs-r22-dashboard .creator-dashboard-hero { padding:18px!important; }
+}
+@media (prefers-reduced-motion:reduce){body.cfs-r22-dashboard *,body.cfs-r22-home *{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important;}}
+/* R22 navigation: keep desktop links, replace clipped mobile row with an accessible menu. */
+.cfs-r22-mobile-menu { display:none; position:relative; }
+@media(max-width:700px) {
+ body.cfs-r22-home .cfs-r14-top-inner,body.cfs-r22-dashboard .cfs-r14-top-inner { flex-wrap:nowrap!important; gap:10px; min-height:60px; }
+ body.cfs-r22-home .cfs-r14-top .cfs-r14-links,body.cfs-r22-dashboard .cfs-r14-top .cfs-r14-links { display:none!important; }
+ body.cfs-r22-home .cfs-r22-mobile-menu,body.cfs-r22-dashboard .cfs-r22-mobile-menu { display:block; margin-left:auto; }
+ .cfs-r22-mobile-menu>summary { list-style:none; cursor:pointer; color:#e4f4ff; padding:9px 12px; border:1px solid #2d4e63; border-radius:9px; font-size:13px; font-weight:750; }
+ .cfs-r22-mobile-menu>summary::-webkit-details-marker {display:none;}
+ .cfs-r22-mobile-menu>summary:focus-visible { outline:2px solid #5dc5e6; outline-offset:2px; }
+ .cfs-r22-mobile-menu>nav { position:absolute; top:calc(100% + 12px); right:-82px; width:min(270px,calc(100vw - 26px)); z-index:10004; background:#0a1c2c; border:1px solid #2d4e63; box-shadow:0 12px 36px #0008; border-radius:12px; padding:7px; display:grid; gap:3px; }
+ .cfs-r22-mobile-menu>nav a {display:block; padding:12px; color:#d3e9f6; text-decoration:none; border-radius:7px; font-weight:650; font-size:14px;}
+ .cfs-r22-mobile-menu>nav a:hover,.cfs-r22-mobile-menu>nav a:focus-visible,.cfs-r22-mobile-menu>nav a[aria-current="page"] { background:#15374c; color:#fff; }
+ body.cfs-r22-home .cfs-r14-account,body.cfs-r22-dashboard .cfs-r14-account { margin-left:0; }
+ body.cfs-r22-home .gaming-hero-art { display:none!important; }
+ body.cfs-r22-home .gaming-hero-grid { min-height:0!important; }
+ body.cfs-r22-home .gaming-hero { min-height:0!important; }
+}
+body.cfs-r22-dashboard .creator-next-step-v166 { display:grid!important; }
+@media(max-width:520px) { body.cfs-r22-dashboard .creator-next-step-v166 { grid-template-columns:1fr!important; } }
+/* The diagnostics intentionally expose the existing status nodes when expanded. */
+body.cfs-r22-dashboard .creator-dashboard-diagnostics-v166[open] .beginner-status { display:grid!important; }
+body.cfs-r22-dashboard .creator-dashboard-diagnostics-v166[open] .beginner-system-summary { display:flex!important; }
+

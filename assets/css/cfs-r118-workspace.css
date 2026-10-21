@@ -1,0 +1,51 @@
+/* R118 — compact launcher and creator workspaces, visual/layout only. */
+body[data-cfs-r108-view="launcher"] .release-hero{
+ min-height:0!important;grid-template-columns:minmax(0,1fr) minmax(220px,.38fr)!important;
+ gap:18px!important;padding:16px 0 19px!important;align-items:center!important;
+}
+body[data-cfs-r108-view="launcher"] .release-hero h1{font-size:clamp(26px,3.5vw,42px)!important;line-height:1.06!important;letter-spacing:-.035em!important;margin:5px 0 8px!important}
+body[data-cfs-r108-view="launcher"] .release-hero p{max-width:670px!important;font-size:13px!important;line-height:1.55!important;color:#bdd6e8!important}
+body[data-cfs-r108-view="launcher"] .release-hero-actions{margin-top:12px!important;gap:8px!important}
+body[data-cfs-r108-view="launcher"] .release-hero-actions .btn{min-height:39px!important}
+body[data-cfs-r108-view="launcher"] .release-orbit{min-height:0!important;display:flex!important;justify-content:flex-end!important}
+body[data-cfs-r108-view="launcher"] .orbit-ring{display:none!important} /* decorative only; retain the actual release status nodes */
+body[data-cfs-r108-view="launcher"] .orbit-status{position:static!important;width:100%;min-width:0!important;padding:13px!important;border-radius:12px!important}
+body[data-cfs-r108-view="launcher"] .orbit-status span{font-size:10px!important}
+body[data-cfs-r108-view="launcher"] .orbit-status strong{font-size:17px!important}
+body[data-cfs-r108-view="launcher"] .orbit-status small{font-size:11px!important;line-height:1.5!important;color:#a4bed0!important}
+body[data-cfs-r108-view="launcher"] .device-management{margin:13px 0 10px!important;padding:16px!important;box-shadow:none!important}
+body[data-cfs-r108-view="launcher"] .device-management-head h2{font-size:clamp(19px,2.1vw,24px)!important;margin:5px 0!important}
+body[data-cfs-r108-view="launcher"] .device-management-head p{font-size:12px!important;line-height:1.55!important}
+body[data-cfs-r108-view="launcher"] .device-grid{gap:10px!important;margin-top:11px!important}
+body[data-cfs-r108-view="launcher"] .device-card{min-width:0}
+.r118-hints{border:1px solid rgba(54,127,181,.42);border-radius:11px;background:rgba(4,17,30,.8);margin:10px 0 14px;overflow:hidden}
+.r118-hints>summary{list-style:none;min-height:42px;padding:11px 14px;display:flex;justify-content:space-between;gap:10px;align-items:center;font:700 12px/1.4 system-ui,sans-serif;color:#c5e5f7;cursor:pointer}
+.r118-hints>summary::-webkit-details-marker{display:none}
+.r118-hints>summary::after{content:'+';font:800 18px/1 system-ui,sans-serif;color:#55c9f4}
+.r118-hints[open]>summary::after{content:'−'}
+.r118-hints>summary:hover{background:rgba(31,106,159,.15)}
+.r118-hints>summary:focus-visible{outline:2px solid #55d9ff;outline-offset:-3px}
+.r118-hints>p{margin:0;padding:2px 14px 12px;color:#b5cde0;font:400 12px/1.65 system-ui,sans-serif}
+body[data-cfs-r108-view="launcher-connect"] .connect-shell{min-height:0!important;padding-block:14px 34px!important;display:block!important}
+body[data-cfs-r108-view="launcher-connect"] .connect-card{width:min(960px,100%)!important;margin:0 auto!important;padding:clamp(15px,2vw,26px)!important}
+body[data-cfs-r108-view="launcher-connect"] .connect-card h1{font-size:clamp(28px,3vw,40px)!important;line-height:1.05!important;letter-spacing:-.025em!important;margin:5px 0!important}
+body[data-cfs-r108-view="launcher-connect"] .internal-flow-head p{font-size:12px!important;line-height:1.55!important;max-width:740px!important}
+body[data-cfs-r108-view="launcher-connect"] .device-link-steps{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin:13px 0!important}
+body[data-cfs-r108-view="launcher-connect"] .device-link-steps>article{min-width:0!important;padding:10px!important;gap:8px!important}
+body[data-cfs-r108-view="launcher-connect"] .device-link-steps strong{font-size:12px!important}
+body[data-cfs-r108-view="launcher-connect"] .device-link-steps small{font-size:10px!important;line-height:1.45!important}
+body[data-cfs-r108-view="launcher-connect"] .connect-code{margin:10px 0!important;padding:12px!important;font-size:clamp(21px,2.8vw,28px)!important}
+body[data-cfs-r108-view="launcher-connect"] .device-link-safety{margin-top:12px!important;padding:12px!important} /* security warning stays visible */
+body[data-cfs-r108-view="launcher-connect"] .connect-actions{gap:8px!important;flex-wrap:wrap!important}
+body[data-cfs-r108-view="creator-suite"] .cfs-r20-suite-hub{padding-block:12px 24px!important}
+body[data-cfs-r108-view="creator-suite"] .cfs-r27-suite-title h1{font-size:clamp(25px,3vw,35px)!important;margin-block:4px 7px!important}
+body[data-cfs-r108-view="creator-suite"] .cfs-ux-primary{padding:13px 15px!important;margin:10px 0!important;min-height:0!important}
+body[data-cfs-r108-view="creator-suite"] .cfs-ux-primary-copy h2{font-size:clamp(18px,2vw,23px)!important}
+body[data-cfs-r108-view="creator-suite"] .cfs-r31-workbar{margin-block:12px!important}
+body[data-cfs-r108-view="creator-suite"] .cfs-r20-suite-category{margin:10px 0 7px!important;font-size:15px!important}
+body[data-cfs-r108-view="creator-suite"] .cfs-r20-suite-grid{gap:9px!important}
+body[data-cfs-r108-view="creator-suite"] .cfs-r20-studio-card{min-height:80px!important;padding:11px 13px!important}
+.r118-suite-hints{margin-block:14px 9px;max-width:760px}
+@media(max-width:850px){body[data-cfs-r108-view="launcher"] .release-hero{grid-template-columns:minmax(0,1fr)!important}body[data-cfs-r108-view="launcher"] .release-orbit{justify-content:stretch!important}body[data-cfs-r108-view="launcher"] .orbit-status{max-width:none}}
+@media(max-width:680px){body[data-cfs-r108-view="launcher-connect"] .device-link-steps{grid-template-columns:1fr!important}body[data-cfs-r108-view="launcher-connect"] .device-link-steps>article{padding:9px!important}body[data-cfs-r108-view="launcher"] .device-management{padding:12px!important}body[data-cfs-r108-view="creator-suite"] .cfs-ux-primary{padding:12px!important}}
+@media(prefers-reduced-motion:reduce){.r118-hints *{animation:none!important;transition:none!important}}

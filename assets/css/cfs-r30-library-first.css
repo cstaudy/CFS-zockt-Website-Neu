@@ -1,0 +1,33 @@
+/* R30: fewer visible actions and the searchable library above setup/technical panels. */
+.ws-dashboard-v2 .ws-dashboard-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-block:5px 12px!important;padding:0!important}
+.ws-dashboard-v2 .ws-dashboard-head h2{font-size:clamp(20px,2.2vw,26px)!important;margin:0!important;line-height:1.18!important}
+.ws-dashboard-v2 .ws-dashboard-head .eyebrow{display:none!important}
+.ws-dashboard-v2 .ws-dashboard-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.ws-dashboard-v2 .ws-dashboard-head-actions>.btn{min-height:36px!important;padding:7px 10px!important;font-size:11px!important;white-space:nowrap}
+.ws-dashboard-v2 .ws-library{margin-top:4px!important;padding-top:0!important}
+.ws-dashboard-v2 .ws-library-head{margin-bottom:8px!important;gap:8px}
+.ws-dashboard-v2 .ws-library-head h3{font-size:16px!important;margin:0!important}
+.ws-dashboard-v2 .ws-library-head .ws-section-label{display:none!important}
+.ws-dashboard-v2 .ws-library-quick-access{display:flex;gap:6px!important;margin:8px 0!important;flex-wrap:wrap}
+.ws-dashboard-v2 .ws-library-quick-access>button{width:auto!important;flex:0 1 auto!important;min-width:0!important;min-height:36px!important;padding:7px 12px!important;border-radius:10px!important}
+.ws-dashboard-v2 .ws-library-quick-access>button>span{font-size:11px!important}
+.ws-dashboard-v2 .ws-library-quick-access>button>small{display:none!important}
+.ws-dashboard-v2 .ws-library-options .ws-filter-tabs[hidden]{display:none!important}
+.ws-dashboard-v2 .cfs-r30-recent{border:1px solid #28516b;border-radius:8px;min-height:36px;padding:7px 11px;display:flex;align-items:center;gap:6px;color:#daf2ff;background:#0b2739;cursor:pointer}
+.ws-dashboard-v2 .cfs-r30-recent small{display:none!important}
+.ws-dashboard-v2 .cfs-r30-recent span{font-size:11px}
+.ws-dashboard-v2 .cfs-r30-secondary{margin:12px 0 16px;border:1px solid #244960;border-radius:11px;background:rgba(8,23,36,.85)}
+.ws-dashboard-v2 .cfs-r30-secondary>summary{padding:11px 13px;cursor:pointer;font-size:12px;font-weight:700;color:#afd6e9}
+.ws-dashboard-v2 .cfs-r30-secondary[open]{padding-bottom:10px}
+.ws-dashboard-v2 .cfs-r30-secondary>:not(summary){margin-inline:10px}
+.ws-dashboard-v2 .cfs-r30-secondary .ws-simple-start-hub,.ws-dashboard-v2 .cfs-r30-secondary .ws-dashboard-overview,.ws-dashboard-v2 .cfs-r30-secondary .ws-dashboard-bottom{margin-block:10px!important}
+.ws-dashboard-v2 .cfs-r30-more-actions{position:relative;margin:0;flex:0 0 auto}
+.ws-dashboard-v2 .cfs-r30-more-actions>summary{min-height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #2b5670;border-radius:9px;color:#b7d5e7;padding:7px 11px;font-size:11px;font-weight:700;list-style:none;background:#0a1d2b}
+.ws-dashboard-v2 .cfs-r30-more-actions>summary::-webkit-details-marker{display:none}
+.ws-dashboard-v2 .cfs-r30-more-actions[open]>summary{border-color:#4ca9d3}
+.ws-dashboard-v2 .cfs-r30-more-actions>div{position:absolute;right:0;top:calc(100% + 5px);z-index:40;width:190px;display:grid;gap:5px;padding:8px;border:1px solid #27526f;border-radius:11px;background:#071a29;box-shadow:0 14px 32px #0008}
+.ws-dashboard-v2 .cfs-r30-more-actions>div>button{min-height:34px;padding:8px!important;font-size:11px!important}
+.ws-dashboard-v2 :is(.cfs-r30-more-actions>summary,.cfs-r30-secondary>summary,.cfs-r30-recent):focus-visible{outline:2px solid #77d9ff;outline-offset:2px}
+@media(max-width:800px){.ws-dashboard-v2 .ws-dashboard-head{flex-direction:column;align-items:flex-start}.ws-dashboard-v2 .ws-dashboard-head-actions{width:100%;justify-content:flex-start}.ws-dashboard-v2 .ws-library-head{flex-wrap:wrap}}
+@media(max-width:430px){.ws-dashboard-v2 .ws-dashboard-head-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.ws-dashboard-v2 .ws-dashboard-head-actions>.btn{min-width:0;width:100%;justify-content:center;white-space:normal;text-align:center}.ws-dashboard-v2 .cfs-r30-more-actions{grid-column:span 2}.ws-dashboard-v2 .cfs-r30-more-actions>div{width:100%}.ws-dashboard-v2 .ws-library-quick-access>button{padding:7px 9px!important;font-size:10px!important}}
+@media(prefers-reduced-motion:reduce){.ws-dashboard-v2 .cfs-r30-more-actions>div{animation:none}}

@@ -1,0 +1,11 @@
+/* R127 – restrained, accessible Stream Studio workflow guide. */
+.stream-center .r127-stream-flow{display:flex;flex-wrap:wrap;align-items:center;gap:7px 10px;margin:0;padding:10px 12px;border:1px solid rgba(72,165,216,.27);border-radius:10px;background:rgba(2,18,31,.78);color:#afd7ed;font-size:12px;line-height:1.5}
+.stream-center .r127-stream-flow strong{font:inherit;font-weight:750;color:#d5efff}
+.stream-center .r127-stream-flow>span{color:#65bde9}
+.stream-take-bar .r127-take-action{min-width:0;display:grid;gap:5px}
+.stream-take-bar .r127-take-action>.stream-take-button{min-width:0;width:100%;font-size:clamp(11px,.8vw,14px);white-space:normal;padding:10px}
+.stream-take-bar .r127-take-hint{margin:0;color:#92c8de;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.stream-take-bar .stream-take-button:disabled{opacity:.58;cursor:not-allowed}
+#streamSceneList{scroll-margin-top:98px}
+@media(max-width:620px){.stream-center .r127-stream-flow{padding:9px;font-size:12px}.stream-center .r127-stream-flow>span{display:none}.stream-center .r127-stream-flow strong{flex-basis:100%}.stream-take-bar .r127-take-action>.stream-take-button{min-height:44px}}
+@media(prefers-reduced-motion:reduce){.stream-take-bar .stream-take-button{transition:none!important}}

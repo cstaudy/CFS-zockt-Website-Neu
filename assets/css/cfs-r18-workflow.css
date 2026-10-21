@@ -1,0 +1,77 @@
+/* CFS R18 — ruhige, responsive Arbeitsoberflächen, keine externen Fonts. */
+html.cfs-r18 {scroll-behavior:smooth;}
+html.cfs-r18 body {font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:normal;}
+html.cfs-r18 :is(h1,h2,h3,strong){letter-spacing:-.02em;}
+html.cfs-r18 :is(.page-hero,.creator-tool-entry,.ws-topbar,.cut-hero,.release-hero,.scene-hero,.stream-studio-hero){text-wrap:pretty;}
+html.cfs-r18 :is(.btn,button,input,select,textarea,summary,a){touch-action:manipulation;}
+html.cfs-r18 :is(a,button,input,select,textarea,summary):focus-visible {outline:2px solid #70d9e8;outline-offset:3px;}
+html.cfs-r18 .cfs-r18-explainer[hidden]{display:none!important;}
+html.cfs-r18 .creator-nav > a {font-size:.82rem;letter-spacing:.01em;white-space:nowrap;}
+html.cfs-r18 .creator-nav .cfs-r18-current {color:#8ce4ee!important;}
+html.cfs-r18 .creator-nav-more > summary {font-size:.82rem;}
+html.cfs-r18 .creator-nav-more-menu {max-height:min(68vh,600px);overflow:auto;}
+html.cfs-r18 .cfs-r18-workflow,
+html.cfs-r18 .cfs-r18-suite-hub {
+  background:linear-gradient(150deg,#101d33,#0a1426 72%);
+  border:1px solid rgba(135,189,218,.22);border-radius:18px;
+  padding:clamp(16px,2.6vw,30px);box-shadow:0 8px 25px rgba(0,0,0,.12);
+  color:#e8f0f9;margin:22px auto 24px;max-width:1260px;
+}
+html.cfs-r18 .cfs-r18-kicker {color:#87cadb;display:block;font-size:.71rem;font-weight:700;letter-spacing:.1em;margin-bottom:6px;}
+html.cfs-r18 .cfs-r18-title {margin:0;color:#f4f9ff;font-size:clamp(1.6rem,3vw,2.4rem);line-height:1.14;}
+html.cfs-r18 .cfs-r18-subtitle {max-width:720px;margin:9px 0 0;color:#b9c8d8;font-size:clamp(.89rem,1.5vw,1rem);line-height:1.5;}
+html.cfs-r18 .cfs-r18-steps {display:flex;align-items:stretch;flex-wrap:wrap;gap:9px;margin-top:20px;}
+html.cfs-r18 .cfs-r18-step-link {display:flex;align-items:center;gap:10px;border-radius:10px;
+  padding:10px 14px;background:#152c45;border:1px solid #31536b;color:#e9f6ff;
+  text-decoration:none;font-weight:650;font-size:.91rem;min-height:44px;}
+html.cfs-r18 .cfs-r18-step-link:is(:hover,:focus-visible) {border-color:#78d4e6;background:#1a3a55;text-decoration:none;}
+html.cfs-r18 .cfs-r18-step-number {display:inline-grid;place-items:center;width:23px;height:23px;
+  border-radius:50%;background:#264d60;color:#b8f0f7;font-size:.76rem;}
+html.cfs-r18 .cfs-r18-workflow-actions{margin-top:13px;}
+html.cfs-r18 .cfs-r18-info-toggle {border:0;background:transparent;color:#a8d1dd;font-size:.84rem;
+  text-decoration:underline;text-underline-offset:3px;padding:6px 2px;cursor:pointer;}
+html.cfs-r18 .cfs-r18-info-toggle:hover{color:white;}
+html.cfs-r18-studio :is(.cfs-r7-hub,.creator-tool-entry) {max-width:1260px;}
+html.cfs-r18-studio .cfs-r18-workflow + :is(.ws-topbar,.release-hero,.cut-hero,.scene-hero,.stream-studio-hero) {margin-top:0;}
+html.cfs-r18-studio [id="alertToneStudio"]{scroll-margin-top:95px;}
+html.cfs-r18-studio :is(#toneDrop,#cutApp,#wsApp,#streamDockWorkspace,#scene-composer,#deviceGrid){scroll-margin-top:120px;}
+html.cfs-r18-studio :is(.tone-lead,.cut-hero p,.release-hero p,.scene-hero p){line-height:1.55;}
+html.cfs-r18-studio #alertToneStudio {border:1px solid rgba(132,181,210,.16);border-radius:16px;padding:clamp(14px,2vw,24px);background:#0c1728;}
+html.cfs-r18-studio #alertToneStudio .tone-controls{margin-block:18px;}
+html.cfs-r18-studio #alertToneStudio .tone-actions{position:relative;z-index:1;}
+html.cfs-r18-studio .cut-hero {padding-block:18px!important;}
+html.cfs-r18-studio .cut-hero :is(h1,p){max-width:680px;}
+html.cfs-r18-studio .launcher-release-shell > .release-hero {padding-block:16px;}
+html.cfs-r18-studio .ws-page > .cfs-r18-workflow {width:calc(100% - 40px);}
+html.cfs-r18-studio .ub-page > .cfs-r18-workflow {width:calc(100% - 40px);}
+html.cfs-r18-studio .stream-studio-shell > .cfs-r18-workflow {width:calc(100% - 40px);}
+html.cfs-r18-suite .cfs-r18-suite-hub {width:calc(100% - 32px);margin-block:30px;}
+html.cfs-r18-suite .cfs-r18-suite-cards {display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:24px;}
+html.cfs-r18-suite .cfs-r18-suite-card {display:flex;flex-direction:column;gap:5px;border:1px solid #31536b;background:#13243a;
+  border-radius:12px;padding:17px;color:#dbeeff;text-decoration:none;min-height:100px;justify-content:center;}
+html.cfs-r18-suite .cfs-r18-suite-card:is(:hover,:focus-visible) {border-color:#86dbea;background:#19354a;text-decoration:none;}
+html.cfs-r18-suite .cfs-r18-suite-card strong {font-size:1.06rem;color:#f2f8ff;}
+html.cfs-r18-suite .cfs-r18-suite-card span {font-size:.86rem;color:#afc5d4;}
+html.cfs-r18-suite .cfs-r18-beta-note {margin:18px 0 0;color:#aec8d1;font-size:.87rem;}
+html.cfs-r18-suite .cfs-r18-suite-background {margin:14px auto 50px;max-width:1160px;padding:0 16px;}
+html.cfs-r18-suite .cfs-r18-suite-background > summary {cursor:pointer;color:#b4dbe7;padding:10px;font-size:.9rem;}
+html.cfs-r18-suite .cfs-r18-suite-background > section {margin-top:14px;}
+html.cfs-r18-home .gaming-why-points-v180 {display:none;}
+html.cfs-r18-home .gaming-tag-row {display:none;}
+html.cfs-r18-home .gaming-why-copy-v180 p:not(:first-of-type) {display:none;}
+html.cfs-r18-home .gaming-section{padding-block:clamp(28px,4vw,56px);}
+html.cfs-r18-home .gaming-why-grid-v180{grid-template-columns:minmax(0,1fr);}
+@media(max-width:800px){
+  html.cfs-r18 .cfs-r18-steps {display:grid;grid-template-columns:1fr;}
+  html.cfs-r18 .cfs-r18-step-link{min-height:44px;}
+  html.cfs-r18 .cfs-r18-workflow{margin-top:12px;padding:18px;}
+  html.cfs-r18-suite .cfs-r18-suite-cards{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}
+  html.cfs-r18-studio :is(.ws-page,.ub-page,.stream-studio-shell) > .cfs-r18-workflow {width:calc(100% - 24px);}
+}
+@media(prefers-reduced-motion:reduce){html.cfs-r18{scroll-behavior:auto;}}
+/* Originale Bedienelemente bleiben sichtbar, doppelte Überschriften verschwinden. */
+html.cfs-r18-studio :is(.release-hero,.cut-hero,.scene-hero,.stream-studio-hero,.sm-heading,.ws-topbar) h1{display:none!important;}
+html.cfs-r18-studio :is(.cut-hero,.scene-hero,.stream-studio-hero) > p{display:none;}
+html.cfs-r18-studio .sm-heading > div > p:not(.sm-eyebrow){display:none;}
+html.cfs-r18-studio :is(.release-orbit,.orbit-ring){animation:none!important;}
+html.cfs-r18-studio .cfs-r18-workflow h1{display:block!important;}

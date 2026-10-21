@@ -1,0 +1,13 @@
+/* R38: precision tools stay below properties instead of creating a new sidebar. */
+.cfs-r38-precision{display:grid;gap:7px;padding:10px 0 8px;border-top:1px solid #153650;margin-top:10px}
+.cfs-r38-precision-title{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:5px;color:#79cfff;font-size:9px;font-weight:800;letter-spacing:.06em}
+.cfs-r38-precision-title small{color:#8dabbc;font-size:9px;font-weight:400;letter-spacing:0}
+.cfs-r38-precision-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px}
+.cfs-r38-precision .btn{min-width:0;padding:9px 8px;font-size:10px;line-height:1.3;text-align:center;white-space:normal}
+.cfs-r38-lock{width:100%}
+.cfs-r38-precision .btn:disabled{opacity:.42;cursor:not-allowed}
+.cfs-r38-snap{flex:0 0 auto;min-width:0}
+#sceneItems .scene-item{touch-action:none;user-select:none;-webkit-user-select:none}
+#sceneItems .scene-item[aria-locked="true"]{cursor:not-allowed}
+.scene-profile-bar .cfs-r38-snap span{font-size:9px}
+@media(max-width:760px){.cfs-r38-precision-row{grid-template-columns:repeat(2,minmax(0,1fr))}.cfs-r38-precision .btn{min-height:38px}}

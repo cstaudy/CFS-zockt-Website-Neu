@@ -1,0 +1,70 @@
+/* R67: Single static-stage stylesheet used verbatim by Creator previews and offline OBS export.
+   Keep this asset local; export embeds the exact loaded bytes in the ZIP. */
+.ub-stage.cfs-r67-stage {
+  box-sizing:border-box;position:relative;overflow:hidden;isolation:isolate;
+  padding:24px;display:flex;flex-direction:column;gap:9px;justify-content:center;
+  width:100%;height:auto;aspect-ratio:16/9;background:#071827;
+  container-type:inline-size; /* R74: font scale follows the actual canvas, not surrounding page viewport */
+  font-family:var(--stage-font,Inter),system-ui,Arial,sans-serif;
+  color:var(--text,#f4f8ff);
+}
+.ub-stage.cfs-r67-stage.vertical {aspect-ratio:9/16}
+.ub-stage.cfs-r67-stage.square {aspect-ratio:1/1}
+.ub-stage.cfs-r67-stage .ub-stage-bg {position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,var(--accent),transparent 32%),linear-gradient(135deg,rgba(255,255,255,.04),transparent 50%);opacity:.14;pointer-events:none}
+.ub-stage.cfs-r67-stage .ub-stage-title {position:relative;color:var(--text);font-size:clamp(14px,3cqw,28px);font-weight:800;letter-spacing:.04em;overflow-wrap:anywhere}
+.ub-stage.cfs-r67-stage .ub-stage-channel {position:relative;color:var(--accent);font-size:11px;letter-spacing:.12em;overflow-wrap:anywhere}
+.ub-stage.cfs-r67-stage .ub-stage-item {position:relative;min-width:0;border:1px solid color-mix(in srgb,var(--accent) 65%,transparent);background:rgba(0,0,0,.34);border-radius:10px;padding:10px 13px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.ub-stage.cfs-r67-stage .ub-stage-item > div {min-width:0}
+.ub-stage.cfs-r67-stage .ub-stage-item strong {color:var(--text);font-size:12px;overflow-wrap:anywhere}
+.ub-stage.cfs-r67-stage .ub-stage-item > strong {flex-shrink:0;white-space:nowrap}
+.ub-stage.cfs-r67-stage .ub-stage-item small {color:var(--second);font-size:10px;overflow-wrap:anywhere}
+.ub-stage.cfs-r67-stage .ub-stage-asset {width:30px;height:30px;object-fit:cover;border-radius:5px;border:1px solid var(--accent);flex-shrink:0}
+.ub-stage.cfs-r67-stage[data-motion="pulse"] .ub-stage-item {animation:ubPulse calc(3s / var(--motion-speed,1)) ease-in-out infinite alternate}
+.ub-stage.cfs-r67-stage[data-motion="glow"] .ub-stage-item {animation:ubGlow calc(3s / var(--motion-speed,1)) ease-in-out infinite alternate}
+.ub-stage.cfs-r67-stage[data-motion="slide"] .ub-stage-item {animation:ubSlide calc(2.5s / var(--motion-speed,1)) ease-in-out infinite alternate}
+.ub-stage.cfs-r67-stage[data-motion="pop"] .ub-stage-item {animation:ubPop calc(2s / var(--motion-speed,1)) ease-in-out infinite alternate}
+.ub-stage.cfs-r67-stage[data-motion="soft"] .ub-stage-item {animation:ubSoft calc(4s / var(--motion-speed,1)) ease-in-out infinite alternate}
+@keyframes ubPulse {to{transform:scale(1.02)}}
+@keyframes ubGlow {to{box-shadow:0 0 24px var(--accent)}}
+@keyframes ubSlide {to{transform:translateX(1.5%)}}
+@keyframes ubPop {to{transform:scale(1.035)}}
+@keyframes ubSoft {to{opacity:.82}}
+@media(prefers-reduced-motion:reduce) {.ub-stage.cfs-r67-stage .ub-stage-item {animation:none!important}}
+/* Preview decoration is outside the stage surface; OBS intentionally has no chrome. */
+#ub65Stage.ub-stage.cfs-r67-stage {padding:24px;gap:9px}
+html.cfs-r67-offline,html.cfs-r67-offline body {margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+.ub-stage.cfs-r67-stage.cfs-r67-offline {width:100vw;height:100vh;max-width:none;max-height:none;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none;margin:0;padding:24px;gap:9px}
+
+/* R69 – Positionierte statische Vorlagen nutzen dieselben serialisierten Größen in Vorschau und ZIP.
+   Legacy-Bundles ohne Koordinaten behalten das bestehende R67-Flex-Layout. */
+.ub-stage.cfs-r67-stage.cfs-r69-layout{container-type:inline-size;display:block}
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-channel{position:absolute;top:3%;left:4%;z-index:2;max-width:85%;font-size:clamp(7px,1.1cqw,18px)}
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-title{position:absolute;top:10%;left:4%;z-index:2;max-width:90%;font-size:clamp(8px,1.6cqw,28px)}
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-item{position:absolute;display:flex;align-items:center;overflow:hidden;min-width:0;box-sizing:border-box;padding:clamp(3px,.8cqw,14px);border-radius:clamp(3px,.5cqw,12px)}
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-item strong{font-size:clamp(7px,1.3cqw,26px)}
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-item small{font-size:clamp(6px,1.0cqw,18px)}
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-item:has(> .ub-stage-asset) .ub-stage-asset{height:65%;width:auto;max-width:25%;object-fit:contain}
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-item[data-ub-type="camera_frame"]{background:transparent;border:clamp(2px,.6cqw,10px) solid var(--accent);box-shadow:inset 0 0 0 1px #0007,0 0 16px color-mix(in srgb,var(--accent) 30%,transparent);align-items:flex-end}
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-item[data-ub-type="camera_frame"]>div{background:#060f20e6;border-radius:5px;padding:4px}
+
+/* Real overlays must not cover OBS gameplay with an opaque background. */
+.ub-stage.cfs-r67-stage.cfs-r69-layout[data-canvas="overlay"] .ub-stage-bg,
+.ub-stage.cfs-r67-stage.cfs-r69-layout[data-canvas="overlay"] .ub-stage-channel,
+.ub-stage.cfs-r67-stage.cfs-r69-layout[data-canvas="overlay"] .ub-stage-title{display:none}
+
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-item>div>strong,
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-item>div>small{display:block;line-height:1.25}
+
+/* R90: pixel-backed original design PNGs are full-size editable layers, not mock widget cards. */
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-item.ub-original-layer{padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;display:block;overflow:visible}
+.ub-stage.cfs-r67-stage.cfs-r69-layout .ub-stage-item.ub-original-layer .ub-stage-asset{display:block;width:100%;height:100%;max-width:none;max-height:none;border:0;border-radius:0;object-fit:fill}
+
+/* R92: preview/export share these static scene elements. No provider data or clock script. */
+.ub-stage.cfs-r67-stage .ub-r92-goal>div{flex:1;min-width:0}
+.ub-stage.cfs-r67-stage .ub-r92-progress{height:clamp(4px,0.85cqw,14px);border-radius:99px;background:rgba(255,255,255,.18);overflow:hidden;margin-top:5px}
+.ub-stage.cfs-r67-stage .ub-r92-progress>span{display:block;height:100%;border-radius:inherit;background:var(--accent)}
+.ub-stage.cfs-r67-stage .ub-r92-goal>strong{font-variant-numeric:tabular-nums}
+.ub-stage.cfs-r67-stage .ub-r92-countdown .ub-r92-clock{font-size:clamp(13px,3cqw,50px);font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:.04em}
+.ub-stage.cfs-r67-stage .ub-r92-ticker>div{width:100%;min-width:0}
+.ub-stage.cfs-r67-stage .ub-r92-ticker strong{display:block;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:reduce){.ub-stage.cfs-r67-stage .ub-r92-ticker{animation:none!important}}

@@ -1,0 +1,10 @@
+/* R47 · Compact inline media quality list. */
+.cfs-r47-media-audit[hidden]{display:none!important}
+.cfs-r47-media-audit{display:grid;gap:8px;min-width:0}
+.cfs-r47-media-audit>small{display:block;color:var(--muted,#97aabd);line-height:1.45}
+.cfs-r47-media-issue{display:flex;align-items:center;gap:10px;justify-content:space-between;min-width:0;padding:8px 10px;border:1px solid rgba(139,167,197,.23);border-radius:9px;background:rgba(7,18,33,.3)}
+.cfs-r47-media-issue[data-severity="errors"]{border-left:3px solid #fa7883}
+.cfs-r47-media-issue[data-severity="warnings"]{border-left:3px solid #e6b85d}
+.cfs-r47-media-issue span{min-width:0;flex:1;overflow-wrap:anywhere;font-size:.86rem}
+.cfs-r47-media-issue button{flex:0 0 auto;white-space:nowrap;border:1px solid rgba(130,181,221,.4);border-radius:7px;background:rgba(30,66,96,.6);color:inherit;padding:6px 9px;font-size:.72rem;cursor:pointer}
+@media(max-width:420px){.cfs-r47-media-issue{align-items:flex-start;flex-direction:column}.cfs-r47-media-issue button{align-self:flex-end}}

@@ -1,0 +1,39 @@
+/* R59 – compact and accessible studio starters */
+body[data-ws-view="create"][data-cfs-r28-flow="converter"] .ws-r59-gallery,
+body[data-ws-view="create"][data-cfs-r28-flow="panels"] .ws-r59-gallery{display:none!important}
+.ws-r59-gallery{margin:10px 0;border:1px solid #24445a;border-radius:15px;background:linear-gradient(145deg,#071826,#0b1c2a);min-width:0;color:#edf9ff}
+.ws-r59-gallery>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;list-style-position:inside;font-size:13px;letter-spacing:.03em}
+.ws-r59-gallery>summary span:first-child{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ws-r59-gallery>summary b{font-size:13px}.ws-r59-gallery>summary small{color:#a8c8d9;font-size:11px;letter-spacing:0}
+.ws-r59-count{font-size:10px;color:#76e9e5;border:1px solid #246568;border-radius:999px;padding:4px 8px;white-space:nowrap}
+.ws-r59-gallery-body{padding:0 13px 13px;display:grid;gap:12px}
+.ws-r59-gallery-body>p{margin:0;color:#bdd1db;font-size:12px}.ws-r59-gallery-body>p strong{color:#e5fdff}
+.ws-r59-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;min-width:0}
+.ws-r59-card{display:flex;flex-direction:column;min-width:0;padding:9px;gap:8px;border:1px solid #264458;border-radius:11px;background:#0b2030}
+.ws-r59-card:hover{border-color:#4c8995}.ws-r59-card.is-unavailable{opacity:.64}
+.ws-r59-preview{display:grid;place-items:center;min-height:90px;height:104px;overflow:hidden;border:1px solid #294154;border-radius:8px;
+ background-color:#0b1820;background-image:linear-gradient(45deg,#172832 25%,transparent 25%,transparent 75%,#172832 75%),linear-gradient(45deg,#172832 25%,transparent 25%,transparent 75%,#172832 75%);background-size:18px 18px;background-position:0 0,9px 9px}
+.ws-r59-art{display:block;position:relative;width:85%;height:65%;border:3px solid #63dcd9;border-radius:12px;box-shadow:0 0 14px #19bbb653,inset 0 0 10px #11c8c422}
+.ws-r59-art i{display:block;position:absolute;top:5px;left:7px;width:27%;height:3px;background:#8cf7ec;border-radius:5px}
+.ws-r59-art b{display:block;position:absolute;right:7px;bottom:5px;width:31%;height:3px;background:#409cb9;border-radius:5px}
+.ws-r59-art em{display:none}
+[data-r59-style="camera-portrait"] .ws-r59-art,[data-r59-style="stream-portrait"] .ws-r59-art{height:86%;width:35%}
+[data-r59-style="camera-square"] .ws-r59-art{height:72%;width:auto;aspect-ratio:1}
+[data-r59-style="stream-wide"] .ws-r59-art{width:87%;height:auto;aspect-ratio:16/9;border-radius:4px}
+[data-r59-style="lower-third"] .ws-r59-art,[data-r59-style="live-goal"] .ws-r59-art{width:88%;height:37%;border-radius:9px;border-width:2px;display:flex;align-items:center;justify-content:center}
+[data-r59-style="lower-third"] .ws-r59-art em,[data-r59-style="live-goal"] .ws-r59-art em{display:block;font-style:normal;font-size:9px;color:white;letter-spacing:.15em}
+[data-r59-style="lower-third"] .ws-r59-art em::before{content:'CFS ZOCKT'}
+[data-r59-style="live-goal"] .ws-r59-art em::before{content:'FOLLOWER 72%'}
+.ws-r59-copy{display:grid;gap:5px;flex:1;align-content:start}
+.ws-r59-copy strong{font-size:12px;line-height:1.35;color:#f4ffff}
+.ws-r59-copy small{font-size:11px;line-height:1.45;color:#b3c8d4}
+.ws-r59-copy>span{font-size:10px;color:#75dedc}
+.ws-r59-card>button{width:100%;min-height:34px;border:1px solid #33838c;border-radius:8px;background:#103b49;color:#e9fcff;font-weight:750;font-size:10px;letter-spacing:.02em;cursor:pointer}
+.ws-r59-card>button:hover:not(:disabled){background:#16586a;border-color:#5fdad3}
+.ws-r59-card>button:disabled{cursor:not-allowed;background:#243847;color:#a4b5be}
+.ws-r59-card>button:focus-visible,.ws-r59-gallery>summary:focus-visible{outline:3px solid #74ece1;outline-offset:3px}
+#wsR59GalleryStatus{font-size:11px;color:#a6c5d2}
+@media(max-width:1100px){.ws-r59-cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:680px){.ws-r59-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.ws-r59-gallery>summary{padding:11px}.ws-r59-gallery-body{padding:0 9px 9px}}
+@media(max-width:355px){.ws-r59-cards{grid-template-columns:minmax(0,1fr)}.ws-r59-preview{height:83px}}
+@media(prefers-reduced-motion:reduce){.ws-r59-card,.ws-r59-card button{transition:none!important}}

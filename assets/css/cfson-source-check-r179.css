@@ -1,0 +1,14 @@
+/* R179: passive website source health checks (private media lab only). */
+.cfson-source-r179{margin-top:20px;background:#091e2d;border:1px solid #418c8e;border-radius:16px;padding:20px;color:#e6fbf6}
+.cfson-source-r179 h3{margin:0 0 8px;color:#fff;font-size:1.2rem}
+.cfson-source-r179 p{line-height:1.6}
+.cfson-source-controls{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;align-items:end}
+.cfson-source-controls label{display:grid;gap:5px;flex:2 1 260px;min-width:180px}
+.cfson-source-controls button,.cfson-source-controls a{padding:10px 13px;border:1px solid #69b9bc;border-radius:9px;background:#15555b;color:#fff;font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
+.cfson-source-controls button:disabled{opacity:.5;cursor:not-allowed}
+.cfson-source-controls select,.cfson-source-controls input{width:100%;max-width:100%;padding:10px;background:#112e41;color:#fff;border:1px solid #5a8da0;border-radius:9px;font:inherit}
+.cfson-source-controls input{font-size:.83rem}
+.cfson-source-r179 pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#def5fb;background:#030e19;border:1px solid #355970;border-radius:10px;padding:12px;min-height:100px;line-height:1.75}
+.cfson-source-r179 .cfson-source-warning{color:#ffdcaa;font-size:.91rem}
+.cfson-source-r179 .cfson-source-checkbox{display:flex;gap:10px;align-items:flex-start;font-weight:600;margin:12px 0}
+.cfson-source-r179 .cfson-source-checkbox input{margin-top:5px;accent-color:#58b9b1}

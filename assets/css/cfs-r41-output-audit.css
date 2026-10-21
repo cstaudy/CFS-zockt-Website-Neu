@@ -1,0 +1,37 @@
+/* R41 – compact, accessible, reusable design output QA. */
+.cfs-r41-audit{margin:8px 12px;border:1px solid #214765;border-radius:10px;background:#06131f;color:#a8cce2;min-width:0}
+.cfs-r41-audit>summary{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 12px;font-size:11px;font-weight:800;letter-spacing:.03em}
+.cfs-r41-audit>summary span{font-weight:500;font-size:10px;color:#76a6c7;letter-spacing:0}
+.cfs-r41-audit-body{border-top:1px solid #214765;padding:10px 12px;display:grid;gap:8px;min-width:0}
+.cfs-r41-audit-body>small{font-size:10px;color:#7295ae;line-height:1.5}
+#sceneQualityResult,.cfs-r41-widget-result{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+#sceneQualityResult strong,.cfs-r41-widget-result strong{display:block;color:#a8e1ff;margin:4px 0;font-size:12px}
+#sceneQualityResult p,.cfs-r41-widget-result p{margin:6px 0;padding:5px 7px;border-radius:6px;border-left:2px solid #397191;background:rgba(17,58,84,.22)}
+#sceneQualityResult .cfs-r41-errors,.cfs-r41-widget-result .cfs-r41-errors{border-color:#ff7488;color:#ffc0c8}
+#sceneQualityResult .cfs-r41-warnings,.cfs-r41-widget-result .cfs-r41-warnings{border-color:#f2b860;color:#ffe2aa}
+#sceneQualityResult .cfs-r41-notes,.cfs-r41-widget-result .cfs-r41-notes{color:#9cbbd0}
+.cfs-r41-widget-result{margin:10px 0;padding:8px;border-radius:8px;border:1px solid #214765;background:#06131f}
+.cfs-r41-widget-result[hidden]{display:none!important}
+@media(max-width:540px){.cfs-r41-audit>summary{font-size:10px}.cfs-r41-audit{margin:7px 8px}.cfs-r41-audit-body{padding:8px}}
+
+/* R42: contextual issue navigation, no new page or category */
+.cfs-r42-action{display:inline-flex;align-items:center;justify-content:center;max-width:100%;margin:6px 6px 2px 0;padding:5px 9px;font:inherit;font-size:11px;font-weight:750;cursor:pointer;color:#bdeaff;background:#102a40;border:1px solid #38789e;border-radius:7px;overflow-wrap:anywhere}
+.cfs-r42-action:hover,.cfs-r42-action:focus-visible{background:#1a4767;outline-offset:2px}
+.cfs-r42-action:disabled{opacity:.55;cursor:not-allowed}
+.cfs-r41-widget-result p span,#sceneQualityResult p span{display:block}
+
+/* R43: quiet inline audit progress, no additional workspace/category. */
+.cfs-r43-progress{display:block;margin:5px 0 8px;padding:5px 8px;border:1px solid #286b86;border-radius:7px;background:rgba(21,74,99,.24);color:#b7e4ff;font-weight:650;font-size:11px;overflow-wrap:anywhere}
+
+/* R44: compact in-place issue-by-issue comparison, hidden when unchanged. */
+.cfs-r44-changes{display:grid;gap:4px;margin:7px 0;padding:8px 9px;border:1px solid #315c78;border-radius:8px;background:rgba(23,64,86,.25);overflow-wrap:anywhere;min-width:0}
+.cfs-r44-changes>strong{font-size:11px;color:#c8eeff}
+.cfs-r44-changes p{margin:0!important;padding:4px 6px!important;font-size:11px;line-height:1.35}
+.cfs-r44-changes .cfs-r44-resolved{border-left:2px solid #56c99a!important;color:#b8f4d7}
+.cfs-r44-changes .cfs-r44-introduced{border-left:2px solid #ffab69!important;color:#ffe0c2}
+.cfs-r44-changes>small{font-size:10px;color:#a1becf}
+.cfs-r44-changes .cfs-r44-reset{justify-self:start;margin:4px 0 0}
+
+/* R45: Quality report action matches other compact preflight buttons. */
+.cfs-r41-audit-body>.cfs-r45-report{margin-left:.35rem;}
+@media(max-width:520px){.cfs-r41-audit-body>.cfs-r45-report{margin-left:0;margin-top:.35rem;}}

@@ -1,0 +1,57 @@
+/* R116 — unified Cut / Audio editors, progressive enhancement only. */
+body.r116-ready .r116-switch {
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;
+  padding:7px;margin:13px 0 11px;
+  background:linear-gradient(120deg,rgba(4,20,35,.96),rgba(8,32,52,.94));
+  border:1px solid rgba(47,150,212,.45);border-radius:13px;
+  box-shadow:0 16px 36px rgba(0,0,0,.14);
+}
+body.r116-ready .r116-switch-button {
+  display:flex;justify-content:center;align-items:center;min-width:0;min-height:43px;
+  padding:9px 12px;border:1px solid transparent;border-radius:9px;
+  background:transparent;color:#a8cade;font:750 12px/1.25 system-ui,sans-serif;
+  cursor:pointer;
+}
+body.r116-ready .r116-switch-button[aria-pressed="true"]{
+  background:linear-gradient(130deg,rgba(8,82,127,.95),rgba(5,47,84,.96));
+  color:#f3fbff;border-color:rgba(44,185,244,.76);box-shadow:inset 0 1px rgba(144,226,255,.18);
+}
+body.r116-ready .r116-switch-button:disabled{opacity:.45;cursor:not-allowed}
+body.r116-ready .r116-switch-button:not(:disabled):hover{color:white;background:rgba(14,93,142,.55)}
+body.r116-ready .r116-switch-button:focus-visible{outline:2px solid #7adfff;outline-offset:2px}
+/* Cut workspace: preview/timeline get the full editor width. No original DOM moved. */
+body[data-cfs-r108-view="cut-studio"] .cut-workspace{min-width:0}
+body[data-cfs-r108-view="cut-studio"] .cut-workspace>.cut-editor{min-width:0}
+body.r116-ready[data-cfs-r108-view="cut-studio"]:is([data-r116-cut-mode="preview"],[data-r116-cut-mode="timeline"],[data-r116-cut-mode="export"]) .cut-workspace{grid-template-columns:minmax(0,1fr)!important}
+body.r116-ready[data-cfs-r108-view="cut-studio"]:is([data-r116-cut-mode="preview"],[data-r116-cut-mode="timeline"],[data-r116-cut-mode="export"]) .cut-workspace>.cut-projects{display:none!important}
+body.r116-ready[data-cfs-r108-view="cut-studio"]:is([data-r116-cut-mode="preview"],[data-r116-cut-mode="timeline"],[data-r116-cut-mode="export"]) #cutEditor>.cut-section,
+body.r116-ready[data-cfs-r108-view="cut-studio"]:is([data-r116-cut-mode="preview"],[data-r116-cut-mode="timeline"],[data-r116-cut-mode="export"]) #cutEditor>.cut-local-preview{display:none!important}
+body.r116-ready[data-cfs-r108-view="cut-studio"][data-r116-cut-mode="preview"] #cutEditor>.cut-local-preview,
+body.r116-ready[data-cfs-r108-view="cut-studio"][data-r116-cut-mode="timeline"] #cutEditor>.cut-local-preview,
+body.r116-ready[data-cfs-r108-view="cut-studio"][data-r116-cut-mode="timeline"] #cutEditor>.cut-section-clips,
+body.r116-ready[data-cfs-r108-view="cut-studio"][data-r116-cut-mode="export"] #cutEditor>.cut-section-audio,
+body.r116-ready[data-cfs-r108-view="cut-studio"][data-r116-cut-mode="export"] #cutEditor>.cut-section-export{display:block!important}
+body.r116-ready[data-cfs-r108-view="cut-studio"][data-r116-cut-mode="preview"] .cut-local-preview video,
+body.r116-ready[data-cfs-r108-view="cut-studio"][data-r116-cut-mode="timeline"] .cut-local-preview video{max-height:min(58vh,680px)}
+body.r116-ready[data-cfs-r108-view="cut-studio"][data-r116-cut-mode="timeline"] .cut-local-preview>p:first-of-type{display:none}
+body.r116-ready[data-cfs-r108-view="cut-studio"] .cut-local-preview,
+body.r116-ready[data-cfs-r108-view="cut-studio"] .cut-section-clips{min-width:0}
+body.r116-ready[data-cfs-r108-view="cut-studio"] .cut-editor-head .inline{flex-wrap:wrap}
+/* Audio: editing starts with the waveform and trim controls. More tools remain a tab away. */
+body.r116-ready[data-cfs-r108-view="audio-studio"] #alertToneStudio{max-width:none;margin:12px 0 18px}
+body.r116-ready[data-cfs-r108-view="audio-studio"][data-r116-audio-mode="edit"] :is(#audioWorkspace,#audioApp,.r108-roadmap),
+body.r116-ready[data-cfs-r108-view="audio-studio"][data-r116-audio-mode="polish"] :is(#audioWorkspace,#audioApp,.r108-roadmap){display:none!important}
+body.r116-ready[data-cfs-r108-view="audio-studio"][data-r116-audio-mode="edit"] .tone-control:nth-child(n+3){display:none!important}
+body.r116-ready[data-cfs-r108-view="audio-studio"][data-r116-audio-mode="presets"] #alertToneStudio{display:none!important}
+body.r116-ready[data-cfs-r108-view="audio-studio"] #alertToneStudio .tone-controls{min-width:0}
+body.r116-ready[data-cfs-r108-view="audio-studio"] #alertToneStudio .tone-wave{max-height:300px;object-fit:contain}
+body.r116-ready[data-cfs-r108-view="audio-studio"] #alertToneStudio .tone-control{min-width:0}
+@media(max-width:760px){
+  body.r116-ready .r116-switch{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:6px}
+  body.r116-ready .r116-switch-button{min-height:45px;padding:9px 5px;font-size:12px}
+  body.r116-ready[data-cfs-r108-view="cut-studio"] .cut-workspace{grid-template-columns:minmax(0,1fr)!important}
+  body.r116-ready[data-cfs-r108-view="cut-studio"] .cut-steps{gap:6px}
+  body.r116-ready[data-cfs-r108-view="cut-studio"] .cut-step small{display:none}
+  body.r116-ready[data-cfs-r108-view="audio-studio"] #alertToneStudio{padding:14px}
+}
+@media(prefers-reduced-motion:reduce){body.r116-ready .r116-switch-button{transition:none!important}}

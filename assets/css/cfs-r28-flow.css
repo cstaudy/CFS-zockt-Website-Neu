@@ -1,0 +1,72 @@
+/* R28: task-centered Widget Studio create view, applied only after the R27 stack. */
+body .ws-create-view .cfs-r28-flow-tabs{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+  max-width:740px;margin:10px 0 14px;padding:5px;border-radius:12px;
+  background:rgba(8,25,39,.94);border:1px solid rgba(72,149,186,.25)
+}
+body .ws-create-view .cfs-r28-flow-tabs button{
+  min-width:0;min-height:42px;padding:9px 12px;border:1px solid transparent;
+  border-radius:8px;background:transparent;color:#bfd8e5;cursor:pointer;
+  font:inherit;font-size:13px;font-weight:750;line-height:1.25
+}
+body .ws-create-view .cfs-r28-flow-tabs button:is(.active,:hover){
+  color:#f3fbff;border-color:rgba(69,187,234,.5);background:#153b54
+}
+body .ws-create-view .cfs-r28-flow-tabs button:focus-visible,
+body .ws-create-view .cfs-r28-panel-groups>summary:focus-visible,
+body .ws-create-view .cfs-r28-extra-types>summary:focus-visible{
+  outline:2px solid #73d3fa;outline-offset:3px
+}
+body[data-ws-view="create"] .ws-create-headline>div>p,
+body[data-ws-view="create"] .ws-platform-intro,
+body[data-ws-view="create"] .ws-quickstart-30-note,
+body[data-ws-view="create"] .ws-simple-type-search>small:empty{
+  display:none!important
+}
+body[data-ws-view="create"] .ws-create-headline h2{font-size:clamp(18px,2vw,24px)!important;line-height:1.15!important}
+body[data-ws-view="create"] .ws-create-headline{margin-block:7px!important}
+body[data-ws-view="create"] .ws-create-headline .ws-create-steps{gap:7px}
+body[data-ws-view="create"] .ws-quickstart-30,
+body[data-ws-view="create"] .ws-platform-picker,
+body[data-ws-view="create"] .ws-type-library{margin-block:9px!important}
+/* The full tool library stays in the DOM. Show only the tool relevant to the current task. */
+body[data-ws-view="create"][data-cfs-r28-flow="widget"] :is(#wsWidgetConverter,#wsPanelConverter,#cfsR28PanelSetsDetails),
+body[data-ws-view="create"][data-cfs-r28-flow="converter"] :is(.ws-platform-picker,.ws-quickstart-30,.ws-type-library,.ws-create-design-area,#wsPanelConverter,#cfsR28PanelSetsDetails),
+body[data-ws-view="create"][data-cfs-r28-flow="panels"] :is(.ws-platform-picker,.ws-quickstart-30,.ws-type-library,.ws-create-design-area,#wsWidgetConverter){
+  display:none!important
+}
+body[data-ws-view="create"][data-cfs-r28-flow="converter"] .ws-create-steps,
+body[data-ws-view="create"][data-cfs-r28-flow="panels"] .ws-create-steps{display:none!important}
+body .ws-create-view .cfs-r28-extra-types{margin:5px 0 10px}
+body .ws-create-view .cfs-r28-extra-types>summary{
+  padding:9px 12px;cursor:pointer;font-size:12px;font-weight:750;
+  color:#a5d5ed;border:1px solid rgba(61,137,174,.24);border-radius:9px;
+  background:rgba(10,33,49,.7)
+}
+body .ws-create-view .cfs-r28-extra-types[open]>.ws-simple-category-grid{margin-top:9px}
+body .ws-create-view .cfs-r28-panel-groups{margin:10px 0 14px}
+body .ws-create-view .cfs-r28-panel-groups>summary{
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px 14px;
+  cursor:pointer;border:1px solid rgba(78,161,200,.3);border-radius:11px;
+  color:#effaff;background:#0d283b
+}
+body .ws-create-view .cfs-r28-panel-groups>summary>strong{font-size:14px}
+body .ws-create-view .cfs-r28-panel-groups>summary>span{font-size:12px;color:#a1c2d4}
+body .ws-create-view .cfs-r28-panel-groups[open]>#wsPanelSets{margin-top:10px!important}
+body[data-ws-view="create"] #wsWidgetConverter,
+body[data-ws-view="create"] #wsPanelConverter{scroll-margin-top:88px}
+@media(max-width:600px){
+ body .ws-create-view .cfs-r28-flow-tabs{width:100%;max-width:100%;gap:4px;padding:4px}
+ body .ws-create-view .cfs-r28-flow-tabs button{padding:8px 5px;min-height:43px;font-size:12px}
+ body[data-ws-view="create"] .ws-create-headline h2{font-size:20px!important}
+}
+@media(prefers-reduced-motion:reduce){body .ws-create-view .cfs-r28-flow-tabs button{transition:none!important}}
+/* Existing file inputs are visually hidden but were absolutely positioned against
+   the viewport, producing horizontal overflow. Keep them within their labels. */
+body .ws-converter-upload{position:relative;min-width:0}
+body .ws-converter-upload>input[type="file"]{
+  position:absolute!important;left:0!important;top:0!important;
+  width:1px!important;height:1px!important;min-width:0!important;
+  opacity:0;overflow:hidden;pointer-events:none
+}
+body .ws-converter-upload:focus-within>span{outline:2px solid #73d3fa;outline-offset:2px}
