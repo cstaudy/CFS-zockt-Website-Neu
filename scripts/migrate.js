@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { getPool, closeDatabase } from "../src/db.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const files = ["001_initial.sql", "002_project_versions.sql", "003_creator_assets.sql"];
+const files = ["001_initial.sql", "002_project_versions.sql", "003_creator_assets.sql", "004_account_plan.sql"];
 
 try {
   const pool = getPool();
