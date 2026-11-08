@@ -1,0 +1,20 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { getPool, closeDatabase } from "../src/db.js";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+const files = ["001_initial.sql", "002_project_versions.sql", "003_creator_assets.sql"];
+
+try {
+  const pool = getPool();
+  if (!pool) throw new Error("DATABASE_URL fehlt.");
+  for (const file of files) {
+    const sql = await readFile(join(root, "migrations", file), "utf8");
+    await pool.query(sql);
+    console.log(`migration ok: ${file}`);
+  }
+} finally {
+  await closeDatabase();
+}
+
