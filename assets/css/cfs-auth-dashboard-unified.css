@@ -1,0 +1,14 @@
+/* Gemeinsame Sprache für Login, Account und Dashboard. */
+:root{--cfs-unified-line:rgba(132,199,241,.18);--cfs-unified-card:rgba(10,27,45,.86);--cfs-unified-accent:#20c7ff}
+.public-auth-page .auth-entry-shell,.account-shell,.creator-dashboard-v166{max-width:1240px}
+.public-auth-page .auth-entry-hero,.account-hero,.creator-dashboard-hero{border-radius:22px;border:1px solid var(--cfs-unified-line);background:linear-gradient(135deg,rgba(9,29,48,.96),rgba(4,13,25,.96));box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.public-auth-page .auth-entry-grid{gap:18px;align-items:start}.public-auth-page .auth-entry-panel,.account-card,.creator-operation-card,.ws-plan-card{border-color:var(--cfs-unified-line);background:var(--cfs-unified-card);border-radius:16px}
+.public-auth-page .auth-entry-panel-featured{border-color:rgba(32,199,255,.5);box-shadow:0 0 30px rgba(32,199,255,.08)}
+.public-auth-page .field input,.public-auth-page .field select,.public-auth-page .field textarea,.account-form input,.account-form select,.account-form textarea{border-color:var(--cfs-unified-line);background:#071522;border-radius:9px}
+.public-auth-page .btn.primary,.account-shell .btn.primary,.creator-dashboard-v166 .btn.primary{background:linear-gradient(135deg,#20c7ff,#148cff);color:#03101b;border:0;box-shadow:0 8px 22px rgba(32,199,255,.18)}
+.account-tabs{position:sticky;top:10px;z-index:2;border:1px solid var(--cfs-unified-line);border-radius:14px;background:rgba(5,16,29,.94);backdrop-filter:blur(14px)}
+.account-tab-panel{animation:unified-fade .18s ease-out}@keyframes unified-fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+.creator-dashboard-v166 .r194-path{margin-top:18px}.creator-dashboard-actions-grid-v166{gap:12px}.creator-dashboard-actions-grid-v166>*{border-color:var(--cfs-unified-line);border-radius:14px;background:var(--cfs-unified-card)}
+.access-badges{gap:8px}.access-badges>*{border-radius:999px;border:1px solid rgba(32,199,255,.28)}
+@media(max-width:760px){.public-auth-page .auth-entry-grid{grid-template-columns:1fr}.account-tabs{position:static}.creator-dashboard-hero{padding:22px}.public-auth-page .auth-entry-hero{padding:22px}}
+

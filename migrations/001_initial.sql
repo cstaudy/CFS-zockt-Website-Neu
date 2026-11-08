@@ -1,12 +1,15 @@
 -- CFS Zockt initial PostgreSQL schema.
 -- Run this migration once against the Render PostgreSQL database.
 
+create extension if not exists pgcrypto;
+
 create table if not exists accounts (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
   password_hash text,
   display_name text not null,
   role text not null default 'creator' check (role in ('creator', 'admin')),
+  plan text not null default 'free',
   email_verified_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

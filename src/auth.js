@@ -51,7 +51,7 @@ export async function register({ email, password, display_name }) {
   if (name.length < 2 || name.length > 80) return { error: "INVALID_DISPLAY_NAME", status: 400 };
   const hash = await passwordHash(password);
   try {
-    const result = await pool.query("insert into accounts (email, password_hash, display_name) values ($1, $2, $3) returning id, email, display_name, role, created_at", [normalized, hash, name]);
+    const result = await pool.query("insert into accounts (email, password_hash, display_name) values ($1, $2, $3) returning id, email, display_name, role, plan, created_at", [normalized, hash, name]);
     return { account: result.rows[0] };
   } catch (error) {
     if (error.code === "23505") return { error: "EMAIL_ALREADY_REGISTERED", status: 409 };
@@ -62,7 +62,7 @@ export async function register({ email, password, display_name }) {
 export async function login({ email, password }) {
   const pool = getPool();
   if (!pool) return { error: "DATABASE_UNAVAILABLE", status: 503 };
-  const result = await pool.query("select id, email, display_name, role, password_hash, created_at from accounts where email = $1", [normalizeEmail(email)]);
+  const result = await pool.query("select id, email, display_name, role, plan, password_hash, created_at from accounts where email = $1", [normalizeEmail(email)]);
   const account = result.rows[0];
   if (!account || !account.password_hash || !(await verifyPassword(password, account.password_hash))) return { error: "INVALID_CREDENTIALS", status: 401 };
   const token = randomBytes(32).toString("base64url");
@@ -76,7 +76,7 @@ export async function currentAccount(req) {
   const token = sessionFromRequest(req);
   const pool = getPool();
   if (!token || !pool) return null;
-  const result = await pool.query("select a.id, a.email, a.display_name, a.role, a.email_verified_at, a.created_at from sessions s join accounts a on a.id = s.account_id where s.token_hash = $1 and s.expires_at > now()", [tokenHash(token)]);
+  const result = await pool.query("select a.id, a.email, a.display_name, a.role, a.plan, a.email_verified_at, a.created_at from sessions s join accounts a on a.id = s.account_id where s.token_hash = $1 and s.expires_at > now()", [tokenHash(token)]);
   if (!result.rows[0]) return null;
   await pool.query("update sessions set last_seen_at = now() where token_hash = $1", [tokenHash(token)]);
   const account = result.rows[0];
