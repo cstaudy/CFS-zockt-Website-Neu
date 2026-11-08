@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/assets/css/cfs-unified-v172.css" data-cfs-unified-v172>
   <link rel="stylesheet" href="/assets/css/cfs-brand-unified-v192.css" data-cfs-brand-v192>
   <link rel="stylesheet" href="/assets/css/cfs-brand-v197.css" data-cfs-brand-v197>
-  <link rel="stylesheet" href="/assets/css/admin-hub-v197.css">
+<link rel="stylesheet" href="/assets/css/admin-hub-v197.css"><link rel="stylesheet" href="/assets/css/psn-admin.css">
   <script src="/assets/js/cfs-shell-v3.js" defer></script>
   <link rel="stylesheet" href="/assets/css/cfs-brand-v198.css" data-cfs-brand-v198>
   <link rel="stylesheet" href="/assets/css/cfs-product-v199.css" data-cfs-product-v199>
@@ -123,6 +123,7 @@
   </section>
   </details>
   <div class="cfs-admin-error" id="adminHubError" hidden role="status"></div>
+  <section class="cfs-admin-section psn-admin-panel" id="adminPlaystationPanel"><div class="cfs-admin-section-head"><div><span>INTEGRATION · PLAYSTATION NETWORK</span><h2>PlayStation-Spiele verwalten</h2></div><span class="psn-admin-badge">VORBEREITET</span></div><p class="psn-admin-intro">Lege fest, welche PlayStation-Titel öffentlich angezeigt werden dürfen. Echte PSN-Daten werden erst nach einer autorisierten Verbindung übernommen.</p><div class="psn-admin-grid"><label><span>DATENQUELLE</span><select id="adminPsnSource"><option value="pending">PSN-Verbindung vorbereiten</option><option value="launcher">CFS Launcher</option><option value="manual">Manuelle Auswahl</option></select></label><label><span>PLATTFORM</span><select id="adminPsnPlatform"><option value="all">PS4 & PS5</option><option value="playstation_5">PS5</option><option value="playstation_4">PS4</option></select></label></div><div class="psn-admin-games" id="adminPsnGames"><label><input type="checkbox" value="astro-bot"><span>Astro Bot</span><small>PS5</small></label><label><input type="checkbox" value="gran-turismo-7"><span>Gran Turismo 7</span><small>PS4 · PS5</small></label><label><input type="checkbox" value="helldivers-2"><span>Helldivers 2</span><small>PS5</small></label><label><input type="checkbox" value="fortnite"><span>Fortnite</span><small>PS4 · PS5</small></label><label><input type="checkbox" value="call-of-duty"><span>Call of Duty</span><small>PS4 · PS5</small></label><label><input type="checkbox" value="minecraft"><span>Minecraft</span><small>PS4 · PS5</small></label></div><div class="psn-admin-actions"><button class="btn primary" id="adminPsnSave" type="button">AUSWAHL SPEICHERN</button><a class="btn" href="/pages/playstation.html">PLAYSTATION-SEITE ÖFFNEN</a></div><p class="psn-admin-status" id="adminPsnStatus" role="status">Noch keine Auswahl gespeichert.</p></section>
 
   <details class="r16-admin-more"><summary>Weitere Admin-Werkzeuge</summary>
   <section class="cfs-admin-section">
@@ -215,7 +216,7 @@
 </main>
 
 <script src="/assets/js/app.js"></script><script src="/assets/js/cfs-r17-shop-drop.js?v=R17" defer></script>
-<script src="/assets/js/page-admin-v197.js"></script>
+<script src="/assets/js/page-admin-v197.js"></script><script src="/assets/js/admin-playstation.js"></script>
 <link rel="stylesheet" href="/assets/css/cfs-r15-owner-console.css?v=R15">
 <script src="/assets/js/cfs-r15-owner-console.js?v=R15" defer></script>
 <link rel="stylesheet" href="/assets/css/cfs-r77-beta-feedback.css?v=R77">
@@ -225,3 +226,4 @@
 <script src="/assets/js/cfs-product-v199.js" defer></script>
 <script src="/assets/js/cfs-r14-admin-overview.js?v=R14" defer></script></body>
 </html>
+

@@ -215,6 +215,16 @@
           <small id="wsPlanMeta">Dein aktueller Creator-Plan.</small>
         </div>
       </section>
+      <section class="ws-pricing-card" id="wsPricingTable" aria-labelledby="wsPricingTitle">
+        <div><span class="ws-section-label">CREATOR-PLÄNE</span><h3 id="wsPricingTitle">3 Widgets kostenlos · danach flexibel erweitern</h3><p>Die ersten drei Widgets bleiben dauerhaft kostenlos. Ab dem vierten Widget brauchst du einen kostenpflichtigen Plan.</p></div>
+        <div class="ws-pricing-grid">
+          <article data-price-card="free"><span>FREE</span><strong><output data-price-value="free">0,00 €</output></strong><small><output data-price-limit="free">3</output> Widgets · eigene Bilder · PNG-Export</small><button type="button" data-pricing-plan="free">AKTUELLER PLAN</button></article>
+          <article class="featured" data-price-card="creator"><span>CREATOR</span><strong><output data-price-value="creator">9,99 €</output> <small>/ Monat</small></strong><small><output data-price-limit="creator">25</output> Widgets · unbegrenzte Entwürfe · komplette Designbibliothek</small><button type="button" data-pricing-plan="creator">CREATOR WÄHLEN</button></article>
+          <article data-price-card="pro"><span>PRO</span><strong><output data-price-value="pro">19,99 €</output> <small>/ Monat</small></strong><small><output data-price-limit="pro">100</output> Widgets · Szenen · erweiterte Export- und Bibliotheksfunktionen</small><button type="button" data-pricing-plan="pro">PRO WÄHLEN</button></article>
+        </div>
+        <details class="ws-pricing-editor"><summary>Preise und Limits anpassen</summary><div class="ws-pricing-editor-grid"><label>Free Preis<input data-price-input="free" value="0,00"></label><label>Free Limit<input data-limit-input="free" type="number" min="1" value="3"></label><label>Creator Preis<input data-price-input="creator" value="9,99"></label><label>Creator Limit<input data-limit-input="creator" type="number" min="4" value="25"></label><label>Pro Preis<input data-price-input="pro" value="19,99"></label><label>Pro Limit<input data-limit-input="pro" type="number" min="5" value="100"></label></div><button type="button" class="btn primary" id="wsPricingApply">PREISTABELLE ÜBERNEHMEN</button><small id="wsPricingApplyStatus">Nur Prototyp-Konfiguration · noch keine Zahlung.</small></details>
+        <small class="ws-pricing-note">Preise sind zunächst Vorschläge. Eine Zahlung wird erst nach Anbindung eines Zahlungsanbieters ausgelöst.</small>
+      </section>
 
       <section class="ws-overview-card">
         <div class="ws-overview-icon live">●</div>
@@ -414,6 +424,18 @@
         <div><strong id="wsConverterLibraryMeta">0 Bilder in deiner Bibliothek</strong><small id="wsConverterLibraryHint">Dateien bleiben geordnet in deiner Medienbibliothek und können mehrfach verwendet werden.</small></div>
         <button class="btn" type="button" data-action="open-assets">DATEIBIBLIOTHEK</button>
       </div>
+      <div class="ws-converter-design-source" aria-label="Designwelt für den Umwandler">
+        <label><span>DESIGNWELT</span><select id="wsConverterDesignWorld"><option value="">CFS Standard</option></select></label>
+        <label><span>FARBVARIANTE</span><select id="wsConverterDesignColor"><option value="">Standardfarbe</option></select></label>
+        <small id="wsConverterDesignMeta">Shop-Designwelten können direkt als Stilbasis verwendet werden.</small>
+      </div>
+      <section class="ws-package-builder" id="wsPackageBuilder" aria-labelledby="wsPackageTitle">
+        <div><span class="ws-section-label">PAKET-VORSCHAU</span><h3 id="wsPackageTitle">Widget- und Overlay-Paket zusammenstellen</h3><p>Prüfe die Ausgaben gemeinsam, bevor du sie in deiner Bibliothek speicherst.</p></div>
+        <div class="ws-package-options"><label><input type="checkbox" data-package-output="widgets" checked> Widgets</label><label><input type="checkbox" data-package-output="overlays" checked> Overlays</label><label><input type="checkbox" data-package-output="camera"> Kamera-Rahmen</label><label><input type="checkbox" data-package-output="scene"> Szenenrahmen</label></div>
+        <div class="ws-package-preview" id="wsPackagePreview"><article><strong>LIVE WIDGET</strong><span>Designwelt auswählen</span></article><article><strong>OVERLAY</strong><span>Designwelt auswählen</span></article></div>
+        <div class="ws-package-actions"><button type="button" class="btn" id="wsPackageRefresh">VORSCHAU AKTUALISIEREN</button><button type="button" class="btn primary" id="wsPackageSave">PAKET IN BIBLIOTHEK SPEICHERN</button></div>
+        <small id="wsPackageStatus" role="status">Das Paket wird erst nach deiner Bestätigung gespeichert.</small>
+      </section>
       <div class="ws-converter-targets" role="group" aria-label="Gewünschte Ausgabe aus dem Umwandler">
         <button type="button" class="active" data-converter-target="widget"><strong>LIVE WIDGET</strong><small>Mit TikTok- oder Twitch-Daten</small></button>
         <button type="button" data-converter-target="overlay"><strong>OVERLAY</strong><small>Freies Grafik-Overlay</small></button>
@@ -1834,3 +1856,4 @@
 <script src="/assets/js/cfs-r52-studio-flow.js?v=R52" defer></script>
 </body>
 </html>
+
