@@ -3,13 +3,16 @@ import { createReadStream } from "node:fs";
 import { access, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { closeDatabase, databaseCheck } from "./src/db.js";
+import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
 import { currentAccount, isAdminEmail, login, logout, register, cookie } from "./src/auth.js";
-import { createProject, deleteProject, listProjects, updateProject } from "./src/projects.js";
+import { createProject, deleteProject, listProjects, updateProject, requireAdmin } from "./src/projects.js";
 import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
 import { listAssets, uploadAsset } from "./src/assets.js";
 import { createPackage, listPackages } from "./src/packages.js";
+import { startTikTok, finishTikTok, tiktokConfigured } from "./src/tiktok.js";
+import { startTwitch, finishTwitch } from "./src/twitch.js";
+import { getPlayStationState } from "./src/playstation.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -115,8 +118,14 @@ async function handle(req, res) {
     return json(res, 200, { ok: true, service: "cfs-zockt", status: "healthy", started_at: startedAt, uptime_seconds: Math.floor(process.uptime()), version });
   }
   if (url.pathname === "/api/integrations/status" && ["GET", "HEAD"].includes(method)) {
-    return json(res, 200, { ok: true, integrations: { database: Boolean(process.env.DATABASE_URL), session_secret: Boolean(process.env.SESSION_SECRET), twitch: Boolean(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET), tiktok: Boolean(process.env.TIKTOK_CLIENT_KEY && process.env.TIKTOK_CLIENT_SECRET), launcher: Boolean(process.env.LAUNCHER_BRIDGE_SECRET), paypal: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET), playstation: Boolean(process.env.PSN_PROVIDER && process.env.PSN_CLIENT_ID), storage: Boolean(process.env.ASSET_STORAGE_BUCKET) || (process.env.ASSET_STORAGE_PROVIDER || "local") === "local" }, note: "Nur Konfigurationsstatus; keine Secrets werden ausgegeben." });
+    return json(res, 200, { ok: true, integrations: { database: Boolean(process.env.DATABASE_URL), session_secret: Boolean(process.env.SESSION_SECRET), twitch: Boolean(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET), tiktok: tiktokConfigured(), launcher: Boolean(process.env.LAUNCHER_BRIDGE_SECRET), paypal: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET), playstation: Boolean(process.env.PSN_PROVIDER && process.env.PSN_CLIENT_ID), storage: Boolean(process.env.ASSET_STORAGE_BUCKET) || (process.env.ASSET_STORAGE_PROVIDER || "local") === "local" }, note: "Nur Konfigurationsstatus; keine Secrets werden ausgegeben." });
   }
+
+  if (url.pathname === "/api/integrations/tiktok/start" && method === "GET") return startTikTok(req, res);
+  if (["/api/auth/tiktok/callback", "/auth/tiktok/callback"].includes(url.pathname) && method === "GET") { const result=await finishTikTok(req,res,url); if(result?.error)return json(res,result.status,{error:result.error,message:result.detail}); return; }
+  if (url.pathname === "/api/integrations/twitch/start" && method === "GET") return startTwitch(req,res);
+  if (["/api/auth/twitch/callback", "/auth/twitch/callback"].includes(url.pathname) && method === "GET") { const result=await finishTwitch(req,res,url); if(result?.error)return json(res,result.status,{error:result.error}); return; }
+  if (url.pathname === "/api/creator/playstation" && method === "GET") { const result=await getPlayStationState(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
 
   if (url.pathname === "/api/ready" && ["GET", "HEAD"].includes(method)) {
     const database = await databaseCheck();
@@ -151,6 +160,19 @@ async function handle(req, res) {
     const account = await currentAccount(req);
     const view = account ? { ...account, admin: isAdminEmail(account.email), role: isAdminEmail(account.email) ? "admin" : "creator", email_verified: Boolean(account.email_verified_at) } : null;
     return json(res, 200, { authenticated: Boolean(view), account: view });
+  }
+
+  if (url.pathname === "/api/admin/status" && ["GET", "HEAD"].includes(method)) {
+    const account = await requireAdmin(req);
+    if (account.error) return json(res, account.status, { error: account.error });
+    return json(res, 200, { ok: true, admin: true, account: { id: account.id, email: account.email, display_name: account.display_name, role: account.role } });
+  }
+
+  if (url.pathname === "/api/admin/accounts" && ["GET", "HEAD"].includes(method)) {
+    const account = await requireAdmin(req);
+    if (account.error) return json(res, account.status, { error: account.error });
+    const result = await getPool().query("select id, email, display_name, role, plan, email_verified_at, created_at, updated_at from accounts order by created_at desc");
+    return json(res, 200, { accounts: result.rows.map(row => ({ ...row, admin: isAdminEmail(row.email), email_verified: Boolean(row.email_verified_at) })), total: result.rowCount });
   }
 
   if (["/api/auth/register", "/api/account/register"].includes(url.pathname) && method === "POST") {

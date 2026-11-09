@@ -16,6 +16,8 @@ Der Server läuft auf `process.env.PORT` und stellt aktuell diese stabilen Endpu
 - `GET /api/public/community-stats`
 - `GET /api/public/creator-state`
 - `GET /api/public/games`
+- `GET /api/integrations/tiktok/start`
+- `GET /api/auth/tiktok/callback`
 - `GET /api/account/me`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
@@ -49,7 +51,7 @@ Noch nicht aktivierte API-Bereiche liefern absichtlich `501 API_NOT_IMPLEMENTED`
 5. Twitch-/TikTok-Integrationen
 6. Admin-Berechtigungen und Audit-Logging
 
-Das Datenmodell liegt unter `migrations/001_initial.sql`, `migrations/002_project_versions.sql` und `migrations/003_creator_assets.sql`. Die Migrationen sind absichtlich noch nicht automatisch im Startprozess verankert, damit ein Render-Neustart niemals ungefragt Datenbankänderungen ausführt.
+Das Datenmodell liegt unter `migrations/001_initial.sql`, `migrations/002_project_versions.sql`, `migrations/003_creator_assets.sql` und `migrations/004_account_plan.sql`. Beim normalen Start führt `scripts/start.js` die idempotenten Migrationen automatisch aus, wenn `DATABASE_URL` gesetzt ist. Ein Start schlägt bei einem Migrationsfehler ab, statt den Service mit einem unvollständigen Schema zu starten.
 
 Uploads werden in der aktuellen Stufe lokal unter `assets/uploads/` abgelegt. Für einen dauerhaft sicheren Render-Betrieb muss dieser Speicher später durch einen persistenten Object-Storage (z. B. S3-kompatibel) ersetzt werden.
 

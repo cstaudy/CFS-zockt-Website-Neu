@@ -621,22 +621,6 @@
         <div class="ws-r60-actions"><button type="button" id="wsR61SavePersonal" disabled>ALS EIGENE VORLAGE SPEICHERN</button><button type="button" id="wsR60PreviewCreate" disabled>PRIVATEN ENTWURF ERSTELLEN</button></div>
       </div>
     </div>
-    <!-- R59: one compact collection; no additional website navigation or categories. -->
-    <details class="ws-r59-gallery" id="wsR59Gallery">
-      <summary><span><b>STARTVORLAGEN</b><small>Kamera · Stream-Rahmen · Live</small></span><span class="ws-r59-count">7 VORLAGEN</span></summary>
-      <div class="ws-r59-gallery-body">
-        <p>Wähle ein Format. Ein Klick erstellt einen <strong>privaten Entwurf</strong> mit einer echten editierbaren Rahmen- oder Widget-Vorlage.</p>
-        <div class="ws-r59-cards" id="wsR59GalleryCards" aria-label="Vorlagen mit festen Ausgabeformaten"></div>
-        <small id="wsR59GalleryStatus" role="status" aria-live="polite">Vorlagen werden geladen …</small>
-        <!-- R62: reuse and manage personal templates in the existing start gallery. -->
-        <section class="ws-r62-personal" aria-labelledby="wsR62PersonalTitle">
-          <div class="ws-r62-personal-head"><div><strong id="wsR62PersonalTitle">DEINE VORLAGEN</strong><small>Privat wiederverwenden · keine neue Kategorie</small></div><input type="search" id="wsR62PersonalSearch" placeholder="Eigene Vorlage suchen …" aria-label="Eigene Vorlagen suchen" autocomplete="off"></div>
-          <div id="wsR62PersonalCards" class="ws-r62-personal-cards"></div>
-          <small id="wsR62PersonalStatus" role="status" aria-live="polite"></small>
-        </section>
-      </div>
-    </details>
-
     <section class="ws-type-library">
       <div class="ws-type-library-head">
         <div><div class="ws-section-label">WIDGET-TYP</div><h3>Was möchtest du im Stream zeigen?</h3></div>
@@ -716,18 +700,6 @@
       <div class="ws-create-availability"><span id="wsAvailableTypes">–</span><p>Wähle zuerst die Live-Funktion. Farben und Markenlook kannst du danach anpassen oder aus deinem Stream-Maker-Design übernehmen.</p></div>
     </section>
 
-    <div class="ws-create-layout ws-create-layout-v2 ws-create-design-area">
-      <section class="ws-template-section">
-        <div class="ws-template-section-head">
-          <div><div class="ws-section-label">STARTDESIGNS</div><h3 id="wsTemplateHeading">Wähle einen Look.</h3></div>
-          <div class="ws-template-count">6 Designs + Blank</div>
-        </div>
-        <div class="ws-create-source-note" id="wsCreateSourceNote"></div>
-        <div class="ws-template-grid ws-template-grid-v2" id="wsTemplateGrid"></div>
-        <div class="ws-personal-template-area" id="wsPersonalTemplateArea" hidden></div>
-      </section>
-      <aside class="ws-create-summary ws-create-summary-v2" id="wsCreateSummary"></aside>
-    </div>
   </section>
 
   <section class="ws-view ws-editor-view ws-editor-v2" data-view="editor" hidden>

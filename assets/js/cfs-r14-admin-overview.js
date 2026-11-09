@@ -4,6 +4,7 @@
  const by=id=>document.getElementById(id),put=(id,value)=>{const e=by(id);if(e)e.textContent=String(value)};
  const fmt=(minor,currency='EUR')=>new Intl.NumberFormat('de-DE',{style:'currency',currency}).format(Number(minor)/100);
  const request=async path=>{const r=await fetch(path,{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});if(!r.ok){const e=new Error('HTTP '+r.status);e.code=r.status;throw e;}return r.json()};
+ function renderAccounts(accounts){const root=by('r14-accounts');if(!root)return;root.replaceChildren();if(!accounts?.length){root.textContent='Noch keine Accounts registriert.';return}const table=document.createElement('table');table.className='r14-accounts-table';const head=document.createElement('thead');const hr=document.createElement('tr');['E-Mail','Name','Rolle','Plan','Verifiziert','Registriert'].forEach(label=>{const th=document.createElement('th');th.textContent=label;hr.append(th)});head.append(hr);const body=document.createElement('tbody');for(const account of accounts){const tr=document.createElement('tr');[account.email,account.display_name,account.admin?'admin':account.role||'creator',account.plan||'free',account.email_verified?'Ja':'Nein',account.created_at?new Date(account.created_at).toLocaleString('de-DE'):'–'].forEach(value=>{const td=document.createElement('td');td.textContent=String(value);tr.append(td)});body.append(tr)}table.append(head,body);root.append(table)}
  function financeReset(){for(const id of ['r14-gross','r14-refunds','r14-net','r14-invoices'])put(id,'–');by('r14-other-currencies')?.replaceChildren()}
  async function loadFinance(){financeReset();const month=by('r14-finance-month')?.value||'';if(!/^20\d\d-(0[1-9]|1[0-2])$/.test(month))return;
    try{const data=await request('/api/admin/creator-suite/finance-report?month='+encodeURIComponent(month));const report=data.report||{}, rows=report.currencies||[];
@@ -18,10 +19,13 @@
  async function load(){const button=by('r14-refresh');if(button)button.disabled=true;
    put('r14-ops-state','Prüfe Eigentümer- und Adminberechtigung …');
    try{const me=await request('/api/account/me');if(!me?.authenticated||me?.admin!==true)throw Object.assign(new Error('Admin-Berechtigung fehlt'),{code:403});
-     const summary=await request('/api/admin/control-center/summary');
-     if(!summary?.ok)throw new Error('Kein bestätigter Adminstatus');
-     put('r14-creators',summary.creators??'–');put('r14-products',summary.shop?.products??'–');put('r14-published',summary.shop?.published??'–');put('r14-drafts',summary.website?.dirty??'–');
-     put('r14-ops-state','Berechtigt · Serverdaten '+(summary.generated_at?new Date(summary.generated_at).toLocaleString('de-DE'):'geladen'));
+     const [admin, accounts] = await Promise.all([request('/api/admin/status'), request('/api/admin/accounts')]);
+     if(!admin?.ok)throw new Error('Kein bestätigter Adminstatus');
+     put('adminDisplayName', admin.account?.display_name || 'Administrator');
+     put('adminEmail', admin.account?.email || '–');
+     put('r14-creators',accounts.total ?? accounts.accounts?.length ?? '–');
+     renderAccounts(accounts.accounts || []);
+     put('r14-ops-state','Berechtigt · '+(accounts.total ?? accounts.accounts?.length ?? 0)+' Accounts geladen');
      // Deliberately independent: one offline subsystem must not blank others.
      const results=await Promise.allSettled([request('/api/creator/cfs-ai/status'),request('/api/creator/cfs-ai/bridge')]);
      if(results[0].status==='fulfilled') {const ai=results[0].value;put('r14-ai-gateway',ai.gateway?.enabled===true?'Konfiguriert / aktiv':'Deaktiviert');
@@ -35,3 +39,4 @@
  }
  document.addEventListener('DOMContentLoaded',()=>{if(!by('r14-ops'))return;by('r14-finance-month').value=new Date().toLocaleDateString('sv-SE').slice(0,7);by('r14-refresh').addEventListener('click',load);by('r14-finance-month').addEventListener('change',loadFinance);load();},{once:true});
 })();
+
