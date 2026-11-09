@@ -14,6 +14,13 @@ export async function requireAccount(req) {
   return account;
 }
 
+export async function requireAdmin(req) {
+  const account = await requireAccount(req);
+  if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+  if (!account.admin) return { error: "ADMIN_ACCESS_REQUIRED", status: 403 };
+  return account;
+}
+
 export async function listProjects(req, url) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
