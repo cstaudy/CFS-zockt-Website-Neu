@@ -1,6 +1,7 @@
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { getPool } from "./db.js";
+import { sendRecoveryMail } from "./mail.js";
 
 const scrypt = promisify(scryptCallback);
 const sessionDays = 30;
@@ -89,6 +90,15 @@ export async function logout(req) {
   const pool = getPool();
   if (token && pool) await pool.query("delete from sessions where token_hash = $1", [tokenHash(token)]);
   return cookie("cfs_session", "", 0);
+}
+
+export async function requestPasswordReset(email) {
+  const pool=getPool(); const normalized=normalizeEmail(email); const generic={ok:true,message:"Wenn ein passendes Konto existiert, wurde ein Recovery-Link angefordert."};
+  const row=(await pool.query("select id,email from accounts where email=$1",[normalized])).rows[0]; if(!row)return generic;
+  const token=randomBytes(32).toString("base64url"); await pool.query("delete from password_recovery_tokens where account_id=$1 or expires_at<=now()",[row.id]); await pool.query("insert into password_recovery_tokens(account_id,token_hash,expires_at) values($1,$2,now()+interval '30 minutes')",[row.id,tokenHash(token)]); await sendRecoveryMail({to:row.email,token}); return generic;
+}
+export async function resetPassword(token,newPassword) {
+  if(String(newPassword||"").length<15)return{error:"PASSWORD_TOO_SHORT",status:400}; const pool=getPool(),hash=await passwordHash(newPassword),row=(await pool.query("select account_id from password_recovery_tokens where token_hash=$1 and used_at is null and expires_at>now()",[tokenHash(token)])).rows[0]; if(!row)return{error:"RECOVERY_TOKEN_INVALID_OR_EXPIRED",status:400}; await pool.query("update accounts set password_hash=$2,updated_at=now() where id=$1",[row.account_id,hash]); await pool.query("update password_recovery_tokens set used_at=now() where token_hash=$1",[tokenHash(token)]); await pool.query("delete from sessions where account_id=$1",[row.account_id]); return{ok:true,message:"Passwort wurde zurückgesetzt."};
 }
 
 export { cookie };
