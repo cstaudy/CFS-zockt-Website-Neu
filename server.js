@@ -16,7 +16,7 @@ import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
 import { listAssets, uploadAsset } from "./src/assets.js";
 import { createPackage, listPackages, listShopCatalog, convertBundle } from "./src/packages.js";
-import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnectTikTok, syncTikTok } from "./src/tiktok.js";
+import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnectTikTok, syncTikTok, publicTikTokVideos } from "./src/tiktok.js";
 import { startTwitch, finishTwitch, getTwitchStatus, disconnectTwitch, syncTwitch } from "./src/twitch.js";
 import { getPlayStationState, publicPlayStationState, syncPlayStationFromLauncher } from "./src/playstation.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
@@ -226,6 +226,7 @@ async function handle(req, res) {
   if(url.pathname==="/api/account/mfa/login"&&method==="POST"){return json(res,503,{error:"MFA_LOGIN_FLOW_NOT_CONFIGURED",message:"MFA-Login wird erst nach Aktivierung des vollständigen Login-Challenges aktiviert."});}
   if(url.pathname==="/api/public/support/report"&&method==="POST"){const result=await createSupportReport(await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
   if(url.pathname==="/api/public/reviews/merch"&&(method==="GET"||method==="POST")){const result=await publicReviews(req,method==="POST"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,method==="POST"?201:200,result);}
+  if(url.pathname==="/api/public/tiktok/videos"&&method==="GET")return json(res,200,await publicTikTokVideos());
   if(url.pathname==="/api/original-designs/catalog"&&method==="GET"){try{return json(res,200,{ok:true,...await originalDesignCatalog()});}catch(error){return json(res,503,{error:"ORIGINAL_DESIGN_CATALOG_UNAVAILABLE",message:"Der statische Originaldesign-Katalog konnte nicht geladen werden."});}}
   if(url.pathname==="/api/original-designs/status"&&method==="GET"){const catalog=await originalDesignCatalog();return json(res,200,{ok:true,available:true,version:catalog.version,designs:Array.isArray(catalog.designs)?catalog.designs.length:0,colors:Array.isArray(catalog.designs)?catalog.designs.reduce((n,d)=>n+(Array.isArray(d.colors)?d.colors.length:0),0):0});}
   const designPreview=url.pathname.match(/^\/api\/original-designs\/preview\/([a-z0-9-]+)\/([a-z0-9-]+)\.(?:jpg|webp)$/i);
