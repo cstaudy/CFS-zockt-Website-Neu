@@ -13,6 +13,7 @@ export async function getTikTokStatus(req) {
   const row=(await getPool().query("select open_id,scope,expires_at,updated_at from tiktok_connections where account_id=$1",[account.id])).rows[0];
   return{ok:true,configured:tiktokConfigured(),connected:Boolean(row),profile:row?{open_id:row.open_id}:null,scope:row?.scope||"",expires_at:row?.expires_at||null,updated_at:row?.updated_at||null};
 }
+export async function disconnectTikTok(req){const account=await currentAccount(req);if(!account)return{error:"AUTHENTICATION_REQUIRED",status:401};const r=await getPool().query("delete from tiktok_connections where account_id=$1 returning account_id",[account.id]);return{ok:true,disconnected:Boolean(r.rowCount)};}
 export async function startTikTok(req, res) {
   const account = await currentAccount(req); if (!account) return { error:"AUTHENTICATION_REQUIRED", status:401 };
   if (!tiktokConfigured()) return { error:"TIKTOK_NOT_CONFIGURED", status:503 };
