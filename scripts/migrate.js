@@ -18,7 +18,8 @@ const files = [
   "011_creator_presets.sql",
   "012_commerce_orders.sql",
   "013_password_recovery.sql",
-  "014_launcher_obs.sql"
+  "014_launcher_obs.sql",
+  "015_account_mfa.sql"
 ];
 
 try {
