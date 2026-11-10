@@ -18,7 +18,7 @@ import { listAssets, uploadAsset } from "./src/assets.js";
 import { createPackage, listPackages, listShopCatalog, convertBundle } from "./src/packages.js";
 import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnectTikTok, syncTikTok } from "./src/tiktok.js";
 import { startTwitch, finishTwitch, getTwitchStatus, disconnectTwitch, syncTwitch } from "./src/twitch.js";
-import { getPlayStationState, syncPlayStationFromLauncher } from "./src/playstation.js";
+import { getPlayStationState, publicPlayStationState, syncPlayStationFromLauncher } from "./src/playstation.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
@@ -195,7 +195,7 @@ async function handle(req, res) {
     return json(res, 200, { ok: true, games: [], recent_games: [], source: "fallback", message: "Noch keine Spieldaten verfügbar." });
   }
   if (url.pathname === "/api/public/playstation" && ["GET", "HEAD"].includes(method)) {
-    return json(res, 200, { ok: true, connected: false, provider: "playstation_network", platform: null, active_game: null, recent_games: [], purchased_games: [], limits: { recent_games: 3 }, message: "PlayStation Network ist noch nicht verbunden." });
+    return json(res, 200, await publicPlayStationState());
   }
 
   if (url.pathname === "/api/account/me" && ["GET", "HEAD"].includes(method)) {
