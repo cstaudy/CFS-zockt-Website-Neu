@@ -21,7 +21,8 @@ const files = [
   "014_launcher_obs.sql",
   "015_account_mfa.sql",
   "016_email_verification.sql",
-  "017_support_reports.sql"
+  "017_support_reports.sql",
+  "018_creator_games.sql"
 ];
 
 try {
