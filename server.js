@@ -8,6 +8,7 @@ import { currentAccount, isAdminEmail, login, logout, register, cookie, requestP
 import { mailStatus } from "./src/mail.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
 import { createSupportReport, listSupportReports, updateSupportReport } from "./src/support.js";
+import { gameState, gameRuntime, gameRules } from "./src/games.js";
 import { createProject, deleteProject, listProjects, updateProject, requireAdmin } from "./src/projects.js";
 import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
@@ -208,6 +209,12 @@ async function handle(req, res) {
   if(url.pathname==="/api/account/mfa/disable"&&method==="POST"){const result=await mfaDisable(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/mfa/recovery-codes"&&method==="POST"){const result=await mfaRecovery(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/public/support/report"&&method==="POST"){const result=await createSupportReport(await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  if(url.pathname==="/api/creator/modules/games/state"&&method==="GET"){const result=await gameState(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/creator/modules/games/state"&&method==="PUT"){const result=await gameState(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/creator/games/runtime"&&method==="GET"){const result=await gameRuntime(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  const gameAction=url.pathname.match(/^\/api\/creator\/games\/runtime\/(start|stop|reset|score)$/);if(gameAction&&method==="POST"){const result=await gameRuntime(req,gameAction[1],await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/creator/games/rules"&&(method==="GET"||method==="POST")){const result=await gameRules(req,method,null,method==="POST"?await readJson(req):{});return result.error?json(res,result.status,{error:result.error}):json(res,method==="POST"?201:200,result);}
+  const gameRule=url.pathname.match(/^\/api\/creator\/games\/rules\/([^/]+)$/);if(gameRule&&(method==="PUT"||method==="DELETE")){const result=await gameRules(req,method,decodeURIComponent(gameRule[1]),method==="PUT"?await readJson(req):{});return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/admin/creator-suite/support-reports"&&method==="GET"){const result=await listSupportReports(req,url);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const supportReport=url.pathname.match(/^\/api\/admin\/creator-suite\/support-reports\/([^/]+)$/);
   if(supportReport&&method==="PUT"){const result=await updateSupportReport(req,decodeURIComponent(supportReport[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
