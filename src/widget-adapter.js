@@ -2,7 +2,10 @@ import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
 
 const registry = [
-  { key: "follower_goal", label: "Follower Goal", mode: "goal", source_kind: "profile", metric: "followers", canvas: { width: 620, height: 132 } },
+  { key: "follower_goal", label: "TikTok Follower Goal", short_label: "FOLLOWER GOAL", provider: "tiktok", mode: "goal", source_kind: "profile", metric: "followers", canvas: { width: 620, height: 132 } },
+  { key: "twitch_follow_alert", label: "Twitch Follow Alert", short_label: "FOLLOW ALERT", provider: "twitch", mode: "alert", source_kind: "live_bridge", metric: "followers", canvas: { width: 720, height: 180 } },
+  { key: "twitch_latest_follower", label: "Latest Twitch Follower", short_label: "LATEST FOLLOWER", provider: "twitch", mode: "latest", source_kind: "live_bridge", metric: "followers", canvas: { width: 620, height: 132 } },
+  { key: "twitch_live_timer", label: "Twitch Live Timer", short_label: "LIVE TIMER", provider: "twitch", mode: "timer", source_kind: "live_bridge", metric: "duration", canvas: { width: 620, height: 132 } },
   { key: "obs_overlay", label: "OBS Overlay", mode: "static", source_kind: "static", metric: "", canvas: { width: 1920, height: 1080 } },
   { key: "manual_counter", label: "Manueller Zähler", mode: "manual_counter", source_kind: "manual", metric: "counter", canvas: { width: 620, height: 132 } }
 ];

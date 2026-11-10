@@ -21,3 +21,27 @@ export async function createPackage(req, body) {
   return { package: packageView(result.rows[0]) };
 }
 
+export async function listShopCatalog(req) {
+  const result = await listPackages(req);
+  if (result.error) return result;
+  return { bundles: result.packages.map(item => ({ id: item.id, name: item.name, design_key: item.package.world || "CFS DESIGN", platforms: item.package.outputs || ["obs"], categories: ["bundles"], elements: item.package.outputs || [], element_count: (item.package.outputs || []).length, converter_url: `/pages/widget-studio.html?open=converter&bundle=${encodeURIComponent(item.id)}`, updated_at: item.updated_at })) };
+}
+
+export async function convertBundle(req, id) {
+  const account = await requireAccount(req);
+  if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+  const pool = getPool();
+  const found = await pool.query("select id, name, data from creator_projects where id = $1 and account_id = $2 and kind = 'design' and status <> 'archived'", [id, account.id]);
+  const row = found.rows[0];
+  if (!row) return { error: "BUNDLE_NOT_FOUND", status: 404 };
+  const outputs = Array.isArray(row.data?.package?.outputs) ? row.data.package.outputs : ["widgets"];
+  const created = [];
+  if (outputs.includes("widgets")) {
+    const type = "follower_goal";
+    const config = { widgetType: type, templateKey: row.data?.package?.world || "cfs-standard", canvas: { width: 620, height: 132 }, elements: [], settings: {}, data: {} };
+    const widget = await pool.query("insert into creator_projects (account_id, kind, name, data) values ($1, 'widget', $2, $3::jsonb) returning id, name", [account.id, `${row.name} · Widget`, JSON.stringify({ widget_type: type, config })]);
+    created.push({ id: widget.rows[0].id, name: widget.rows[0].name, type: "widget" });
+  }
+  return { message: "Bundle wurde für das Widget Studio vorbereitet.", created_widgets: created, summary: { created: created.length, existing: 0 } };
+}
+

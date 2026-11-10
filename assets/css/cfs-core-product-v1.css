@@ -1,0 +1,18 @@
+/* Shared visual contract for the active CFS creator product. */
+:root{--cfs-core-bg:#050b14;--cfs-core-panel:#0a1624;--cfs-core-panel-2:#0d1c2d;--cfs-core-line:#1b3c57;--cfs-core-text:#edf7ff;--cfs-core-muted:#8fa9bc;--cfs-core-accent:#22d3ee;--cfs-core-radius:14px;--cfs-core-shadow:0 18px 48px rgba(0,0,0,.24)}
+body.creator-workspace,body.public-suite-page{background:var(--cfs-core-bg);color:var(--cfs-core-text)}
+body[data-cfs-product-v199]{writing-mode:horizontal-tb;text-orientation:mixed}
+body[data-cfs-product-v199] .creator-nav,body[data-cfs-product-v199] .public-nav{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:14px}
+body.creator-workspace .btn,body.creator-workspace button:not(.mobile-toggle),body.public-suite-page .btn,body.public-suite-page button:not(.mobile-toggle){min-height:40px;border-radius:10px;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}
+body.creator-workspace .btn:hover,body.creator-workspace button:not(.mobile-toggle):hover,body.public-suite-page .btn:hover,body.public-suite-page button:not(.mobile-toggle):hover{transform:translateY(-1px)}
+body.creator-workspace .btn.primary,body.public-suite-page .btn.primary{background:linear-gradient(135deg,#0ea5c7,#2563eb);border-color:#36d9ef;color:#fff;box-shadow:0 8px 22px rgba(14,165,199,.18)}
+body.creator-workspace input,body.creator-workspace select,body.creator-workspace textarea,body.public-suite-page input,body.public-suite-page select,body.public-suite-page textarea{border-color:var(--cfs-core-line);background:#071321;color:var(--cfs-core-text);border-radius:9px}
+body.creator-workspace input:focus,body.creator-workspace select:focus,body.creator-workspace textarea:focus,body.public-suite-page input:focus,body.public-suite-page select:focus,body.public-suite-page textarea:focus{outline:2px solid rgba(34,211,238,.35);outline-offset:1px;border-color:var(--cfs-core-accent)}
+body.creator-workspace .panel,body.creator-workspace .card,body.creator-workspace .workspace-panel,body.creator-workspace .ws-panel,body.public-suite-page .panel,body.public-suite-page .card{border-color:var(--cfs-core-line);border-radius:var(--cfs-core-radius);box-shadow:var(--cfs-core-shadow)}
+@media(max-width:700px){body.creator-workspace .btn,body.creator-workspace button:not(.mobile-toggle),body.public-suite-page .btn,body.public-suite-page button:not(.mobile-toggle){min-height:44px}}
+body[data-cfs-product-v199] .cut-media-tabs{display:flex;gap:.5rem;margin:.75rem 0}
+body[data-cfs-product-v199] .cut-media-tabs .active{border-color:var(--cfs-core-accent);color:#fff}
+body[data-cfs-product-v199] .cut-media-list{display:grid;gap:.6rem}
+body[data-cfs-product-v199] .cut-media-card{display:flex;align-items:center;gap:.75rem;padding:.8rem 1rem;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.035)}
+body[data-cfs-product-v199] .cut-media-card>div{display:grid;gap:.2rem;flex:1;min-width:0}.cut-media-card small{color:rgba(255,255,255,.6)}
+
