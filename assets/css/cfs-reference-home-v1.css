@@ -96,11 +96,24 @@ body.public-home .ref-stream-card strong{font-size:16px;line-height:1.2}
 body.public-home .ref-stream-card small{color:var(--ref-muted);font-size:11px;line-height:1.35}
 body.public-home .ref-status{color:var(--ref-cyan);font-size:10px;font-weight:850;letter-spacing:.08em}
 body.public-home .cfs-community-2026{margin-top:54px!important}
+body.public-home .ref-playstation{width:min(1120px,calc(100% - 40px));margin:54px auto 0}
+body.public-home .ref-ps-status{color:var(--ref-muted);font-size:11px;font-weight:800;letter-spacing:.08em}
+body.public-home .ref-ps-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+body.public-home .ref-ps-panel{min-width:0;padding:20px;border:1px solid rgba(30,131,170,.65);border-radius:12px;background:linear-gradient(145deg,rgba(9,34,52,.98),rgba(5,19,32,.98))}
+body.public-home .ref-ps-panel h3{margin:0 0 14px;font-size:18px}
+body.public-home .ref-ps-list{display:flex;flex-direction:column;gap:8px}
+body.public-home .ref-ps-list>p{margin:0;color:var(--ref-muted);font-size:12px;line-height:1.45}
+body.public-home .ref-ps-row{display:flex;align-items:center;gap:10px;min-width:0;padding:8px;border-radius:8px;background:rgba(6,23,37,.7);color:#fff}
+body.public-home .ref-ps-row img{width:42px;height:42px;object-fit:cover;border-radius:6px;flex:none}
+body.public-home .ref-ps-row span{display:flex;flex-direction:column;gap:3px;min-width:0}
+body.public-home .ref-ps-row strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.public-home .ref-ps-row small{color:var(--ref-muted);font-size:10px}
 /* The reference homepage uses the compact stats/stream flow; the older
    creator-path and promotional feature rail remain available on Creator Suite
    but do not compete with the public homepage hierarchy. */
 body.public-home .r194-path,body.public-home .r104-feature-grid{display:none!important}
 @media(max-width:760px){body.public-home .ref-stats{width:calc(100% - 32px);grid-template-columns:1fr;margin-top:-20px}.public-home .ref-stats>div{justify-content:flex-start;border-right:0;border-bottom:1px solid rgba(112,176,201,.3)}.public-home .ref-stats>div:last-child{border-bottom:0}.public-home .ref-current-streams{width:calc(100% - 32px);margin-top:36px}.public-home .ref-section-head{align-items:flex-start;flex-direction:column;gap:10px}.public-home .ref-stream-grid{grid-template-columns:1fr}}
+@media(max-width:760px){body.public-home .ref-playstation{width:calc(100% - 32px);margin-top:36px}.public-home .ref-ps-grid{grid-template-columns:1fr}}
 @media(max-width:900px){body.public-home .r104-header-inner{grid-template-columns:auto 1fr auto!important;gap:12px!important}.public-home .r104-nav{gap:12px!important}.public-home .r104-nav a{font-size:12px!important}.public-home .cfs-community-cards,.public-home .r104-feature-grid{grid-template-columns:1fr!important}.public-home .gaming-live-layout,.public-home .gaming-stream-layout{grid-template-columns:1fr!important}}
 @media(max-width:760px){body.public-home .r104-header-inner{display:flex!important;flex-wrap:wrap!important}.public-home .r104-brand{margin-right:auto!important}.public-home .r104-nav{order:3!important;width:100%!important;justify-content:flex-start!important;overflow:auto!important}.public-home .r104-header-actions{order:2!important}.public-home .r104-feature{grid-template-columns:1fr!important}.public-home .r104-feature>img{height:180px!important}}
 
