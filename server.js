@@ -7,6 +7,7 @@ import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
 import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
 import { mailStatus } from "./src/mail.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
+import { createSupportReport, listSupportReports, updateSupportReport } from "./src/support.js";
 import { createProject, deleteProject, listProjects, updateProject, requireAdmin } from "./src/projects.js";
 import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
@@ -205,6 +206,10 @@ async function handle(req, res) {
   if(url.pathname==="/api/account/mfa/enable"&&method==="POST"){const result=await mfaEnable(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/mfa/disable"&&method==="POST"){const result=await mfaDisable(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/mfa/recovery-codes"&&method==="POST"){const result=await mfaRecovery(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/public/support/report"&&method==="POST"){const result=await createSupportReport(await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  if(url.pathname==="/api/admin/creator-suite/support-reports"&&method==="GET"){const result=await listSupportReports(req,url);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  const supportReport=url.pathname.match(/^\/api\/admin\/creator-suite\/support-reports\/([^/]+)$/);
+  if(supportReport&&method==="PUT"){const result=await updateSupportReport(req,decodeURIComponent(supportReport[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
 
   if (url.pathname === "/api/creator/launcher/devices" && method === "GET") { const result=await listDevices(req); return result.error?json(res,result.status,{error:result.error}):json(res,200,result); }
   const deviceMatch=url.pathname.match(/^\/api\/creator\/launcher\/devices\/([^/]+)$/);
