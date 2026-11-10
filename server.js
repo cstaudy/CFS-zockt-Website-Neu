@@ -10,6 +10,7 @@ import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/m
 import { createSupportReport, listSupportReports, updateSupportReport } from "./src/support.js";
 import { gameState, gameRuntime, gameRules } from "./src/games.js";
 import { modulesState, launcherModuleState, audioModuleState } from "./src/modules.js";
+import { publicReviews } from "./src/reviews.js";
 import { createProject, deleteProject, listProjects, updateProject, requireAdmin } from "./src/projects.js";
 import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
@@ -210,6 +211,7 @@ async function handle(req, res) {
   if(url.pathname==="/api/account/mfa/disable"&&method==="POST"){const result=await mfaDisable(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/mfa/recovery-codes"&&method==="POST"){const result=await mfaRecovery(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/public/support/report"&&method==="POST"){const result=await createSupportReport(await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  if(url.pathname==="/api/public/reviews/merch"&&(method==="GET"||method==="POST")){const result=await publicReviews(req,method==="POST"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,method==="POST"?201:200,result);}
   if(url.pathname==="/api/creator/modules"&&method==="GET"){const result=await modulesState(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/modules/launcher/state"&&method==="GET"){const result=await launcherModuleState(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/modules/audio_studio/state"&&(method==="GET"||method==="PUT")){const result=await audioModuleState(req,method==="PUT"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
