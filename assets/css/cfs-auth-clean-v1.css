@@ -16,11 +16,12 @@
 .public-auth-page .submit-row{position:relative;min-height:42px;align-items:center;padding-right:120px}
 .public-auth-page .submit-row .btn{min-width:150px;height:40px;flex:0 0 auto}
 .public-auth-page .submit-row .small-status{position:absolute;right:0;top:50%;width:108px;transform:translateY(-50%);line-height:1.25}
-
 .public-auth-page .legal-consent{display:grid;grid-template-columns:18px minmax(0,1fr);align-items:start;white-space:normal;overflow-wrap:anywhere}
 .public-auth-page .legal-consent span{display:block;min-width:0;white-space:normal;writing-mode:horizontal-tb;text-orientation:mixed}
 .public-auth-page .submit-row .btn{width:150px;min-width:150px;flex:0 0 150px;white-space:nowrap}
-
+.public-auth-page .submit-row .btn:hover,.public-auth-page .submit-row .btn:focus-visible{transform:none!important}
+.public-auth-page .submit-row{display:flex;align-items:center;min-width:0}
+.public-auth-page .submit-row .small-status{pointer-events:none;min-height:18px}
 .public-auth-page .auth-entry-links{gap:9px;margin-top:10px}
 .public-auth-page .auth-entry-links a{font-size:7.5px}
 .public-auth-page .password-rules{font-size:8px;line-height:1.4;margin:0 0 6px}
@@ -28,5 +29,5 @@
 .public-auth-page .legal-consent{padding:8px 9px;font-size:8px;line-height:1.4}
 .public-auth-page .cfs-signup-note-v165{margin:0 0 10px;font-size:8px}
 @media (max-width:900px){.public-auth-page .auth-entry-hero{grid-template-columns:1fr}.public-auth-page .auth-entry-path{display:none}}
-@media (max-width:620px){.public-auth-page .auth-entry-shell{padding-top:20px}.public-auth-page .auth-entry-hero{padding:20px 0 16px}.public-auth-page .auth-entry-actions{flex-direction:row}.public-auth-page .auth-entry-actions .btn{width:auto;flex:1}.public-auth-page .auth-entry-grid{grid-template-columns:1fr}.public-auth-page .auth-entry-panel{padding:16px}.public-auth-page .submit-row{padding-right:0}.public-auth-page .submit-row .small-status{position:static;width:auto;transform:none}.public-auth-page .submit-row{flex-wrap:wrap}}
+@media (max-width:620px){.public-auth-page .auth-entry-shell{padding-top:20px}.public-auth-page .auth-entry-hero{padding:20px 0 16px}.public-auth-page .auth-entry-actions{flex-direction:row}.public-auth-page .auth-entry-actions .btn{width:auto;flex:1}.public-auth-page .auth-entry-grid{grid-template-columns:1fr}.public-auth-page .auth-entry-panel{padding:16px}.public-auth-page .submit-row{padding-right:0;flex-wrap:nowrap}.public-auth-page .submit-row .small-status{position:absolute;width:108px;transform:translateY(-50%);right:0;top:50%}}
 
