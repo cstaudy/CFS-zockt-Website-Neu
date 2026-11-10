@@ -14,6 +14,7 @@ import { startTikTok, finishTikTok, tiktokConfigured } from "./src/tiktok.js";
 import { startTwitch, finishTwitch } from "./src/twitch.js";
 import { getPlayStationState } from "./src/playstation.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
+import { listDevices, getDeviceLink, confirmDevice, revokeDevice } from "./src/launcher.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -170,6 +171,13 @@ async function handle(req, res) {
     const view = account ? { ...account, admin: isAdminEmail(account.email), role: isAdminEmail(account.email) ? "admin" : "creator", email_verified: Boolean(account.email_verified_at) } : null;
     return json(res, 200, { authenticated: Boolean(view), account: view });
   }
+
+  if (url.pathname === "/api/creator/launcher/devices" && method === "GET") { const result=await listDevices(req); return result.error?json(res,result.status,{error:result.error}):json(res,200,result); }
+  const deviceMatch=url.pathname.match(/^\/api\/creator\/launcher\/devices\/([^/]+)$/);
+  if(deviceMatch&&method==="DELETE"){const result=await revokeDevice(req,decodeURIComponent(deviceMatch[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  const linkMatch=url.pathname.match(/^\/api\/creator\/launcher\/device-link\/([^/]+)$/);
+  if(linkMatch&&method==="GET"){const result=await getDeviceLink(req,decodeURIComponent(linkMatch[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/creator/launcher/device-link/confirm"&&method==="POST"){const result=await confirmDevice(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
 
   if (url.pathname === "/api/admin/status" && ["GET", "HEAD"].includes(method)) {
     const account = await requireAdmin(req);
