@@ -18,6 +18,7 @@ import { listDevices, getDeviceLink, confirmDevice, revokeDevice } from "./src/l
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
 import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
+import { listPresets, savePreset, deletePreset } from "./src/creator-presets.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -201,6 +202,12 @@ async function handle(req, res) {
   if(mediaList&&method==="POST"){const result=await uploadUserMedia(req,await readRaw(req),mediaList[1]);return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
   const mediaItem=url.pathname.match(/^\/api\/creator\/media\/(videos|clips)\/([^/]+)$/);
   if(mediaItem&&method==="DELETE"){const result=await deleteUserMedia(req,decodeURIComponent(mediaItem[2]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  const presetList=url.pathname.match(/^\/api\/creator\/presets(?:\/(caption|export|scene))?$/);
+  if(presetList&&method==="GET"){const result=await listPresets(req,presetList[1]);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(presetList&&method==="POST"){const result=await savePreset(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  const presetItem=url.pathname.match(/^\/api\/creator\/presets\/([^/]+)$/);
+  if(presetItem&&method==="PUT"){const result=await savePreset(req,await readJson(req),decodeURIComponent(presetItem[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(presetItem&&method==="DELETE"){const result=await deletePreset(req,decodeURIComponent(presetItem[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const exportJob=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/export-jobs$/);
   if(exportJob&&method==="POST"){const result=await createJob(req,decodeURIComponent(exportJob[1]),"cut_export",await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,202,result);}
   const cancelJobMatch=url.pathname.match(/^\/api\/creator\/cut-studio\/jobs\/([^/]+)\/cancel$/);
