@@ -14,7 +14,7 @@ import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnec
 import { startTwitch, finishTwitch, getTwitchStatus, disconnectTwitch, syncTwitch } from "./src/twitch.js";
 import { getPlayStationState } from "./src/playstation.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
-import { listDevices, getDeviceLink, confirmDevice, revokeDevice } from "./src/launcher.js";
+import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
 import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
@@ -223,6 +223,8 @@ async function handle(req, res) {
   if(exportJob&&method==="POST"){const result=await createJob(req,decodeURIComponent(exportJob[1]),"cut_export",await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,202,result);}
   const cancelJobMatch=url.pathname.match(/^\/api\/creator\/cut-studio\/jobs\/([^/]+)\/cancel$/);
   if(cancelJobMatch&&method==="POST"){const result=await cancelJob(req,decodeURIComponent(cancelJobMatch[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/launcher/devices/register"&&method==="POST"){const result=await registerDevice(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  if(url.pathname==="/api/launcher/heartbeat"&&method==="POST"){const result=await launcherHeartbeat(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/launcher/jobs"&&method==="GET"){const result=await claimJobs(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const launcherJob=url.pathname.match(/^\/api\/launcher\/jobs\/([^/]+)$/);
   if(launcherJob&&method==="PUT"){const result=await updateLauncherJob(req,decodeURIComponent(launcherJob[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
