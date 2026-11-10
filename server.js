@@ -121,9 +121,17 @@ async function handle(req, res) {
     return json(res, 200, { ok: true, integrations: { database: Boolean(process.env.DATABASE_URL), session_secret: Boolean(process.env.SESSION_SECRET), twitch: Boolean(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET), tiktok: tiktokConfigured(), launcher: Boolean(process.env.LAUNCHER_BRIDGE_SECRET), paypal: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET), playstation: Boolean(process.env.PSN_PROVIDER && process.env.PSN_CLIENT_ID), storage: Boolean(process.env.ASSET_STORAGE_BUCKET) || (process.env.ASSET_STORAGE_PROVIDER || "local") === "local" }, note: "Nur Konfigurationsstatus; keine Secrets werden ausgegeben." });
   }
 
-  if (url.pathname === "/api/integrations/tiktok/start" && method === "GET") return startTikTok(req, res);
+  if (url.pathname === "/api/integrations/tiktok/start" && method === "GET") {
+    const result = await startTikTok(req, res);
+    if (result?.error) return json(res, result.status || 500, { error: result.error });
+    return;
+  }
   if (["/api/auth/tiktok/callback", "/auth/tiktok/callback"].includes(url.pathname) && method === "GET") { const result=await finishTikTok(req,res,url); if(result?.error)return json(res,result.status,{error:result.error,message:result.detail}); return; }
-  if (url.pathname === "/api/integrations/twitch/start" && method === "GET") return startTwitch(req,res);
+  if (url.pathname === "/api/integrations/twitch/start" && method === "GET") {
+    const result = await startTwitch(req, res);
+    if (result?.error) return json(res, result.status || 500, { error: result.error });
+    return;
+  }
   if (["/api/auth/twitch/callback", "/auth/twitch/callback"].includes(url.pathname) && method === "GET") { const result=await finishTwitch(req,res,url); if(result?.error)return json(res,result.status,{error:result.error}); return; }
   if (url.pathname === "/api/creator/playstation" && method === "GET") { const result=await getPlayStationState(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
 
