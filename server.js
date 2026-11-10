@@ -4,7 +4,7 @@ import { access, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
-import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail } from "./src/auth.js";
+import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
 import { mailStatus } from "./src/mail.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
 import { createProject, deleteProject, listProjects, updateProject, requireAdmin } from "./src/projects.js";
@@ -198,6 +198,8 @@ async function handle(req, res) {
   if(url.pathname==="/api/account/password"&&method==="POST"){const result=await changePassword(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/sessions"&&method==="GET"){const result=await listSessions(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/logout-all"&&method==="POST"){const result=await logoutAll(req);if(result.error)return json(res,result.status,{error:result.error});res.setHeader("set-cookie",cookie("cfs_session","",0));return json(res,200,result);}
+  if(url.pathname==="/api/account/export"&&method==="POST"){const body=await readJson(req),result=await exportAccount(req,body.password);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/account"&&method==="DELETE"){const result=await deleteAccount(req,await readJson(req));if(result.error)return json(res,result.status,{error:result.error});res.setHeader("set-cookie",cookie("cfs_session","",0));return json(res,200,result);}
   if(url.pathname==="/api/account/mfa"&&method==="GET"){const result=await mfaStatus(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/mfa/setup"&&method==="POST"){const result=await mfaSetup(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/mfa/enable"&&method==="POST"){const result=await mfaEnable(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
