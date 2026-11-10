@@ -20,6 +20,7 @@ import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./
 import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
 import { listPresets, savePreset, deletePreset } from "./src/creator-presets.js";
 import { publicTwitchState, publicTwitchCommunity } from "./src/public-twitch.js";
+import { paypalStatus, createPayPalOrder, capturePayPalOrder } from "./src/paypal.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -129,7 +130,7 @@ async function handle(req, res) {
   }
   if (url.pathname === "/api/creator/integration-capabilities" && method === "GET") {
     const account=await currentAccount(req); if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});
-    return json(res,200,{ok:true,integrations:{oauth:[{provider:"tiktok",configured:tiktokConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TIKTOK_CLIENT_KEY),client_secret:Boolean(process.env.TIKTOK_CLIENT_SECRET),redirect_uri:Boolean(process.env.TIKTOK_REDIRECT_URI||process.env.APP_BASE_URL)}},{provider:"twitch",configured:Boolean(process.env.TWITCH_CLIENT_ID&&process.env.TWITCH_CLIENT_SECRET),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TWITCH_CLIENT_ID),client_secret:Boolean(process.env.TWITCH_CLIENT_SECRET),redirect_uri:Boolean(process.env.TWITCH_REDIRECT_URI||process.env.APP_BASE_URL)}}],obs_websocket:Boolean(process.env.OBS_WEBSOCKET_URL||process.env.OBS_WS_URL),launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET),paypal:Boolean(process.env.PAYPAL_CLIENT_ID&&process.env.PAYPAL_CLIENT_SECRET),playstation:Boolean(process.env.PSN_PROVIDER&&process.env.PSN_CLIENT_ID)}});
+    return json(res,200,{ok:true,integrations:{oauth:[{provider:"tiktok",configured:tiktokConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TIKTOK_CLIENT_KEY),client_secret:Boolean(process.env.TIKTOK_CLIENT_SECRET),redirect_uri:Boolean(process.env.TIKTOK_REDIRECT_URI||process.env.APP_BASE_URL)}},{provider:"twitch",configured:Boolean(process.env.TWITCH_CLIENT_ID&&process.env.TWITCH_CLIENT_SECRET),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TWITCH_CLIENT_ID),client_secret:Boolean(process.env.TWITCH_CLIENT_SECRET),redirect_uri:Boolean(process.env.TWITCH_REDIRECT_URI||process.env.APP_BASE_URL)}}],obs_websocket:Boolean(process.env.OBS_WEBSOCKET_URL||process.env.OBS_WS_URL),launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET),paypal:paypalStatus(),playstation:Boolean(process.env.PSN_PROVIDER&&process.env.PSN_CLIENT_ID)}});
   }
 
   if (url.pathname === "/api/integrations/tiktok/start" && method === "GET") {
@@ -193,6 +194,9 @@ async function handle(req, res) {
   const linkMatch=url.pathname.match(/^\/api\/creator\/launcher\/device-link\/([^/]+)$/);
   if(linkMatch&&method==="GET"){const result=await getDeviceLink(req,decodeURIComponent(linkMatch[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/launcher/device-link/confirm"&&method==="POST"){const result=await confirmDevice(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/creator/shop/paypal/orders"&&method==="POST"){const result=await createPayPalOrder(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  const paypalOrder=url.pathname.match(/^\/api\/creator\/shop\/paypal\/orders\/([^/]+)\/capture$/);
+  if(paypalOrder&&method==="POST"){const result=await capturePayPalOrder(req,decodeURIComponent(paypalOrder[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
 
   if(url.pathname==="/api/creator/stream-studio"&&method==="GET"){const result=await listToolProjects(req,"stream");return result.error?json(res,result.status,{error:result.error}):json(res,200,{...result,config:result.projects[0]?.data||{}});}
   if(url.pathname==="/api/creator/stream-studio"&&method==="PUT"){const result=await saveToolProject(req,"stream",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,{...result,config:result.project.data});}
