@@ -172,6 +172,12 @@
           <div id="cutClipList" class="cut-clip-list"></div>
         </section>
 
+        <section class="cut-section cfs-media-library" aria-labelledby="cutMediaHeading">
+          <div class="cut-section-head"><div><span>DEINE MEDIEN</span><h3 id="cutMediaHeading">Video- und Clip-Ordner</h3><p>Deine Uploads bleiben deinem Benutzerkonto zugeordnet und können später im Launcher wiederverwendet werden.</p></div><div><button class="btn" type="button" id="cutUploadVideo">+ VIDEO</button><button class="btn" type="button" id="cutUploadClip">+ CLIP</button><input id="cutMediaFile" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska" hidden></div></div>
+          <div class="cut-media-tabs" role="tablist"><button class="btn active" type="button" data-media-folder="videos">VIDEOS <b id="cutVideoCount">0</b></button><button class="btn" type="button" data-media-folder="clips">CLIPS <b id="cutClipMediaCount">0</b></button></div>
+          <div id="cutMediaStatus" class="notice compact" role="status">Medien werden geladen …</div><div id="cutMediaList" class="cut-media-list"></div>
+        </section>
+
         <section class="cut-section cut-section-audio">
           <div class="cut-section-head"><div><span>SCHRITT 3</span><h3>Ton & Musik</h3><p>Optional. Aktiviere nur, was du wirklich brauchst. Dateien werden später lokal im Launcher zugeordnet.</p></div><strong class="cut-section-badge optional">OPTIONAL</strong></div>
           <div class="cut-audio-quick-grid">
@@ -243,6 +249,7 @@
           <div class="cut-project-grid cut-export-basic">
             <label><span>EXPORT-MODUS</span><select id="cutExportMode"><option value="clips">Einzelclips</option><option value="reel">Reel zusammensetzen</option><option value="both">Clips + Reel</option></select></label>
             <label><span>QUALITÄT</span><select id="cutQuality"><option value="high">Hoch</option><option value="standard">Standard</option></select></label>
+            <label><span>EXPORT-PRESET</span><select id="cutExportPreset"><option value="">Kein gespeichertes Preset</option></select></label>
             <label class="full" data-cut-free-only><span>NOTIZEN</span><textarea id="cutNotes" maxlength="5000" placeholder="Optional: Was möchtest du mit diesem Projekt noch machen?"></textarea></label>
           </div>
 
@@ -293,3 +300,4 @@
 <script src="/assets/js/cut-preview-core-v32063.js" defer></script><script src="/assets/js/cut-local-preview.js" defer></script><script src="/assets/js/cfs-r39-cut-quality.js?v=R39" defer></script>  <script src="/assets/js/cfs-r33-studio-focus.js?v=R33" defer></script>
 </body>
 </html>
+
