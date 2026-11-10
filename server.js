@@ -13,6 +13,7 @@ import { createPackage, listPackages, listShopCatalog, convertBundle } from "./s
 import { startTikTok, finishTikTok, tiktokConfigured } from "./src/tiktok.js";
 import { startTwitch, finishTwitch } from "./src/twitch.js";
 import { getPlayStationState } from "./src/playstation.js";
+import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -215,6 +216,12 @@ async function handle(req, res) {
     const result = await createProject(req, await readJson(req));
     return result.error ? json(res, result.status, { error: result.error }) : json(res, 201, result);
   }
+
+  if (url.pathname === "/api/creator/universal-builder" && method === "GET") { const result=await builderState(req); return result.error?json(res,result.status,{error:result.error}):json(res,200,result); }
+  if (url.pathname === "/api/creator/universal-builder/bundles" && method === "POST") { const result=await saveBundle(req,await readJson(req)); return result.error?json(res,result.status,{error:result.error}):json(res,201,result); }
+  const builderBundle= url.pathname.match(/^\/api\/creator\/universal-builder\/bundles\/([^/]+)$/);
+  if(builderBundle&&method==="PATCH"){const result=await renameBundle(req,decodeURIComponent(builderBundle[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(builderBundle&&method==="DELETE"){const result=await deleteBundle(req,decodeURIComponent(builderBundle[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
 
   if (url.pathname === "/api/creator/widget-studio/scenes" && method === "GET") {
     const result = await listScenes(req);
