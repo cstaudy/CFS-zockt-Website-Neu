@@ -112,6 +112,11 @@
     <div><span>QUELLEN</span><strong id="streamSourceCount">0</strong><small>Widgets & Overlays</small></div>
     <div><span>OUTPUT</span><strong id="streamOutputSummary">1080P60</strong><small>Studio-Preset</small></div>
   </section>
+  <section class="stream-media-library panel" aria-labelledby="streamMediaHeading">
+    <div class="stream-panel-head"><div><span>DEINE MEDIEN</span><strong id="streamMediaHeading">Videos und Clips für Szenen</strong></div><span id="streamMediaStatus" class="stream-panel-badge">WIRD GELADEN</span></div>
+    <div class="cut-media-tabs"><button class="btn active" type="button" data-stream-media-folder="videos">VIDEOS <b id="streamVideoCount">0</b></button><button class="btn" type="button" data-stream-media-folder="clips">CLIPS <b id="streamClipCount">0</b></button></div>
+    <div id="streamMediaList" class="cut-media-list"></div>
+  </section>
 
   <details class="stream-workspace-toolbar stream-workspace-tools" id="live-workspace">
     <summary>
@@ -559,3 +564,4 @@
 <script src="/assets/js/cfs-help-v6.js" defer></script><script src="/assets/js/cfs-guide-v5.js" defer></script><script src="/assets/js/cfs-guide-journeys.js" defer></script><script src="/assets/js/cfs-workspace-v205.js" defer></script>
 </body>
 </html>
+
