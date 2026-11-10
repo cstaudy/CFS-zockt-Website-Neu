@@ -23,7 +23,8 @@ const files = [
   "016_email_verification.sql",
   "017_support_reports.sql",
   "018_creator_games.sql",
-  "019_merch_reviews.sql"
+  "019_merch_reviews.sql",
+  "020_public_live_control.sql"
 ];
 
 try {
