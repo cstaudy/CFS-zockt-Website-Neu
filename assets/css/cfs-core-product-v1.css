@@ -1,6 +1,8 @@
 /* Shared visual contract for the active CFS creator product. */
 :root{--cfs-core-bg:#050b14;--cfs-core-panel:#0a1624;--cfs-core-panel-2:#0d1c2d;--cfs-core-line:#1b3c57;--cfs-core-text:#edf7ff;--cfs-core-muted:#8fa9bc;--cfs-core-accent:#22d3ee;--cfs-core-radius:14px;--cfs-core-shadow:0 18px 48px rgba(0,0,0,.24)}
 body.creator-workspace,body.public-suite-page{background:var(--cfs-core-bg);color:var(--cfs-core-text)}
+body[data-cfs-product-v199]{writing-mode:horizontal-tb;text-orientation:mixed}
+body[data-cfs-product-v199] .creator-nav,body[data-cfs-product-v199] .public-nav{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:14px}
 body.creator-workspace .btn,body.creator-workspace button:not(.mobile-toggle),body.public-suite-page .btn,body.public-suite-page button:not(.mobile-toggle){min-height:40px;border-radius:10px;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}
 body.creator-workspace .btn:hover,body.creator-workspace button:not(.mobile-toggle):hover,body.public-suite-page .btn:hover,body.public-suite-page button:not(.mobile-toggle):hover{transform:translateY(-1px)}
 body.creator-workspace .btn.primary,body.public-suite-page .btn.primary{background:linear-gradient(135deg,#0ea5c7,#2563eb);border-color:#36d9ef;color:#fff;box-shadow:0 8px 22px rgba(14,165,199,.18)}
