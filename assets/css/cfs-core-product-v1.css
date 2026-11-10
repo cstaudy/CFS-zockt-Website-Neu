@@ -39,4 +39,33 @@ body[data-cfs-product-v199].creator-workspace .r106-tool-grid a{min-height:58px!
 body[data-cfs-product-v199].creator-workspace .creator-dashboard-diagnostics-v166{margin-top:14px!important}
 @media(max-width:820px){body[data-cfs-product-v199].creator-workspace .r194-path-steps,body[data-cfs-product-v199].creator-workspace .r106-shortcuts,body[data-cfs-product-v199].creator-workspace .r106-main-grid{grid-template-columns:1fr 1fr!important}}
 @media(max-width:560px){body[data-cfs-product-v199].creator-workspace .creator-dashboard-v166{width:min(100% - 20px,1240px)}body[data-cfs-product-v199].creator-workspace .creator-dashboard-hero{padding:18px!important}body[data-cfs-product-v199].creator-workspace .r194-path-steps,body[data-cfs-product-v199].creator-workspace .r106-shortcuts,body[data-cfs-product-v199].creator-workspace .r106-main-grid,body[data-cfs-product-v199].creator-workspace .r106-tool-grid{grid-template-columns:1fr!important}}
+/* Shared product shell for public pages and all Creator tools. */
+body[data-cfs-product-v199] .site-header{position:sticky;top:0;z-index:900;background:rgba(5,11,20,.94)!important;border-bottom:1px solid rgba(34,211,238,.16)!important;backdrop-filter:blur(14px)}
+body[data-cfs-product-v199] .header-inner{min-height:64px!important;padding-block:10px!important}
+body[data-cfs-product-v199] .creator-brand,body[data-cfs-product-v199] .brand{flex:0 0 auto!important;min-width:150px!important}
+body[data-cfs-product-v199] .creator-brand span{font-size:10px!important;letter-spacing:.14em!important}
+body[data-cfs-product-v199] main.container,body[data-cfs-product-v199] main.public-shell{max-width:1240px!important;margin-inline:auto!important}
+body[data-cfs-product-v199] .container>section,body[data-cfs-product-v199] .panel,body[data-cfs-product-v199] .card{border-radius:14px!important}
+body[data-cfs-product-v199] h1,body[data-cfs-product-v199] h2,body[data-cfs-product-v199] h3{letter-spacing:-.02em!important;line-height:1.12!important}
+body[data-cfs-product-v199] .btn,body[data-cfs-product-v199] button{font-family:inherit!important;letter-spacing:.04em!important}
+body[data-cfs-product-v199] .section-head,body[data-cfs-product-v199] .panel-head,body[data-cfs-product-v199] .stream-panel-head{gap:12px!important}
+body[data-cfs-product-v199] .creator-nav-more-menu{background:#081522!important;border:1px solid var(--cfs-core-line)!important;border-radius:12px!important;box-shadow:0 18px 42px rgba(0,0,0,.4)!important}
+body[data-cfs-product-v199] :where(h1,h2,h3,h4,.r104-eyebrow,.stream-studio-kicker){text-shadow:none!important}
+body[data-cfs-product-v199] :where(.btn,button,.cta){box-shadow:none!important}
+/* Final reference contract: stable controls, readable horizontal copy, quiet cyan accents. */
+body[data-cfs-product-v199],body[data-cfs-product-v199] *{writing-mode:horizontal-tb;text-orientation:mixed}
+body[data-cfs-product-v199] :where(.btn,button,a.cta){box-sizing:border-box;transform:none!important}
+body[data-cfs-product-v199] :where(.btn.primary,button.primary,a.cta){min-width:148px;justify-content:center;white-space:nowrap}
+body[data-cfs-product-v199] :where(.btn:hover,button:hover,a.cta:hover){transform:none!important}
+body[data-cfs-product-v199] :where(.btn:focus-visible,button:focus-visible,a.cta:focus-visible){outline:2px solid var(--cfs-core-accent);outline-offset:3px}
+body[data-cfs-product-v199] :where(.eyebrow,.meta,.kicker,.section-label){letter-spacing:.16em;line-height:1.3}
+body[data-cfs-product-v199] :where(.panel,.card,.workspace-panel){background:linear-gradient(145deg,rgba(10,22,36,.98),rgba(6,15,26,.98));border:1px solid rgba(34,211,238,.22)}
+body[data-cfs-product-v199] :where(.panel h1,.panel h2,.panel h3,.card h1,.card h2,.card h3){color:var(--cfs-core-text)}
+/* These guards intentionally use !important: older revision sheets are still
+   loaded by legacy pages and must not be able to rotate or resize the shell. */
+body[data-cfs-product-v199] :where(.site-nav,.creator-nav,.header-nav,.main-nav){writing-mode:horizontal-tb!important;display:flex!important;align-items:center!important;gap:clamp(10px,1.6vw,24px)!important;flex-wrap:nowrap!important}
+body[data-cfs-product-v199] :where(.site-nav a,.creator-nav a,.header-nav a,.main-nav a){writing-mode:horizontal-tb!important;white-space:nowrap!important;line-height:1.2!important;transform:none!important;min-height:36px!important;display:inline-flex!important;align-items:center!important}
+body[data-cfs-product-v199] :where(.btn,button,a.cta){writing-mode:horizontal-tb!important;white-space:nowrap!important;min-height:38px!important;transition:none!important}
+body[data-cfs-product-v199] :where(.btn:hover,button:hover,a.cta:hover,.admin-start-card:hover,.admin-control-links button:hover){transform:none!important}
+body[data-cfs-product-v199] :where(.creator-brand,.brand,.site-brand){writing-mode:horizontal-tb!important;white-space:nowrap!important;transform:none!important}
 

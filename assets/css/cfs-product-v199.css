@@ -150,3 +150,12 @@ body[data-cfs-product-v199="1"].stream-studio-page[data-studio-v199-view="advanc
   body[data-cfs-product-v199="1"].stream-studio-page .cfs-studio-tabs-v199{top:58px}
   body[data-cfs-product-v199="1"].public-auth-page .auth-entry-grid{grid-template-columns:1fr}
 }
+
+/* Product shell contract: this file is loaded by every current Creator page.
+   It neutralizes legacy revision overrides without changing tool behavior. */
+body[data-cfs-product-v199="1"] :where(.site-nav,.creator-nav,.header-nav,.main-nav){writing-mode:horizontal-tb!important;display:flex!important;align-items:center!important;gap:clamp(10px,1.6vw,24px)!important;flex-wrap:nowrap!important}
+body[data-cfs-product-v199="1"] :where(.site-nav a,.creator-nav a,.header-nav a,.main-nav a){writing-mode:horizontal-tb!important;white-space:nowrap!important;line-height:1.2!important;transform:none!important;min-height:36px!important;display:inline-flex!important;align-items:center!important}
+body[data-cfs-product-v199="1"] :where(.btn,button,a.cta){writing-mode:horizontal-tb!important;white-space:nowrap!important;min-height:38px!important;transition:none!important}
+body[data-cfs-product-v199="1"] :where(.btn,button,a.cta,.admin-start-card,.admin-control-links button):hover{transform:none!important}
+body[data-cfs-product-v199="1"] :where(.creator-brand,.brand,.site-brand){writing-mode:horizontal-tb!important;white-space:nowrap!important;transform:none!important}
+
