@@ -220,7 +220,10 @@ async function handle(req, res) {
   if (url.pathname === "/api/creator/universal-builder" && method === "GET") { const result=await builderState(req); return result.error?json(res,result.status,{error:result.error}):json(res,200,result); }
   if (url.pathname === "/api/creator/universal-builder/bundles" && method === "POST") { const result=await saveBundle(req,await readJson(req)); return result.error?json(res,result.status,{error:result.error}):json(res,201,result); }
   const builderBundle= url.pathname.match(/^\/api\/creator\/universal-builder\/bundles\/([^/]+)$/);
+  if(builderBundle&&method==="PUT"){const result=await saveBundle(req,await readJson(req),decodeURIComponent(builderBundle[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(builderBundle&&method==="PATCH"){const result=await renameBundle(req,decodeURIComponent(builderBundle[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  const builderRename= url.pathname.match(/^\/api\/creator\/universal-builder\/bundles\/([^/]+)\/name$/);
+  if(builderRename&&method==="PATCH"){const result=await renameBundle(req,decodeURIComponent(builderRename[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(builderBundle&&method==="DELETE"){const result=await deleteBundle(req,decodeURIComponent(builderBundle[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
 
   if (url.pathname === "/api/creator/widget-studio/scenes" && method === "GET") {
