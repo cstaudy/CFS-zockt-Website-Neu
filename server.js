@@ -10,8 +10,8 @@ import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
 import { listAssets, uploadAsset } from "./src/assets.js";
 import { createPackage, listPackages, listShopCatalog, convertBundle } from "./src/packages.js";
-import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus } from "./src/tiktok.js";
-import { startTwitch, finishTwitch, getTwitchStatus } from "./src/twitch.js";
+import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnectTikTok } from "./src/tiktok.js";
+import { startTwitch, finishTwitch, getTwitchStatus, disconnectTwitch } from "./src/twitch.js";
 import { getPlayStationState } from "./src/playstation.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice } from "./src/launcher.js";
@@ -141,7 +141,9 @@ async function handle(req, res) {
   if (["/api/auth/twitch/callback", "/auth/twitch/callback"].includes(url.pathname) && method === "GET") { const result=await finishTwitch(req,res,url); if(result?.error)return json(res,result.status,{error:result.error}); return; }
   if (url.pathname === "/api/creator/playstation" && method === "GET") { const result=await getPlayStationState(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
   if (url.pathname === "/api/creator/tiktok/status" && method === "GET") { const result=await getTikTokStatus(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
+  if (url.pathname === "/api/creator/tiktok/disconnect" && method === "POST") { const result=await disconnectTikTok(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
   if (url.pathname === "/api/creator/twitch/status" && method === "GET") { const result=await getTwitchStatus(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
+  if (url.pathname === "/api/creator/twitch/disconnect" && method === "POST") { const result=await disconnectTwitch(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
 
   if (url.pathname === "/api/ready" && ["GET", "HEAD"].includes(method)) {
     const database = await databaseCheck();
