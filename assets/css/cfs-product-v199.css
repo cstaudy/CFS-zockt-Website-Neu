@@ -158,4 +158,14 @@ body[data-cfs-product-v199="1"] :where(.site-nav a,.creator-nav a,.header-nav a,
 body[data-cfs-product-v199="1"] :where(.btn,button,a.cta){writing-mode:horizontal-tb!important;white-space:nowrap!important;min-height:38px!important;transition:none!important}
 body[data-cfs-product-v199="1"] :where(.btn,button,a.cta,.admin-start-card,.admin-control-links button):hover{transform:none!important}
 body[data-cfs-product-v199="1"] :where(.creator-brand,.brand,.site-brand){writing-mode:horizontal-tb!important;white-space:nowrap!important;transform:none!important}
+/* Same reference language for Creator Suite, tools, shop and admin. */
+body[data-cfs-product-v199="1"]{--ref-bg:#03101c;--ref-surface:#091c2d;--ref-surface-2:#0d2639;--ref-line:#14577b;--ref-cyan:#16d7f4;--ref-text:#f4f8fb;--ref-muted:#a9bdcb;background:linear-gradient(180deg,#020b14,#061a2a)!important;color:var(--ref-text)!important}
+body[data-cfs-product-v199="1"] .site-header{background:rgba(2,11,20,.94)!important;border-bottom:1px solid rgba(22,215,244,.22)!important;box-shadow:none!important}
+body[data-cfs-product-v199="1"] .header-inner{min-height:62px!important}
+body[data-cfs-product-v199="1"] :where(.panel,.card,.workspace-panel,.workspace-card,.tool-card,.dashboard-card){background:linear-gradient(145deg,rgba(9,34,52,.98),rgba(5,19,32,.98))!important;border:1px solid rgba(30,131,170,.55)!important;border-radius:12px!important;box-shadow:none!important}
+body[data-cfs-product-v199="1"] :where(.panel:hover,.card:hover,.tool-card:hover,.dashboard-card:hover){border-color:rgba(22,215,244,.9)!important;transform:none!important}
+body[data-cfs-product-v199="1"] :where(h1,h2,h3){color:#fff!important;text-shadow:none!important;letter-spacing:-.03em!important}
+body[data-cfs-product-v199="1"] :where(.eyebrow,.kicker,.section-label,.meta){color:var(--ref-cyan)!important;letter-spacing:.18em!important}
+body[data-cfs-product-v199="1"] :where(.btn.primary,.button-primary,.primary){background:var(--ref-cyan)!important;color:#00121b!important;border-color:var(--ref-cyan)!important;box-shadow:none!important}
+body[data-cfs-product-v199="1"] :where(.btn,.button,button){border-radius:8px!important;box-shadow:none!important}
 
