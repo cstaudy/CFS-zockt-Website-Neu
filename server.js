@@ -126,6 +126,10 @@ async function handle(req, res) {
   if (url.pathname === "/api/integrations/status" && ["GET", "HEAD"].includes(method)) {
     return json(res, 200, { ok: true, integrations: { database: Boolean(process.env.DATABASE_URL), session_secret: Boolean(process.env.SESSION_SECRET), twitch: Boolean(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET), tiktok: tiktokConfigured(), launcher: Boolean(process.env.LAUNCHER_BRIDGE_SECRET), paypal: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET), playstation: Boolean(process.env.PSN_PROVIDER && process.env.PSN_CLIENT_ID), storage: Boolean(process.env.ASSET_STORAGE_BUCKET) || (process.env.ASSET_STORAGE_PROVIDER || "local") === "local" }, note: "Nur Konfigurationsstatus; keine Secrets werden ausgegeben." });
   }
+  if (url.pathname === "/api/creator/integration-capabilities" && method === "GET") {
+    const account=await currentAccount(req); if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});
+    return json(res,200,{ok:true,integrations:{oauth:[{provider:"tiktok",configured:tiktokConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TIKTOK_CLIENT_KEY),client_secret:Boolean(process.env.TIKTOK_CLIENT_SECRET),redirect_uri:Boolean(process.env.TIKTOK_REDIRECT_URI||process.env.APP_BASE_URL)}},{provider:"twitch",configured:Boolean(process.env.TWITCH_CLIENT_ID&&process.env.TWITCH_CLIENT_SECRET),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TWITCH_CLIENT_ID),client_secret:Boolean(process.env.TWITCH_CLIENT_SECRET),redirect_uri:Boolean(process.env.TWITCH_REDIRECT_URI||process.env.APP_BASE_URL)}}],obs_websocket:Boolean(process.env.OBS_WEBSOCKET_URL||process.env.OBS_WS_URL),launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET),paypal:Boolean(process.env.PAYPAL_CLIENT_ID&&process.env.PAYPAL_CLIENT_SECRET),playstation:Boolean(process.env.PSN_PROVIDER&&process.env.PSN_CLIENT_ID)}});
+  }
 
   if (url.pathname === "/api/integrations/tiktok/start" && method === "GET") {
     const result = await startTikTok(req, res);
