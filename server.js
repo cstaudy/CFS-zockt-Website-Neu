@@ -4,7 +4,7 @@ import { access, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
-import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll } from "./src/auth.js";
+import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail } from "./src/auth.js";
 import { mailStatus } from "./src/mail.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
 import { createProject, deleteProject, listProjects, updateProject, requireAdmin } from "./src/projects.js";
@@ -192,6 +192,8 @@ async function handle(req, res) {
   if(url.pathname==="/api/account/mail/status"&&method==="GET")return json(res,200,mailStatus());
   if(url.pathname==="/api/account/password/forgot"&&method==="POST"){const body=await readJson(req);return json(res,200,await requestPasswordReset(body.email));}
   if(url.pathname==="/api/account/password/reset"&&method==="POST"){const body=await readJson(req),result=await resetPassword(String(body.token||""),body.new_password);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/account/email/verification/request"&&method==="POST")return json(res,200,await requestEmailVerification((await readJson(req)).email));
+  if(url.pathname==="/api/account/email/verify"&&method==="POST"){const result=await verifyEmail(String((await readJson(req)).token||""));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/profile"&&method==="PATCH"){const result=await updateProfile(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/password"&&method==="POST"){const result=await changePassword(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/sessions"&&method==="GET"){const result=await listSessions(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
