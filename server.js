@@ -15,7 +15,7 @@ import { startTwitch, finishTwitch } from "./src/twitch.js";
 import { getPlayStationState } from "./src/playstation.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice } from "./src/launcher.js";
-import { listToolProjects, getToolProject, saveToolProject, deleteToolProject } from "./src/tool-projects.js";
+import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
@@ -185,6 +185,13 @@ async function handle(req, res) {
   if(url.pathname==="/api/creator/stream-studio"&&method==="PUT"){const result=await saveToolProject(req,"stream",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,{...result,config:result.project.data});}
   if(url.pathname==="/api/creator/cut-studio/projects"&&method==="GET"){const result=await listToolProjects(req,"cut");return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/cut-studio/projects"&&method==="POST"){const result=await saveToolProject(req,"cut",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  const clipList=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/clips$/);
+  if(clipList&&method==="GET"){const result=await listClips(req,decodeURIComponent(clipList[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(clipList&&method==="POST"){const result=await createClip(req,decodeURIComponent(clipList[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  const clipOrder=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/clips\/order$/);
+  if(clipOrder&&method==="PUT"){const result=await orderClips(req,decodeURIComponent(clipOrder[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  const clipItem=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/clips\/([^/]+)$/);
+  if(clipItem){const projectId=decodeURIComponent(clipItem[1]),clipId=decodeURIComponent(clipItem[2]);const result=method==="PUT"?await updateClip(req,projectId,clipId,await readJson(req)):method==="DELETE"?await deleteClip(req,projectId,clipId):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const toolProject=url.pathname.match(/^\/api\/creator\/(stream-studio|cut-studio)\/projects\/([^/]+)$/);
   if(toolProject){const kind=toolProject[1]==="stream-studio"?"stream":"cut",id=decodeURIComponent(toolProject[2]);const result=method==="GET"?await getToolProject(req,kind,id):method==="PUT"?await saveToolProject(req,kind,id,await readJson(req)):method==="DELETE"?await deleteToolProject(req,kind,id):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/cut-studio/jobs"&&method==="GET"){const result=await listJobs(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
