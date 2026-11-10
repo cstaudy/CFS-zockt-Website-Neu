@@ -20,7 +20,8 @@ const files = [
   "013_password_recovery.sql",
   "014_launcher_obs.sql",
   "015_account_mfa.sql",
-  "016_email_verification.sql"
+  "016_email_verification.sql",
+  "017_support_reports.sql"
 ];
 
 try {
