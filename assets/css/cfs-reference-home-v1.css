@@ -10,6 +10,8 @@ body.public-home .r104-nav{gap:26px!important}
 body.public-home .r104-nav a{font-size:13px!important;font-weight:700!important;color:#d8e5ed!important;padding:20px 0!important;border-bottom:2px solid transparent!important}
 body.public-home .r104-nav a:hover,body.public-home .r104-nav a.active{color:#fff!important;border-bottom-color:var(--ref-cyan)!important}
 body.public-home .r104-login{border:1px solid var(--ref-cyan)!important;border-radius:8px!important;padding:9px 17px!important;color:#fff!important;background:rgba(8,39,56,.68)!important;white-space:nowrap!important}
+body.public-home .r104-discord{border:1px solid var(--ref-cyan)!important;border-radius:8px!important;padding:9px 15px!important;color:#fff!important;background:rgba(8,39,56,.45)!important;white-space:nowrap!important;font-size:13px!important;font-weight:800!important}
+body.public-home .r104-discord:hover{background:rgba(22,215,244,.16)!important;color:#fff!important}
 body.public-home .gaming-hero{min-height:520px!important;background:linear-gradient(90deg,rgba(2,12,22,.98) 0%,rgba(2,12,22,.76) 42%,rgba(2,12,22,.26) 100%),url('/assets/img/r104/hero-stage.webp') center/cover no-repeat!important;border-bottom:1px solid rgba(22,215,244,.18)!important}
 body.public-home .r104-hero-inner{max-width:1120px!important;min-height:520px!important;padding:76px 0 52px!important}
 body.public-home .r104-hero-copy{max-width:560px!important}
