@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
 import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll } from "./src/auth.js";
 import { mailStatus } from "./src/mail.js";
+import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
 import { createProject, deleteProject, listProjects, updateProject, requireAdmin } from "./src/projects.js";
 import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
@@ -195,6 +196,11 @@ async function handle(req, res) {
   if(url.pathname==="/api/account/password"&&method==="POST"){const result=await changePassword(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/sessions"&&method==="GET"){const result=await listSessions(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/logout-all"&&method==="POST"){const result=await logoutAll(req);if(result.error)return json(res,result.status,{error:result.error});res.setHeader("set-cookie",cookie("cfs_session","",0));return json(res,200,result);}
+  if(url.pathname==="/api/account/mfa"&&method==="GET"){const result=await mfaStatus(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/account/mfa/setup"&&method==="POST"){const result=await mfaSetup(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/account/mfa/enable"&&method==="POST"){const result=await mfaEnable(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/account/mfa/disable"&&method==="POST"){const result=await mfaDisable(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/account/mfa/recovery-codes"&&method==="POST"){const result=await mfaRecovery(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
 
   if (url.pathname === "/api/creator/launcher/devices" && method === "GET") { const result=await listDevices(req); return result.error?json(res,result.status,{error:result.error}):json(res,200,result); }
   const deviceMatch=url.pathname.match(/^\/api\/creator\/launcher\/devices\/([^/]+)$/);
