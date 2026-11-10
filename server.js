@@ -19,6 +19,7 @@ import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, l
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
 import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
 import { listPresets, savePreset, deletePreset } from "./src/creator-presets.js";
+import { publicTwitchState, publicTwitchCommunity } from "./src/public-twitch.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -160,11 +161,11 @@ async function handle(req, res) {
   }
 
   if (url.pathname === "/api/public/live-session" && ["GET", "HEAD"].includes(method)) {
-    return json(res, 200, { ok: true, live: false, status: "offline", channel: "cfs_zockt", title: "Aktuell nicht live", game: null, viewer_count: 0, source: "fallback" });
+    return json(res, 200, await publicTwitchState());
   }
 
   if (url.pathname === "/api/public/community-stats" && ["GET", "HEAD"].includes(method)) {
-    return json(res, 200, { ok: true, twitch_followers: null, tiktok_followers: null, discord_members: null, source: "fallback", message: "Community-Daten werden derzeit nicht synchronisiert." });
+    return json(res, 200, {...await publicTwitchCommunity(),tiktok_followers:null,discord_members:null,message:"Nur bestätigte Providerdaten werden angezeigt."});
   }
 
   if (url.pathname === "/api/public/creator-state" && ["GET", "HEAD"].includes(method)) {
