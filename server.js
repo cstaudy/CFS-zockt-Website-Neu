@@ -232,7 +232,7 @@ async function handle(req, res) {
   const cancelJobMatch=url.pathname.match(/^\/api\/creator\/cut-studio\/jobs\/([^/]+)\/cancel$/);
   if(cancelJobMatch&&method==="POST"){const result=await cancelJob(req,decodeURIComponent(cancelJobMatch[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/launcher/devices/register"&&method==="POST"){const result=await registerDevice(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
-  if(url.pathname==="/api/launcher/heartbeat"&&method==="POST"){const result=await launcherHeartbeat(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/launcher/heartbeat"&&method==="POST"){const result=await launcherHeartbeat(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/launcher/playstation/sync"&&method==="POST"){const result=await syncPlayStationFromLauncher(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/launcher/jobs"&&method==="GET"){const result=await claimJobs(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const launcherJob=url.pathname.match(/^\/api\/launcher\/jobs\/([^/]+)$/);
