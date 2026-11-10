@@ -17,6 +17,7 @@ import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/univ
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice } from "./src/launcher.js";
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
+import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -195,6 +196,11 @@ async function handle(req, res) {
   const toolProject=url.pathname.match(/^\/api\/creator\/(stream-studio|cut-studio)\/projects\/([^/]+)$/);
   if(toolProject){const kind=toolProject[1]==="stream-studio"?"stream":"cut",id=decodeURIComponent(toolProject[2]);const result=method==="GET"?await getToolProject(req,kind,id):method==="PUT"?await saveToolProject(req,kind,id,await readJson(req)):method==="DELETE"?await deleteToolProject(req,kind,id):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/cut-studio/jobs"&&method==="GET"){const result=await listJobs(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  const mediaList=url.pathname.match(/^\/api\/creator\/media\/(videos|clips)$/);
+  if(mediaList&&method==="GET"){const result=await listUserMedia(req,mediaList[1]);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(mediaList&&method==="POST"){const result=await uploadUserMedia(req,await readRaw(req),mediaList[1]);return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  const mediaItem=url.pathname.match(/^\/api\/creator\/media\/(videos|clips)\/([^/]+)$/);
+  if(mediaItem&&method==="DELETE"){const result=await deleteUserMedia(req,decodeURIComponent(mediaItem[2]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const exportJob=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/export-jobs$/);
   if(exportJob&&method==="POST"){const result=await createJob(req,decodeURIComponent(exportJob[1]),"cut_export",await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,202,result);}
   const cancelJobMatch=url.pathname.match(/^\/api\/creator\/cut-studio\/jobs\/([^/]+)\/cancel$/);
