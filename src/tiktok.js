@@ -5,7 +5,7 @@ import { currentAccount, sessionFromRequest, cookie } from "./auth.js";
 const redirectUri = () => process.env.TIKTOK_REDIRECT_URI || `${process.env.APP_BASE_URL || ""}/api/auth/tiktok/callback`;
 const key = () => createHash("sha256").update(String(process.env.SESSION_SECRET || "missing-session-secret")).digest();
 function seal(value) { const iv=randomBytes(12), cipher=createCipheriv("aes-256-gcm",key(),iv); const data=Buffer.concat([cipher.update(String(value),"utf8"),cipher.final()]); return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${data.toString("base64url")}`; }
-function open(value) { const [iv,tag,data]=String(value||"").split("."); if(!iv||!tag||!data)return ""; const decipher=createDecipheriv("aes-256-gcm",key(),Buffer.from(iv,"base64url")); decipher.setAuthTag(Buffer.from(tag,"base64url")); return Buffer.concat([decipher.update(Buffer.from(data,"base64url")),decipher.final()]).toString("utf8"); }
+function open(value) { const [iv,tag,data]=String(value||"").split("."); if(!iv||!tag||!data)return ""; try{const decipher=createDecipheriv("aes-256-gcm",key(),Buffer.from(iv,"base64url")); decipher.setAuthTag(Buffer.from(tag,"base64url")); return Buffer.concat([decipher.update(Buffer.from(data,"base64url")),decipher.final()]).toString("utf8");}catch{return ""} }
 
 export function tiktokConfigured() { return Boolean(process.env.TIKTOK_CLIENT_KEY && process.env.TIKTOK_CLIENT_SECRET && redirectUri()); }
 export async function getTikTokStatus(req) {
@@ -14,6 +14,7 @@ export async function getTikTokStatus(req) {
   return{ok:true,configured:tiktokConfigured(),connected:Boolean(row),profile:row?{open_id:row.open_id}:null,scope:row?.scope||"",expires_at:row?.expires_at||null,updated_at:row?.updated_at||null};
 }
 export async function disconnectTikTok(req){const account=await currentAccount(req);if(!account)return{error:"AUTHENTICATION_REQUIRED",status:401};const r=await getPool().query("delete from tiktok_connections where account_id=$1 returning account_id",[account.id]);return{ok:true,disconnected:Boolean(r.rowCount)};}
+export async function syncTikTok(req){const account=await currentAccount(req);if(!account)return{error:"AUTHENTICATION_REQUIRED",status:401};const row=(await getPool().query("select access_token from tiktok_connections where account_id=$1",[account.id])).rows[0];const access=open(row?.access_token);if(!access)return{error:"TIKTOK_NOT_CONNECTED",status:404};const response=await fetch("https://open.tiktokapis.com/v2/user/info/?fields=display_name,avatar_url,follower_count",{headers:{Authorization:`Bearer ${access}`}});if(!response.ok)return{error:"TIKTOK_SYNC_FAILED",status:502};const profile=(await response.json()).data?.user||{};return{ok:true,connected:true,profile:{display_name:profile.display_name||"",avatar_url:profile.avatar_url||"",follower_count:Number(profile.follower_count||0)},synced_at:new Date().toISOString()};}
 export async function startTikTok(req, res) {
   const account = await currentAccount(req); if (!account) return { error:"AUTHENTICATION_REQUIRED", status:401 };
   if (!tiktokConfigured()) return { error:"TIKTOK_NOT_CONFIGURED", status:503 };
