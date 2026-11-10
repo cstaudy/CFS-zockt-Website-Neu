@@ -1,0 +1,27 @@
+/* Compact, stable login layout. Loaded last to neutralize legacy auth overrides. */
+.public-auth-page .auth-entry-shell{max-width:1120px;padding-top:32px;padding-bottom:56px}
+.public-auth-page .auth-entry-hero{padding:28px 0 22px;gap:22px}
+.public-auth-page .auth-entry-hero h1{font-size:clamp(34px,4.8vw,56px);line-height:1;letter-spacing:-2px;margin:8px 0 12px}
+.public-auth-page .auth-entry-hero p{max-width:560px;font-size:11px;line-height:1.5}
+.public-auth-page .auth-entry-actions{margin-top:16px}
+.public-auth-page .auth-entry-path{padding:16px}
+.public-auth-page .auth-entry-path ol{margin-top:10px;gap:7px}
+.public-auth-page .auth-entry-path li{padding:8px}
+.public-auth-page .auth-entry-quick-note{margin:0 0 16px;padding:10px 12px;border:1px solid #173d59;border-radius:10px;color:#91abc0;background:#04101b;font-size:9px}
+.public-auth-page .auth-entry-grid{gap:14px}
+.public-auth-page .auth-entry-panel{padding:20px;border-radius:15px}
+.public-auth-page .auth-panel-head h2{font-size:23px;margin:6px 0 5px}
+.public-auth-page .auth-panel-head p{margin-bottom:14px;font-size:9px}
+.public-auth-page .auth-entry-panel .field{margin-bottom:10px}
+.public-auth-page .submit-row{position:relative;min-height:42px;align-items:center;padding-right:120px}
+.public-auth-page .submit-row .btn{min-width:150px;height:40px;flex:0 0 auto}
+.public-auth-page .submit-row .small-status{position:absolute;right:0;top:50%;width:108px;transform:translateY(-50%);line-height:1.25}
+.public-auth-page .auth-entry-links{gap:9px;margin-top:10px}
+.public-auth-page .auth-entry-links a{font-size:7.5px}
+.public-auth-page .password-rules{font-size:8px;line-height:1.4;margin:0 0 6px}
+.public-auth-page .legal-consent-list{gap:6px}
+.public-auth-page .legal-consent{padding:8px 9px;font-size:8px;line-height:1.4}
+.public-auth-page .cfs-signup-note-v165{margin:0 0 10px;font-size:8px}
+@media (max-width:900px){.public-auth-page .auth-entry-hero{grid-template-columns:1fr}.public-auth-page .auth-entry-path{display:none}}
+@media (max-width:620px){.public-auth-page .auth-entry-shell{padding-top:20px}.public-auth-page .auth-entry-hero{padding:20px 0 16px}.public-auth-page .auth-entry-actions{flex-direction:row}.public-auth-page .auth-entry-actions .btn{width:auto;flex:1}.public-auth-page .auth-entry-grid{grid-template-columns:1fr}.public-auth-page .auth-entry-panel{padding:16px}.public-auth-page .submit-row{padding-right:0}.public-auth-page .submit-row .small-status{position:static;width:auto;transform:none}.public-auth-page .submit-row{flex-wrap:wrap}}
+
