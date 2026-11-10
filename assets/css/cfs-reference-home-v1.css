@@ -76,6 +76,31 @@ body.public-home .r104-footer{display:block!important}
 body.public-home .r104-footer-brand{display:flex!important;align-items:center!important;gap:12px!important}
 body.public-home .r104-footer nav{display:flex!important;flex-wrap:wrap!important;gap:12px 20px!important;align-items:center!important}
 body.public-home .r104-footer-bottom{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:20px!important;flex-wrap:wrap!important}
+body.public-home .ref-stats{width:min(1120px,calc(100% - 40px));margin:-28px auto 0;position:relative;z-index:4;display:grid;grid-template-columns:repeat(3,1fr);background:rgba(7,28,44,.96);border:1px solid rgba(22,215,244,.38);border-radius:12px;overflow:hidden}
+body.public-home .ref-stats>div{display:flex;align-items:center;justify-content:center;gap:14px;min-height:78px;padding:14px 20px;border-right:1px solid rgba(112,176,201,.3)}
+body.public-home .ref-stats>div:last-child{border-right:0}
+body.public-home .ref-stats strong{color:var(--ref-cyan);font-size:25px;line-height:1;white-space:nowrap}
+body.public-home .ref-stats span{color:#fff;font-size:14px;font-weight:800;line-height:1.2}
+body.public-home .ref-stats small{color:var(--ref-muted);font-size:11px;font-weight:500}
+body.public-home .ref-current-streams{width:min(1120px,calc(100% - 40px));margin:54px auto 0}
+body.public-home .ref-section-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:18px;border-left:3px solid var(--ref-cyan);padding-left:14px}
+body.public-home .ref-section-head h2{margin:5px 0 0;font-size:32px;line-height:1.05}
+body.public-home .ref-section-head>a{color:#fff;font-size:13px;font-weight:800;white-space:nowrap}
+body.public-home .ref-kicker{color:var(--ref-cyan);font-size:11px;letter-spacing:.18em;font-weight:850}
+body.public-home .ref-stream-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+body.public-home .ref-stream-card{display:block;overflow:hidden;border:1px solid rgba(30,131,170,.7);border-radius:12px;background:linear-gradient(145deg,#0a263b,#061522);color:#fff;box-shadow:none}
+body.public-home .ref-stream-card:hover{border-color:var(--ref-cyan);transform:none}
+body.public-home .ref-stream-card>img{display:block;width:100%;height:150px;object-fit:cover}
+body.public-home .ref-stream-card>div{display:flex;flex-direction:column;gap:6px;padding:14px 16px}
+body.public-home .ref-stream-card strong{font-size:16px;line-height:1.2}
+body.public-home .ref-stream-card small{color:var(--ref-muted);font-size:11px;line-height:1.35}
+body.public-home .ref-status{color:var(--ref-cyan);font-size:10px;font-weight:850;letter-spacing:.08em}
+body.public-home .cfs-community-2026{margin-top:54px!important}
+/* The reference homepage uses the compact stats/stream flow; the older
+   creator-path and promotional feature rail remain available on Creator Suite
+   but do not compete with the public homepage hierarchy. */
+body.public-home .r194-path,body.public-home .r104-feature-grid{display:none!important}
+@media(max-width:760px){body.public-home .ref-stats{width:calc(100% - 32px);grid-template-columns:1fr;margin-top:-20px}.public-home .ref-stats>div{justify-content:flex-start;border-right:0;border-bottom:1px solid rgba(112,176,201,.3)}.public-home .ref-stats>div:last-child{border-bottom:0}.public-home .ref-current-streams{width:calc(100% - 32px);margin-top:36px}.public-home .ref-section-head{align-items:flex-start;flex-direction:column;gap:10px}.public-home .ref-stream-grid{grid-template-columns:1fr}}
 @media(max-width:900px){body.public-home .r104-header-inner{grid-template-columns:auto 1fr auto!important;gap:12px!important}.public-home .r104-nav{gap:12px!important}.public-home .r104-nav a{font-size:12px!important}.public-home .cfs-community-cards,.public-home .r104-feature-grid{grid-template-columns:1fr!important}.public-home .gaming-live-layout,.public-home .gaming-stream-layout{grid-template-columns:1fr!important}}
 @media(max-width:760px){body.public-home .r104-header-inner{display:flex!important;flex-wrap:wrap!important}.public-home .r104-brand{margin-right:auto!important}.public-home .r104-nav{order:3!important;width:100%!important;justify-content:flex-start!important;overflow:auto!important}.public-home .r104-header-actions{order:2!important}.public-home .r104-feature{grid-template-columns:1fr!important}.public-home .r104-feature>img{height:180px!important}}
 
