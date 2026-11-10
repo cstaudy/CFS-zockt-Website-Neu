@@ -10,4 +10,9 @@ body.creator-workspace input,body.creator-workspace select,body.creator-workspac
 body.creator-workspace input:focus,body.creator-workspace select:focus,body.creator-workspace textarea:focus,body.public-suite-page input:focus,body.public-suite-page select:focus,body.public-suite-page textarea:focus{outline:2px solid rgba(34,211,238,.35);outline-offset:1px;border-color:var(--cfs-core-accent)}
 body.creator-workspace .panel,body.creator-workspace .card,body.creator-workspace .workspace-panel,body.creator-workspace .ws-panel,body.public-suite-page .panel,body.public-suite-page .card{border-color:var(--cfs-core-line);border-radius:var(--cfs-core-radius);box-shadow:var(--cfs-core-shadow)}
 @media(max-width:700px){body.creator-workspace .btn,body.creator-workspace button:not(.mobile-toggle),body.public-suite-page .btn,body.public-suite-page button:not(.mobile-toggle){min-height:44px}}
+body[data-cfs-product-v199] .cut-media-tabs{display:flex;gap:.5rem;margin:.75rem 0}
+body[data-cfs-product-v199] .cut-media-tabs .active{border-color:var(--cfs-core-accent);color:#fff}
+body[data-cfs-product-v199] .cut-media-list{display:grid;gap:.6rem}
+body[data-cfs-product-v199] .cut-media-card{display:flex;align-items:center;gap:.75rem;padding:.8rem 1rem;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.035)}
+body[data-cfs-product-v199] .cut-media-card>div{display:grid;gap:.2rem;flex:1;min-width:0}.cut-media-card small{color:rgba(255,255,255,.6)}
 
