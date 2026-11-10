@@ -24,7 +24,8 @@ const files = [
   "017_support_reports.sql",
   "018_creator_games.sql",
   "019_merch_reviews.sql",
-  "020_public_live_control.sql"
+  "020_public_live_control.sql",
+  "021_creator_settings.sql"
 ];
 
 try {
