@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="/assets/css/cfs-r112-interface.css?v=R112" data-cfs-r112>
   <link rel="stylesheet" href="/assets/css/cfs-r168-product.css?v=R168" data-cfs-product-brand="R168">
   <link rel="stylesheet" href="/assets/css/cfs-auth-dashboard-unified.css?v=1">
+  <link rel="stylesheet" href="/assets/css/cfs-auth-clean-v1.css?v=1">
 </head>
 <body data-cfs-product-v199="1" data-cfs-brand-v192="1" class="cfs-r6-ui public-marketing public-auth-page cfs-auth-v120 cfs-auth-v124 cfs-auth-v133 cfs-r111-atmosphere" data-brand-refinement="v165-public-entry" data-cfs-brand-v198="1">
 <header class="site-header brand-header public-site-header">
@@ -54,7 +55,7 @@
       <div class="cfs-suite-lockup"><picture class="cfs-r85-logo-picture"><source type="image/webp" srcset="/assets/img/brand/cfs-zockt-mark-clean-lossless.webp"><img src="/assets/img/brand/cfs-zockt-mark-clean.png" alt="cfs_zockt"></picture><span>CREATOR ACCOUNT</span></div>
       <div class="eyebrow">DEIN ZUGANG ZUR CREATOR SUITE</div>
       <h1>ANMELDEN ODER<br><span>KOSTENLOS STARTEN.</span></h1>
-      <p>Bestehendes Konto anmelden oder Creator-Konto erstellen. Der geschlossene Beta-Test ist nur nach persönlicher Freigabe zugänglich.</p>
+      <p>Anmelden oder kostenloses Creator-Konto erstellen. Der Beta-Zugang wird separat freigegeben.</p>
       <div class="auth-entry-actions"><a class="btn primary" href="#loginPanel">ANMELDEN</a><a class="btn" href="#regForm">KONTO ERSTELLEN</a></div>
     </div>
     <aside class="auth-entry-path cfs-auth-path-v165" aria-label="Nach der Anmeldung"><span>DANACH</span><ol><li><b>01</b><div><strong>Dashboard</strong><small>Dein zentraler Einstieg.</small></div></li><li><b>02</b><div><strong>Tools</strong><small>Nur verbinden, was du brauchst.</small></div></li></ol></aside>
@@ -70,15 +71,14 @@
     <span>Hier kannst du deinen Creator Account anlegen oder dich anmelden. Wenn du vorher noch einmal schauen möchtest, <a href="/#streams">geht es zurück zur öffentlichen Stream-Vorschau.</a></span>
   </div>
 
-  <section class="cfs-auth-facts-v165" aria-label="Beta Hinweise"><span>Beta nur mit Freigabe</span><span>18+</span><span>Keine Zahlungsdaten</span><span>MFA &amp; Passkeys verfügbar</span></section>
-  <details class="cfs-public-details-v165 cfs-auth-beta-details-v165"><summary>BETA &amp; ACCOUNT-DETAILS</summary><div class="cfs-auth-beta-details-body"><p><strong>FREE Plan:</strong> Der Start erfolgt kostenlos in der privaten Beta. Neue Creator-Konten starten technisch im FREE Plan. <strong>KEIN AUTO-UPGRADE.</strong> Keine Zahlungsdaten bei der Registrierung.</p><p><strong>Account:</strong> Sessions, Datenexport und Kontolöschung bleiben erreichbar. Provider wie TikTok können wieder getrennt werden.</p><p><strong>Danach:</strong> Dashboard öffnen und nur die Tools verbinden, die du wirklich brauchst.</p></div></details>
+  <div class="auth-entry-quick-note">Kostenlose Beta · 18+ · Keine Zahlungsdaten</div>
 
   <section class="auth-entry-grid" aria-label="Anmelden oder registrieren">
     <article class="auth-entry-panel" id="loginPanel">
       <div class="auth-panel-head">
         <span>BESTEHENDER ACCOUNT</span>
         <h2>Anmelden</h2>
-        <p>Mit deinem bestehenden Creator-Konto direkt ins Dashboard.</p>
+        <p>Direkt zu deinem Dashboard.</p>
       </div>
       <form id="loginForm" class="form-grid" novalidate>
         <div class="field full"><label for="loginEmail">E-MAIL</label><input id="loginEmail" name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false"></div>
@@ -94,14 +94,13 @@
       </form>
       <div id="loginMsg" class="notice hidden" role="status" aria-live="polite"></div>
       <div class="auth-entry-links"><a href="/pages/forgot-password.html">PASSWORT VERGESSEN?</a><a href="/pages/verify-email.html">E-MAIL BESTÄTIGEN</a><a href="/pages/support.html">SUPPORT</a></div>
-      <details class="auth-entry-note cfs-auth-details-v165"><summary>Sicherheitsdetails</summary><p>Bei fehlgeschlagenen Logins wird nicht offengelegt, ob eine bestimmte E-Mail-Adresse registriert ist. Anmeldung und Recovery sind serverseitig begrenzt; zusätzlich schützt ein persistenter kontoweiter Fehlversuchs-Throttle vor wiederholten Passwortversuchen. Browser-Schreibzugriffe werden mit Origin- und CSRF-Prüfungen geschützt.</p></details>
     </article>
 
     <article class="auth-entry-panel auth-entry-panel-featured" id="registerPanel">
       <div class="auth-panel-head">
         <span>NEUER CREATOR</span>
         <h2>Kostenlos starten</h2>
-        <p>Creator Account für Dashboard, Widgets, Launcher und Integrationen.</p>
+        <p>Für Dashboard, Widgets und Integrationen.</p>
       </div>
       <div class="cfs-signup-note-v165">Registrierung ist keine Beta-Freigabe · 18+ · keine Zahlungsdaten</div>
       <form id="regForm" class="form-grid" novalidate>
@@ -125,7 +124,6 @@
         <div class="field full submit-row"><button id="regButton" class="btn primary" type="submit">KONTO ERSTELLEN</button><span id="regBusy" class="small-status" aria-live="polite"></span></div>
       </form>
       <div id="regMsg" class="notice hidden" role="status" aria-live="polite"></div>
-      <details class="auth-entry-note cfs-auth-details-v165"><summary>Passwort &amp; Beta-Details</summary><p>Passwörter werden serverseitig mit versioniertem scrypt und individuellem Salt verarbeitet. Typische Passwörter werden abgewiesen. Die Registrierung schließt keinen kostenpflichtigen Vertrag ab.</p></details>
       <div class="auth-entry-links"><a href="/pages/security.html">SICHERHEIT</a><a href="/pages/datenschutz.html">DATENSCHUTZ</a><a href="/pages/nutzungsbedingungen.html">NUTZUNGSBEDINGUNGEN</a></div>
     </article>
   </section>
