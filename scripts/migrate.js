@@ -16,7 +16,8 @@ const files = [
   "009_tool_jobs.sql",
   "010_user_media.sql",
   "011_creator_presets.sql",
-  "012_commerce_orders.sql"
+  "012_commerce_orders.sql",
+  "013_password_recovery.sql"
 ];
 
 try {
