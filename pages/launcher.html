@@ -17,6 +17,7 @@
   <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
   <link rel="stylesheet" href="/assets/css/cfs-brand-v198.css" data-cfs-brand-v198>
   <link rel="stylesheet" href="/assets/css/cfs-product-v199.css" data-cfs-product-v199>
+<link rel="stylesheet" href="/assets/css/cfs-core-product-v1.css?v=1">
 <link rel="stylesheet" href="/assets/css/cfs-workspace-v205.css">
 <link rel="stylesheet" href="/assets/css/cfs-guide-v5.css">
 <link rel="stylesheet" href="/assets/css/cfs-help-v6.css">
@@ -54,6 +55,8 @@
 <a data-creator-link href="/pages/stream-studio.html">STREAM STUDIO</a>
 <a data-creator-link href="/pages/creator-suite.html">MEINE TOOLS</a>
 <a data-creator-link href="/pages/integrations.html">VERBINDUNGEN</a>
+<a data-creator-link href="/pages/tiktok.html">TIKTOK</a>
+<a data-creator-link href="/pages/shop.html">SHOP</a>
 <a data-creator-link href="/pages/account.html">ACCOUNT</a>
 <details class="creator-nav-more" data-creator-more><summary>MEHR</summary><div class="creator-nav-more-menu"><div class="r138-nav-group"><span class="r138-nav-group-label">Erstellen & Gestalten</span><a data-creator-link href="/pages/widget-studio.html">WIDGET STUDIO</a><a data-creator-link href="/pages/scene-studio.html">SCENE STUDIO</a><a data-creator-link href="/pages/universal-builder.html">UNIVERSAL BUILDER</a><a data-creator-link href="/pages/stream-maker.html">STREAM MAKER</a><a data-creator-link href="/pages/cut-studio.html">CUT STUDIO</a><a data-creator-link href="/pages/audio-studio.html">AUDIO STUDIO</a><a data-creator-link href="/pages/games.html">GAMES</a><a data-creator-link href="/pages/editor.html">CREATOR EDITOR</a></div><div class="r138-nav-group"><span class="r138-nav-group-label">Kanäle & Geräte</span><a data-creator-link href="/pages/tiktok.html">TIKTOK</a><a data-creator-link href="/pages/launcher.html">LAUNCHER</a><a data-creator-link href="/pages/launcher-connect.html">GERÄT VERBINDEN</a><a data-creator-link href="/pages/shop.html">SHOP</a></div><div class="r138-nav-group"><span class="r138-nav-group-label">Verwalten</span><a data-creator-link href="/pages/setup.html">SETUP</a><a data-creator-link href="/pages/settings.html">EINSTELLUNGEN</a><a data-creator-link href="/">ÖFFENTLICHE WEBSITE</a></div></div></details>
 <button class="creator-logout" data-logout type="button">LOGOUT</button>
@@ -93,6 +96,19 @@
       <button class="btn" id="refreshDevices">GERÄTE AKTUALISIEREN</button>
     </div>
     <div class="device-grid" id="deviceGrid"><div class="release-empty">Geräte werden geladen…</div></div>
+  </section>
+
+  <section class="device-management launcher-code-entry" aria-labelledby="launcherCodeTitle">
+    <div class="section-kicker">SCHNELL VERBINDEN</div>
+    <div class="device-management-head">
+      <div><h2 id="launcherCodeTitle">Gerätecode aus dem Launcher</h2><p>Starte im CFS Launcher „PC verbinden“. Gib den dort angezeigten sechs- bis zehnstelligen Code hier ein.</p></div>
+    </div>
+    <form class="launcher-code-form" action="/pages/launcher-connect.html" method="get">
+      <label for="launcherDeviceCode">Gerätecode</label>
+      <input id="launcherDeviceCode" name="code" inputmode="text" autocomplete="one-time-code" maxlength="32" placeholder="z. B. A1B2C3D4E5" required>
+      <button class="btn primary" type="submit">CODE PRÜFEN</button>
+    </form>
+    <p class="release-empty">Der Code wird aus Sicherheitsgründen vom lokalen Launcher erzeugt und läuft nach kurzer Zeit ab.</p>
   </section>
 
   <details class="r118-hints" aria-label="Launcher Tipps">
@@ -211,3 +227,4 @@
 <script src="/assets/js/cfs-help-v6.js" defer></script><script src="/assets/js/cfs-guide-v5.js" defer></script><script src="/assets/js/cfs-guide-journeys.js" defer></script><script src="/assets/js/cfs-workspace-v205.js" defer></script>
 </body>
 </html>
+
