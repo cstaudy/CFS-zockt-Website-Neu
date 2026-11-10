@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { createReadStream } from "node:fs";
-import { access, stat } from "node:fs/promises";
+import { access, readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
@@ -33,6 +33,7 @@ const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
 const host = process.env.HOST || "0.0.0.0";
 const startedAt = new Date().toISOString();
+let originalDesignCatalogCache = null;
 const version = process.env.RENDER_GIT_COMMIT || process.env.APP_VERSION || "local";
 const maxBodyBytes = 16 * 1024 * 1024;
 const maxJsonBytes = 1024 * 1024;
@@ -63,6 +64,13 @@ function json(res, status, payload) {
     "x-content-type-options": "nosniff"
   });
   res.end(body);
+}
+
+async function originalDesignCatalog() {
+  if (!originalDesignCatalogCache) {
+    originalDesignCatalogCache = JSON.parse(await readFile(join(root, "assets", "data", "original-design-catalog-v32065.json"), "utf8"));
+  }
+  return originalDesignCatalogCache;
 }
 
 function securityHeaders(res) {
@@ -217,6 +225,8 @@ async function handle(req, res) {
   if(url.pathname==="/api/account/mfa/login"&&method==="POST"){return json(res,503,{error:"MFA_LOGIN_FLOW_NOT_CONFIGURED",message:"MFA-Login wird erst nach Aktivierung des vollständigen Login-Challenges aktiviert."});}
   if(url.pathname==="/api/public/support/report"&&method==="POST"){const result=await createSupportReport(await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
   if(url.pathname==="/api/public/reviews/merch"&&(method==="GET"||method==="POST")){const result=await publicReviews(req,method==="POST"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,method==="POST"?201:200,result);}
+  if(url.pathname==="/api/original-designs/catalog"&&method==="GET"){try{return json(res,200,{ok:true,...await originalDesignCatalog()});}catch(error){return json(res,503,{error:"ORIGINAL_DESIGN_CATALOG_UNAVAILABLE",message:"Der statische Originaldesign-Katalog konnte nicht geladen werden."});}}
+  if(url.pathname==="/api/original-designs/status"&&method==="GET"){const catalog=await originalDesignCatalog();return json(res,200,{ok:true,available:true,version:catalog.version,designs:Array.isArray(catalog.designs)?catalog.designs.length:0,colors:Array.isArray(catalog.designs)?catalog.designs.reduce((n,d)=>n+(Array.isArray(d.colors)?d.colors.length:0),0):0});}
   if(url.pathname==="/api/creator/modules"&&method==="GET"){const result=await modulesState(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/modules/launcher/state"&&method==="GET"){const result=await launcherModuleState(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/modules/audio_studio/state"&&(method==="GET"||method==="PUT")){const result=await audioModuleState(req,method==="PUT"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
