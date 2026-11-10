@@ -46,3 +46,36 @@ body.public-home .gaming-live-card,body.public-home .gaming-games-card{border-co
 body.public-home .r104-footer{background:#020c16!important;border-top:1px solid rgba(22,215,244,.22)!important}
 @media(max-width:760px){body.public-home .r104-nav{display:none!important}body.public-home .r104-hero-inner{padding:52px 20px 42px!important}.public-home .r104-hero-mark{position:absolute!important;right:-70px!important;top:90px!important;width:280px!important;opacity:.25!important}.public-home .r194-path-steps{grid-template-columns:1fr 1fr!important}.public-home .r194-path-steps li:nth-child(2){border-right:0!important}.public-home .r194-path-steps li:nth-child(-n+2){border-bottom:1px solid rgba(112,176,201,.28)!important}}
 
+/* Layout repair for legacy homepage components. */
+body.public-home .r104-header-inner{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;align-items:center!important;gap:28px!important}
+body.public-home .r104-nav{display:flex!important;align-items:center!important;justify-content:center!important;min-width:0!important}
+body.public-home .r104-header-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:10px!important;white-space:nowrap!important}
+body.public-home .r104-toggle{display:none!important}
+body.public-home .r104-content>section{min-width:0!important}
+body.public-home .cfs-community-cards{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
+body.public-home .cfs-community-card{display:flex!important;align-items:center!important;gap:16px!important;min-width:0!important;min-height:132px!important;padding:20px!important;overflow:hidden!important}
+body.public-home .cfs-community-card-icon{flex:0 0 48px!important;width:48px!important;height:48px!important;display:grid!important;place-items:center!important}
+body.public-home .cfs-community-card-icon svg{width:42px!important;height:42px!important}
+body.public-home .cfs-community-card-info{display:flex!important;flex-direction:column!important;gap:7px!important;min-width:0!important}
+body.public-home .cfs-community-card-info>strong{font-size:18px!important;line-height:1.1!important;color:#fff!important}
+body.public-home .cfs-community-card-info>span{font-size:12px!important;line-height:1.45!important;color:var(--ref-muted)!important;white-space:normal!important}
+body.public-home .cfs-community-card-info .cfs-community-card-link{color:var(--ref-cyan)!important;font-weight:800!important}
+body.public-home .r104-feature-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+body.public-home .r104-feature{display:grid!important;grid-template-columns:minmax(0,1.25fr) minmax(220px,.75fr)!important;min-width:0!important;overflow:hidden!important}
+body.public-home .r104-feature>img{display:block!important;width:100%!important;height:220px!important;object-fit:cover!important;min-width:0!important}
+body.public-home .r104-feature-copy{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:8px!important;padding:22px!important;min-width:0!important}
+body.public-home .r104-feature-copy h2,body.public-home .r104-feature-copy p{margin:0!important}
+body.public-home .r104-art{display:flex!important;align-items:center!important;justify-content:center!important;min-height:220px!important;font-size:28px!important;line-height:1!important;font-weight:900!important;letter-spacing:.04em!important}
+body.public-home .r104-panel{overflow:hidden!important}
+body.public-home .r104-live-panel,.public-home .r104-next-panel{display:block!important}
+body.public-home .gaming-live-layout,.public-home .gaming-stream-layout{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr)!important;gap:18px!important}
+body.public-home .gaming-live-visual{min-height:280px!important;overflow:hidden!important;border-radius:10px!important}
+body.public-home .gaming-live-visual img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important}
+body.public-home .gaming-live-copy{min-width:0!important;padding:20px!important}
+body.public-home .r104-footer{display:block!important}
+body.public-home .r104-footer-brand{display:flex!important;align-items:center!important;gap:12px!important}
+body.public-home .r104-footer nav{display:flex!important;flex-wrap:wrap!important;gap:12px 20px!important;align-items:center!important}
+body.public-home .r104-footer-bottom{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:20px!important;flex-wrap:wrap!important}
+@media(max-width:900px){body.public-home .r104-header-inner{grid-template-columns:auto 1fr auto!important;gap:12px!important}.public-home .r104-nav{gap:12px!important}.public-home .r104-nav a{font-size:12px!important}.public-home .cfs-community-cards,.public-home .r104-feature-grid{grid-template-columns:1fr!important}.public-home .gaming-live-layout,.public-home .gaming-stream-layout{grid-template-columns:1fr!important}}
+@media(max-width:760px){body.public-home .r104-header-inner{display:flex!important;flex-wrap:wrap!important}.public-home .r104-brand{margin-right:auto!important}.public-home .r104-nav{order:3!important;width:100%!important;justify-content:flex-start!important;overflow:auto!important}.public-home .r104-header-actions{order:2!important}.public-home .r104-feature{grid-template-columns:1fr!important}.public-home .r104-feature>img{height:180px!important}}
+
