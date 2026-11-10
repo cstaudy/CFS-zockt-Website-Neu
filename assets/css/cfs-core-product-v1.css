@@ -61,4 +61,11 @@ body[data-cfs-product-v199] :where(.btn:focus-visible,button:focus-visible,a.cta
 body[data-cfs-product-v199] :where(.eyebrow,.meta,.kicker,.section-label){letter-spacing:.16em;line-height:1.3}
 body[data-cfs-product-v199] :where(.panel,.card,.workspace-panel){background:linear-gradient(145deg,rgba(10,22,36,.98),rgba(6,15,26,.98));border:1px solid rgba(34,211,238,.22)}
 body[data-cfs-product-v199] :where(.panel h1,.panel h2,.panel h3,.card h1,.card h2,.card h3){color:var(--cfs-core-text)}
+/* These guards intentionally use !important: older revision sheets are still
+   loaded by legacy pages and must not be able to rotate or resize the shell. */
+body[data-cfs-product-v199] :where(.site-nav,.creator-nav,.header-nav,.main-nav){writing-mode:horizontal-tb!important;display:flex!important;align-items:center!important;gap:clamp(10px,1.6vw,24px)!important;flex-wrap:nowrap!important}
+body[data-cfs-product-v199] :where(.site-nav a,.creator-nav a,.header-nav a,.main-nav a){writing-mode:horizontal-tb!important;white-space:nowrap!important;line-height:1.2!important;transform:none!important;min-height:36px!important;display:inline-flex!important;align-items:center!important}
+body[data-cfs-product-v199] :where(.btn,button,a.cta){writing-mode:horizontal-tb!important;white-space:nowrap!important;min-height:38px!important;transition:none!important}
+body[data-cfs-product-v199] :where(.btn:hover,button:hover,a.cta:hover,.admin-start-card:hover,.admin-control-links button:hover){transform:none!important}
+body[data-cfs-product-v199] :where(.creator-brand,.brand,.site-brand){writing-mode:horizontal-tb!important;white-space:nowrap!important;transform:none!important}
 
