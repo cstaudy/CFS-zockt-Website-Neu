@@ -15,6 +15,7 @@ import { startTwitch, finishTwitch } from "./src/twitch.js";
 import { getPlayStationState } from "./src/playstation.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice } from "./src/launcher.js";
+import { listToolProjects, getToolProject, saveToolProject, deleteToolProject } from "./src/tool-projects.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -178,6 +179,13 @@ async function handle(req, res) {
   const linkMatch=url.pathname.match(/^\/api\/creator\/launcher\/device-link\/([^/]+)$/);
   if(linkMatch&&method==="GET"){const result=await getDeviceLink(req,decodeURIComponent(linkMatch[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/launcher/device-link/confirm"&&method==="POST"){const result=await confirmDevice(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+
+  if(url.pathname==="/api/creator/stream-studio"&&method==="GET"){const result=await listToolProjects(req,"stream");return result.error?json(res,result.status,{error:result.error}):json(res,200,{...result,config:result.projects[0]?.data||{}});}
+  if(url.pathname==="/api/creator/stream-studio"&&method==="PUT"){const result=await saveToolProject(req,"stream",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,{...result,config:result.project.data});}
+  if(url.pathname==="/api/creator/cut-studio/projects"&&method==="GET"){const result=await listToolProjects(req,"cut");return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/creator/cut-studio/projects"&&method==="POST"){const result=await saveToolProject(req,"cut",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  const toolProject=url.pathname.match(/^\/api\/creator\/(stream-studio|cut-studio)\/projects\/([^/]+)$/);
+  if(toolProject){const kind=toolProject[1]==="stream-studio"?"stream":"cut",id=decodeURIComponent(toolProject[2]);const result=method==="GET"?await getToolProject(req,kind,id):method==="PUT"?await saveToolProject(req,kind,id,await readJson(req)):method==="DELETE"?await deleteToolProject(req,kind,id):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
 
   if (url.pathname === "/api/admin/status" && ["GET", "HEAD"].includes(method)) {
     const account = await requireAdmin(req);
