@@ -1,0 +1,59 @@
+/* R119 · Public Gaming & Community clarity. Visual only: keeps all API/JS IDs and real-data rendering. */
+body.cfs-r119 .r104-content {display:flex;flex-direction:column;gap:14px;}
+/* The feature links already cover these four static highlights. No duplicate banner row. */
+body.cfs-r119 .r104-highlights[hidden] {display:none!important;}
+/* Four genuinely useful destination cards, no giant billboard tiles. */
+body.cfs-r119 .r104-feature-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;margin:8px 0 0!important;}
+body.cfs-r119 .r104-feature{min-height:126px!important;max-height:none!important;border-radius:12px!important;}
+body.cfs-r119 .r104-feature-copy{padding:14px!important;justify-content:center!important;gap:4px!important;}
+body.cfs-r119 .r104-feature-icon{font-size:20px!important;margin:0!important;}
+body.cfs-r119 .r104-feature h2{font-size:18px!important;margin:1px 0!important;letter-spacing:-.02em;}
+body.cfs-r119 .r104-feature p{font-size:11px!important;margin:0 0 3px!important;}
+body.cfs-r119 .r104-feature a{min-height:30px!important;padding:5px 9px!important;font-size:10px!important;border-radius:7px!important;}
+body.cfs-r119 .r104-feature>img{opacity:.26!important;}
+body.cfs-r119 .r104-art{opacity:.35!important;}
+/* Stream status and plan: use less height, keep unknown states honest. */
+body.cfs-r119 .r104-stream-section{gap:12px!important;margin:0!important;}
+body.cfs-r119 .r104-panel{border-radius:13px!important;}
+body.cfs-r119 .r104-panel-head{margin-bottom:10px!important;}
+body.cfs-r119 .r104-live-panel .gaming-live-status-panel{padding:11px 13px!important;}
+body.cfs-r119 .r104-schedule-empty{min-height:0!important;padding:15px!important;gap:9px;align-items:flex-start!important;justify-content:flex-start!important;}
+body.cfs-r119 .r104-schedule-empty>span{font-size:20px!important;margin:0!important;}
+body.cfs-r119 .r104-schedule-empty p{font-size:12px!important;margin:0!important;max-width:none;}
+body.cfs-r119 .r104-schedule-panel{align-self:stretch;}
+/* The latest four games are a primary section rather than hidden after product promotions. */
+body.cfs-r119 #games{order:0;scroll-margin-top:82px;}
+body.cfs-r119 #games .r107-games-panel{padding:16px!important;border-radius:13px!important;}
+body.cfs-r119 #games .r107-recent-grid{gap:9px!important;}
+body.cfs-r119 #games .gaming-game-card{overflow:hidden;}
+body.cfs-r119 #games .r107-games-heading h2{font-size:clamp(21px,2.4vw,27px)!important;}
+body.cfs-r119 #games .r107-games-note{font-size:10px!important;}
+body.cfs-r119 #games .r107-more-games:focus-within{border-color:#54ccff;}
+/* Remaining public blocks share the compact creator dashboard density. */
+body.cfs-r119 .r104-lower-grid{gap:10px!important;margin:0!important;}
+body.cfs-r119 .r104-lower-grid>.r104-panel{padding:13px!important;}
+body.cfs-r119 .r104-mini-links{gap:6px!important;}
+body.cfs-r119 .r104-mini-links a{min-height:58px!important;padding:8px 6px!important;gap:5px!important;border-radius:8px!important;}
+body.cfs-r119 .r104-mini-links span{font-size:18px!important;}
+body.cfs-r119 .r104-design-grid{gap:7px!important;}
+body.cfs-r119 :is(.r104-feature a,.r104-panel a,.r107-more-games summary):focus-visible{outline:2px solid #60dbff!important;outline-offset:3px!important;}
+@media(max-width:1050px){
+ body.cfs-r119 .r104-feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+ body.cfs-r119 .r104-feature{min-height:116px!important;}
+}
+@media(max-width:760px){
+ body.cfs-r119 .r104-content{gap:10px!important;}
+ body.cfs-r119 .r104-feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin:5px 0 0!important;}
+ body.cfs-r119 .r104-feature{min-height:132px!important;}
+ body.cfs-r119 .r104-feature-copy{padding:10px!important;gap:3px!important;justify-content:space-between!important;}
+ body.cfs-r119 .r104-feature-icon{display:none!important;}
+ body.cfs-r119 .r104-feature h2{font-size:16px!important;}
+ body.cfs-r119 .r104-feature p{font-size:10px!important;}
+ body.cfs-r119 .r104-feature a{font-size:10px!important;line-height:1.3!important;padding:6px!important;justify-content:space-between!important;}
+ body.cfs-r119 .r104-lower-grid{grid-template-columns:1fr!important;}
+ body.cfs-r119 .r104-mini-links a{min-height:58px!important;}
+ body.cfs-r119 .r104-schedule-empty{min-height:0!important;}
+ body.cfs-r119 #games .r107-games-panel{padding:12px!important;}
+}
+@media(max-width:350px){body.cfs-r119 .r104-feature h2{font-size:14px!important;}body.cfs-r119 .r104-feature{min-height:140px!important;}}
+@media(prefers-reduced-motion:reduce){body.cfs-r119 .r104-feature{transition:none!important;}}

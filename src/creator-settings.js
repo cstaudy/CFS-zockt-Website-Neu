@@ -14,4 +14,3 @@ export async function creatorSettings(req, body = null) {
   const row = (await getPool().query("insert into creator_settings(account_id,settings,updated_at) values($1,$2::jsonb,now()) on conflict(account_id) do update set settings=excluded.settings,updated_at=now() returning settings,updated_at", [account.id, serialized])).rows[0];
   return { ok: true, settings: row.settings, updated_at: row.updated_at, entitlements: { plan: account.plan || "free", admin: ["admin","owner"].includes(account.role) } };
 }
-

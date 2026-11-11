@@ -1,0 +1,11 @@
+
+
+# Local environment and sensitive state
+.env
+.env.*
+!.env.example
+node_modules/
+*.log
+codex_handover/edge-profile/
+codex_handover/edge-*/
+.DS_Store

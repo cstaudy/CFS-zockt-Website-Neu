@@ -10,4 +10,3 @@ create table if not exists creator_assets (
   created_at timestamptz not null default now()
 );
 create index if not exists creator_assets_account_idx on creator_assets(account_id, created_at desc);
-

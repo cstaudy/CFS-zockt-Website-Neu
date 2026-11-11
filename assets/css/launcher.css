@@ -49,4 +49,3 @@
  .launcher-code-form{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
  .launcher-code-form label{display:flex;flex-direction:column;gap:6px;min-width:220px;font-weight:800}
  .launcher-code-form input{min-height:46px;padding:0 14px;border:1px solid rgba(32,199,255,.55);border-radius:8px;background:#071522;color:#fff;font:inherit;letter-spacing:.14em;text-transform:uppercase}
-

@@ -28,6 +28,8 @@
   <link rel="stylesheet" href="/assets/css/cfs-r168-product.css?v=R168" data-cfs-product-brand="R168">
   <link rel="stylesheet" href="/assets/css/cfs-auth-dashboard-unified.css?v=1">
   <link rel="stylesheet" href="/assets/css/cfs-auth-clean-v1.css?v=1">
+  <link rel="stylesheet" href="/assets/css/cfs-reference-system.css?v=4">
+  <script src="/assets/js/cfs-auth-tabs.js" defer></script>
 </head>
 <body data-cfs-product-v199="1" data-cfs-brand-v192="1" class="cfs-r6-ui public-marketing public-auth-page cfs-auth-v120 cfs-auth-v124 cfs-auth-v133 cfs-r111-atmosphere" data-brand-refinement="v165-public-entry" data-cfs-brand-v198="1">
 <header class="site-header brand-header public-site-header">
@@ -54,7 +56,7 @@
     <div class="cfs-auth-hero-copy">
       <div class="cfs-suite-lockup"><picture class="cfs-r85-logo-picture"><source type="image/webp" srcset="/assets/img/brand/cfs-zockt-mark-clean-lossless.webp"><img src="/assets/img/brand/cfs-zockt-mark-clean.png" alt="cfs_zockt"></picture><span>CREATOR ACCOUNT</span></div>
       <div class="eyebrow">DEIN ZUGANG ZUR CREATOR SUITE</div>
-      <h1>ANMELDEN ODER<br><span>KOSTENLOS STARTEN.</span></h1>
+      <h1>Willkommen bei <span>cfs_zockt</span></h1>
       <p>Anmelden oder kostenloses Creator-Konto erstellen. Der Beta-Zugang wird separat freigegeben.</p>
       <div class="auth-entry-actions"><a class="btn primary" href="#loginPanel">ANMELDEN</a><a class="btn" href="#regForm">KONTO ERSTELLEN</a></div>
     </div>
@@ -73,6 +75,10 @@
 
   <div class="auth-entry-quick-note">Kostenlose Beta · 18+ · Keine Zahlungsdaten</div>
 
+  <div class="cfs-auth-tabs" role="tablist" aria-label="Account-Zugang">
+    <button type="button" role="tab" id="cfsLoginTab" aria-controls="loginPanel" aria-selected="true">Anmelden</button>
+    <button type="button" role="tab" id="cfsRegisterTab" aria-controls="registerPanel" aria-selected="false">Registrieren</button>
+  </div>
   <section class="auth-entry-grid" aria-label="Anmelden oder registrieren">
     <article class="auth-entry-panel" id="loginPanel">
       <div class="auth-panel-head">
@@ -148,4 +154,3 @@
 <script src="/assets/js/cfs-product-v199.js" defer></script>
 </body>
 </html>
-

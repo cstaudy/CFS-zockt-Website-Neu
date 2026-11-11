@@ -3,4 +3,3 @@ create table if not exists email_verification_tokens (
   token_hash text not null unique, expires_at timestamptz not null, used_at timestamptz, created_at timestamptz not null default now()
 );
 create index if not exists email_verification_account_idx on email_verification_tokens(account_id,created_at desc);
-

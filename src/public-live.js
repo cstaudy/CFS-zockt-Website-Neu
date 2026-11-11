@@ -15,4 +15,3 @@ export async function publicLiveControl(req, body = null) {
   const row = (await pool.query("insert into public_live_controls(account_id,active,expires_at,updated_at) values($1,$2,$3,now()) on conflict(account_id) do update set active=excluded.active,expires_at=excluded.expires_at,updated_at=now() returning active,expires_at,updated_at", [account.id, active, expires])).rows[0];
   return { ok: true, active: Boolean(row.active), expires_at: row.expires_at, updated_at: row.updated_at };
 }
-

@@ -61,4 +61,3 @@ export async function updateProject(req, id, body) {
 export async function deleteProject(req, id) {
   return updateProject(req, id, { status: "archived" });
 }
-

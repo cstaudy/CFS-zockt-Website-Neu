@@ -12,4 +12,3 @@ create table if not exists launcher_devices (
 );
 create index if not exists launcher_devices_account_idx on launcher_devices(account_id, updated_at desc);
 create index if not exists launcher_devices_code_idx on launcher_devices(device_code);
-

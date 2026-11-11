@@ -91,4 +91,3 @@ Admin-Elevation-, CSRF- und Launcher-Varianten.
 
 Die Datenbankmigration `005_tiktok_oauth.sql` läuft beim Start automatisch,
 sobald `DATABASE_URL` gesetzt ist.
-

@@ -49,4 +49,3 @@ In Render nur die Werte prüfen, niemals Secrets in Git eintragen:
 - PayPal nur mit freigegebenem Katalog und korrekter Umgebung testen.
 
 Passkeys, CFS-AI, CFSON-Produktbetrieb und kostenpflichtige Planwechsel bleiben bis zur jeweiligen Providerfreigabe deaktiviert.
-

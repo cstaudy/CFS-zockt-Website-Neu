@@ -25,4 +25,3 @@ export async function publicPlayStationState(){
   const videos=(await pool.query("select title,url,thumbnail_url,published_at from creator_playstation_videos where account_id=$1 order by published_at desc nulls last,title asc",[account.id])).rows;
   return{ok:true,connected:Boolean(profile?.connected),profile:profile?{platform:profile.platform,display_name:profile.display_name,updated_at:profile.updated_at}:null,recent_games:games.filter(x=>x.last_played_at).slice(0,3),game_catalog:games,videos,limits:{recent_games:3},message:videos.length?"PlayStation-Daten geladen.":"Keine bestätigte Videoquelle verfügbar."};
 }
-

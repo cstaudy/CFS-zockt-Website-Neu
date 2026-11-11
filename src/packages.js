@@ -44,4 +44,3 @@ export async function convertBundle(req, id) {
   }
   return { message: "Bundle wurde für das Widget Studio vorbereitet.", created_widgets: created, summary: { created: created.length, existing: 0 } };
 }
-

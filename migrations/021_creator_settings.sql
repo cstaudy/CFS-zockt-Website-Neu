@@ -3,4 +3,3 @@ create table if not exists creator_settings(
   settings jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
-

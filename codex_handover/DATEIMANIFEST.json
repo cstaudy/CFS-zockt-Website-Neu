@@ -1,0 +1,95 @@
+{
+  "created": "2026-11-11",
+  "files": [
+    {
+      "file": "ANFORDERUNGEN_UND_ABNAHME.md",
+      "bytes": 3319,
+      "sha256": "8611751c6a4cedaa15bfb464471954d260f1a2e1f1876266eafc48050c4ce077"
+    },
+    {
+      "file": "ARCHIV_QUELLEN.md",
+      "bytes": 971,
+      "sha256": "65ac7ce25eb0363bf28218d89f41e886808f82c479559d20ab212106a19ed939"
+    },
+    {
+      "file": "CODEX_AUFTRAG_KOPIEREN.md",
+      "bytes": 8088,
+      "sha256": "005624cb791a205cf096989ec6f60d0d2b2c49238d013a750c21495f8434bfd4"
+    },
+    {
+      "file": "DATEIVERGLEICH.csv",
+      "bytes": 70177,
+      "sha256": "c0adac9d76c471b5db31a42879601b9e9a22f086db640983295764be10e51eba"
+    },
+    {
+      "file": "FEATURE_ENTSCHEIDUNGSMATRIX.csv",
+      "bytes": 2386,
+      "sha256": "e374fc60f98fe186cb29a2008c3d6bffc602ef4ebcc23a8a50ec68f83b834494"
+    },
+    {
+      "file": "START_HIER.md",
+      "bytes": 2078,
+      "sha256": "081cb332897c35e22c450d2613f0fcabf6bc0df97ed0c3f4ec0eec6158eb396a"
+    },
+    {
+      "file": "VERGLEICHSBERICHT.md",
+      "bytes": 15639,
+      "sha256": "138f3c584e0f8b819fa74f9f1e56baa34e655370804b4ef620efa8d79e3df91e"
+    },
+    {
+      "file": "brand/cfs-site-background-r110.webp",
+      "bytes": 100734,
+      "sha256": "b68b8321b63010743e83c758a3b6cbf30a2bffdeb167138d96fdac7230f09534"
+    },
+    {
+      "file": "brand/cfs-zockt-mark-clean.png",
+      "bytes": 1086936,
+      "sha256": "7c504781b2fda4f9fc66d1c5d596ff013f13cf8df9c3f2a502823877f8b06509"
+    },
+    {
+      "file": "brand/cfs-zockt-wordmark-transparent.png",
+      "bytes": 657477,
+      "sha256": "c4fa499a9ba66a12527480d9b9f662a577d7fd23e24f4ee9a3c81a9d9371f7fb"
+    },
+    {
+      "file": "designkatalog/31_hauptdesigns_motive.csv",
+      "bytes": 4962,
+      "sha256": "90222f51ad251839384ef052ab39e94285b5d9d5db17203f0c61c3b0e3d9b62e"
+    },
+    {
+      "file": "designkatalog/31_hauptdesigns_spezifikation.json",
+      "bytes": 21287,
+      "sha256": "09261d8d8bb3b4788c1feb29339232d1e6d27a77c331ffa590e46786b5b82871"
+    },
+    {
+      "file": "referenzbilder/01_startseite.png",
+      "bytes": 1984382,
+      "sha256": "4590fed12d3bbe06ac20f04e07dc333aa6053519f163638e0b284cf9bd2bc2ca"
+    },
+    {
+      "file": "referenzbilder/02_anmeldung.png",
+      "bytes": 1652440,
+      "sha256": "1af1c065401cc4ea3e098bf633ef60f5f236f3aa0056144e657ce9fb605b5c6b"
+    },
+    {
+      "file": "referenzbilder/03_creator_dashboard.png",
+      "bytes": 1826433,
+      "sha256": "e11554bb279893599d1f7079cc2a7d9a41f1623404643b9553b84fb529f57b78"
+    },
+    {
+      "file": "referenzbilder/04_creator_suite_streaming_setup.png",
+      "bytes": 1886037,
+      "sha256": "dab2f24d2cfeea0350cf6fffa0ce940e860fb93398593d573dc3f20f9aac4822"
+    },
+    {
+      "file": "referenzbilder/05_account_einstellungen.png",
+      "bytes": 1798949,
+      "sha256": "c9fc62312aa44a2310d45c5c0f58c156a2f7197bed95efb2a60b01dd4eef3e40"
+    },
+    {
+      "file": "referenzbilder/06_admin_bereich.png",
+      "bytes": 1847396,
+      "sha256": "b00883c5175d498b970d6f832d46f6b4485d14d1baaff83d2938fb75d54be240"
+    }
+  ]
+}

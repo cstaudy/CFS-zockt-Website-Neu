@@ -1,3 +1,2 @@
 create table if not exists merch_reviews (id uuid primary key default gen_random_uuid(),client_token text unique not null,display_name text,contact_email text,rating integer not null check(rating between 1 and 5),appeal text,variant text,comment text,website text,status text not null default 'pending',created_at timestamptz not null default now(),updated_at timestamptz not null default now());
 create index if not exists merch_reviews_public_idx on merch_reviews(status,created_at desc);
-
