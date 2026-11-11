@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { createReadStream } from "node:fs";
 import { access, readFile, stat } from "node:fs/promises";
-import { extname, join, normalize, resolve } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
 import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
@@ -17,7 +17,7 @@ import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget
 import { listAssets, uploadAsset } from "./src/assets.js";
 import { createPackage, listPackages, listShopCatalog, convertBundle } from "./src/packages.js";
 import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnectTikTok, syncTikTok, publicTikTokVideos } from "./src/tiktok.js";
-import { startTwitch, finishTwitch, getTwitchStatus, disconnectTwitch, syncTwitch } from "./src/twitch.js";
+import { startTwitch, finishTwitch, twitchConfigured, getTwitchStatus, disconnectTwitch, syncTwitch } from "./src/twitch.js";
 import { getPlayStationState, publicPlayStationState, syncPlayStationFromLauncher } from "./src/playstation.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
@@ -29,6 +29,7 @@ import { publicTwitchState, publicTwitchCommunity } from "./src/public-twitch.js
 import { paypalStatus, createPayPalOrder, capturePayPalOrder } from "./src/paypal.js";
 import { publicLiveControl } from "./src/public-live.js";
 import { creatorSettings } from "./src/creator-settings.js";
+import { uploadRoot, persistentUploadsConfigured } from "./src/upload-storage.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -103,10 +104,29 @@ async function readRaw(req) {
   return Buffer.concat(chunks);
 }
 
+const publicRootFiles = new Set([
+  "index.html", "favicon.ico", "app-icon.png", "cfs-zockt-logo.png",
+  "robots.txt", "sitemap.xml", "site.webmanifest", "cfs-studio.webmanifest"
+]);
+const publicDirectories = new Set(["assets", "pages", "widgets", "games", "auth"]);
+
 function safePath(urlPath) {
-  const requested = decodeURIComponent(urlPath === "/" ? "/index.html" : urlPath);
-  const candidate = resolve(root, `.${normalize(requested)}`);
-  return candidate.startsWith(root) ? candidate : null;
+  let requested;
+  try { requested = decodeURIComponent(urlPath === "/" ? "/index.html" : urlPath); }
+  catch { return null; }
+  if (!requested.startsWith("/") || requested.includes("\\") || requested.includes("\0")) return null;
+  if (requested === "/.well-known/security.txt") return resolve(root, ".well-known", "security.txt");
+  if (requested === "/config/monetization.json") return resolve(root, "config", "monetization.json");
+  const segments = requested.slice(1).split("/");
+  if (segments.some(segment => !segment || segment === "." || segment === ".." || segment.startsWith("."))) return null;
+  if (segments.length === 1 ? !publicRootFiles.has(segments[0]) : !publicDirectories.has(segments[0])) return null;
+  if (segments[0] === "assets" && segments[1] === "uploads") {
+    if (segments.length < 3) return null;
+    const uploadedFile = resolve(uploadRoot, ...segments.slice(2));
+    return uploadedFile.startsWith(uploadRoot + sep) ? uploadedFile : null;
+  }
+  const candidate = resolve(root, ...segments);
+  return candidate.startsWith(root + sep) ? candidate : null;
 }
 
 async function serveStatic(req, res) {
@@ -142,11 +162,11 @@ async function handle(req, res) {
     return json(res, 200, { ok: true, service: "cfs-zockt", status: "healthy", started_at: startedAt, uptime_seconds: Math.floor(process.uptime()), version });
   }
   if (url.pathname === "/api/integrations/status" && ["GET", "HEAD"].includes(method)) {
-    return json(res, 200, { ok: true, integrations: { database: Boolean(process.env.DATABASE_URL), session_secret: Boolean(process.env.SESSION_SECRET), twitch: Boolean(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET), tiktok: tiktokConfigured(), launcher: Boolean(process.env.LAUNCHER_BRIDGE_SECRET), paypal: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET), playstation: Boolean(process.env.PSN_PROVIDER && process.env.PSN_CLIENT_ID), storage: Boolean(process.env.ASSET_STORAGE_BUCKET) || (process.env.ASSET_STORAGE_PROVIDER || "local") === "local" }, note: "Nur Konfigurationsstatus; keine Secrets werden ausgegeben." });
+    return json(res, 200, { ok: true, integrations: { database: Boolean(process.env.DATABASE_URL), session_secret: Boolean(process.env.SESSION_SECRET), twitch: twitchConfigured(), tiktok: tiktokConfigured(), launcher: Boolean(process.env.LAUNCHER_BRIDGE_SECRET), paypal: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET), playstation: Boolean(process.env.PSN_PROVIDER && process.env.PSN_CLIENT_ID), storage: Boolean(process.env.ASSET_STORAGE_BUCKET) || (process.env.ASSET_STORAGE_PROVIDER || "local") === "local", persistent_upload_path: persistentUploadsConfigured }, note: "Nur Konfigurationsstatus; keine Secrets werden ausgegeben. Ein Upload-Pfad ist erst mit persistentem Mount dauerhaft." });
   }
   if (url.pathname === "/api/creator/integration-capabilities" && method === "GET") {
     const account=await currentAccount(req); if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});
-    return json(res,200,{ok:true,integrations:{oauth:[{provider:"tiktok",configured:tiktokConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TIKTOK_CLIENT_KEY),client_secret:Boolean(process.env.TIKTOK_CLIENT_SECRET),redirect_uri:Boolean(process.env.TIKTOK_REDIRECT_URI||process.env.APP_BASE_URL)}},{provider:"twitch",configured:Boolean(process.env.TWITCH_CLIENT_ID&&process.env.TWITCH_CLIENT_SECRET),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TWITCH_CLIENT_ID),client_secret:Boolean(process.env.TWITCH_CLIENT_SECRET),redirect_uri:Boolean(process.env.TWITCH_REDIRECT_URI||process.env.APP_BASE_URL)}}],obs_websocket:Boolean(process.env.OBS_WEBSOCKET_URL||process.env.OBS_WS_URL),launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET),paypal:paypalStatus(),playstation:Boolean(process.env.PSN_PROVIDER&&process.env.PSN_CLIENT_ID)}});
+    return json(res,200,{ok:true,integrations:{oauth:[{provider:"tiktok",configured:tiktokConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TIKTOK_CLIENT_KEY),client_secret:Boolean(process.env.TIKTOK_CLIENT_SECRET),redirect_uri:Boolean(process.env.TIKTOK_REDIRECT_URI||process.env.APP_BASE_URL),session_secret:Boolean(process.env.SESSION_SECRET)}},{provider:"twitch",configured:twitchConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TWITCH_CLIENT_ID),client_secret:Boolean(process.env.TWITCH_CLIENT_SECRET),redirect_uri:Boolean(process.env.TWITCH_REDIRECT_URI||process.env.APP_BASE_URL),session_secret:Boolean(process.env.SESSION_SECRET)}}],obs_websocket:Boolean(process.env.OBS_WEBSOCKET_URL||process.env.OBS_WS_URL),launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET),paypal:paypalStatus(),playstation:Boolean(process.env.PSN_PROVIDER&&process.env.PSN_CLIENT_ID)}});
   }
 
   if (url.pathname === "/api/integrations/tiktok/start" && method === "GET") {

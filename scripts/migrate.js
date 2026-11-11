@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getPool, closeDatabase } from "../src/db.js";
+import { applyMigrations } from "../src/migration-runner.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const files = [
@@ -31,10 +32,11 @@ const files = [
 try {
   const pool = getPool();
   if (!pool) throw new Error("DATABASE_URL fehlt.");
-  for (const file of files) {
-    const sql = await readFile(join(root, "migrations", file), "utf8");
-    await pool.query(sql);
-    console.log(`migration ok: ${file}`);
+  const client = await pool.connect();
+  try {
+    await applyMigrations(client, files, file => readFile(join(root, "migrations", file), "utf8"));
+  } finally {
+    client.release();
   }
 } finally {
   await closeDatabase();
