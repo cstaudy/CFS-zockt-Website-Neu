@@ -12,4 +12,3 @@ create table if not exists commerce_orders (
   updated_at timestamptz not null default now()
 );
 create index if not exists commerce_orders_account_idx on commerce_orders(account_id, created_at desc);
-

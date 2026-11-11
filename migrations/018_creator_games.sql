@@ -1,4 +1,3 @@
 create table if not exists creator_game_state (account_id uuid primary key references accounts(id) on delete cascade, config jsonb not null default '{}'::jsonb, runtime jsonb not null default '{"status":"idle","state":{"score_a":0,"score_b":0,"round":1}}'::jsonb, updated_at timestamptz not null default now());
 create table if not exists creator_game_rules (id uuid primary key default gen_random_uuid(), account_id uuid not null references accounts(id) on delete cascade, data jsonb not null default '{}'::jsonb, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
 create index if not exists creator_game_rules_account_idx on creator_game_rules(account_id,updated_at desc);
-

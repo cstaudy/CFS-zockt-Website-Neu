@@ -7,4 +7,3 @@ create table if not exists password_recovery_tokens (
   created_at timestamptz not null default now()
 );
 create index if not exists password_recovery_account_idx on password_recovery_tokens(account_id, created_at desc);
-

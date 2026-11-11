@@ -12,4 +12,3 @@ create table if not exists user_media (
   updated_at timestamptz not null default now()
 );
 create index if not exists user_media_account_folder_idx on user_media(account_id, folder, created_at desc);
-

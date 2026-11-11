@@ -35,4 +35,3 @@ export async function uploadAsset(req, body) {
   const result = await getPool().query("insert into creator_assets (account_id, name, mime_type, size_bytes, storage_path) values ($1, $2, $3, $4, $5) returning id, name, media_type, mime_type, size_bytes, storage_path, category, created_at", [account.id, cleanName(original), mime, body.length, stored]);
   return { asset: asset(result.rows[0]) };
 }
-

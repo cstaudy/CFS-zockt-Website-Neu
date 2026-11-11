@@ -12,4 +12,3 @@ create table if not exists tool_jobs (
 );
 create index if not exists tool_jobs_account_idx on tool_jobs(account_id, created_at desc);
 create index if not exists tool_jobs_status_idx on tool_jobs(status, created_at);
-

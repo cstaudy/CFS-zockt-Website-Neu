@@ -72,4 +72,3 @@ Die Texte müssen vor dem Live-Checkout fachlich geprüft und mit Version, Datum
 - Admin-E-Mail: `cstaudygaming@googlemail.com`
 - Rechtliche Freigabe: offen
 - Steuerliche Freigabe: offen
-

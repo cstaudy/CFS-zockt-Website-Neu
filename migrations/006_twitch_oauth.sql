@@ -10,4 +10,3 @@ create table if not exists twitch_connections (
   scope text not null default '',
   updated_at timestamptz not null default now()
 );
-

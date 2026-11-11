@@ -29,4 +29,3 @@ create table if not exists creator_playstation_videos (
   source text not null default 'launcher',
   updated_at timestamptz not null default now()
 );
-

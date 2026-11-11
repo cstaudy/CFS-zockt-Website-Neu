@@ -68,4 +68,3 @@ body[data-cfs-product-v199] :where(.site-nav a,.creator-nav a,.header-nav a,.mai
 body[data-cfs-product-v199] :where(.btn,button,a.cta){writing-mode:horizontal-tb!important;white-space:nowrap!important;min-height:38px!important;transition:none!important}
 body[data-cfs-product-v199] :where(.btn:hover,button:hover,a.cta:hover,.admin-start-card:hover,.admin-control-links button:hover){transform:none!important}
 body[data-cfs-product-v199] :where(.creator-brand,.brand,.site-brand){writing-mode:horizontal-tb!important;white-space:nowrap!important;transform:none!important}
-

@@ -30,4 +30,3 @@
 .public-auth-page .cfs-signup-note-v165{margin:0 0 10px;font-size:8px}
 @media (max-width:900px){.public-auth-page .auth-entry-hero{grid-template-columns:1fr}.public-auth-page .auth-entry-path{display:none}}
 @media (max-width:620px){.public-auth-page .auth-entry-shell{padding-top:20px}.public-auth-page .auth-entry-hero{padding:20px 0 16px}.public-auth-page .auth-entry-actions{flex-direction:row}.public-auth-page .auth-entry-actions .btn{width:auto;flex:1}.public-auth-page .auth-entry-grid{grid-template-columns:1fr}.public-auth-page .auth-entry-panel{padding:16px}.public-auth-page .submit-row{padding-right:0;flex-wrap:nowrap}.public-auth-page .submit-row .small-status{position:absolute;width:108px;transform:translateY(-50%);right:0;top:50%}}
-

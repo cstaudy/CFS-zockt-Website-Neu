@@ -4,4 +4,3 @@ create table if not exists public_live_controls(
   expires_at timestamptz,
   updated_at timestamptz not null default now()
 );
-

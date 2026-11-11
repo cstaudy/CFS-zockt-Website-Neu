@@ -111,4 +111,3 @@ export async function exportAccount(req,password){const account=await verifyAcco
 export async function deleteAccount(req,body){const account=await verifyAccountPassword(req,body.password);if(!account)return{error:"INVALID_CURRENT_PASSWORD",status:401};if(String(body.confirmation||"").trim().toUpperCase()!=="LÖSCHEN")return{error:"DELETE_CONFIRMATION_REQUIRED",status:400};await getPool().query("delete from accounts where id=$1",[account.id]);return{ok:true};}
 
 export { cookie };
-

@@ -37,4 +37,3 @@ export async function finishTikTok(req, res, url) {
   await getPool().query("insert into tiktok_connections (account_id, open_id, access_token, refresh_token, expires_at, refresh_expires_at, scope, updated_at) values ($1,$2,$3,$4,now()+($5||' seconds')::interval,now()+($6||' seconds')::interval,$7,now()) on conflict (account_id) do update set open_id=excluded.open_id, access_token=excluded.access_token, refresh_token=excluded.refresh_token, expires_at=excluded.expires_at, refresh_expires_at=excluded.refresh_expires_at, scope=excluded.scope, updated_at=now()",[row.account_id,token.open_id||"",seal(token.access_token),seal(token.refresh_token||""),String(token.expires_in||86400),String(token.refresh_token_expires_in||31536000),token.scope||""]);
   res.setHeader("set-cookie", cookie("cfs_tiktok_oauth","",0)); res.writeHead(302,{location:"/pages/integrations.html?tiktok=connected"}); res.end(); return null;
 }
-

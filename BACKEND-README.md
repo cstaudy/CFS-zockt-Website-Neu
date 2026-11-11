@@ -56,4 +56,3 @@ Das Datenmodell liegt unter `migrations/001_initial.sql`, `migrations/002_projec
 Uploads werden in der aktuellen Stufe lokal unter `assets/uploads/` abgelegt. Für einen dauerhaft sicheren Render-Betrieb muss dieser Speicher später durch einen persistenten Object-Storage (z. B. S3-kompatibel) ersetzt werden.
 
 Keine geheimen Werte in dieses Repository eintragen. Render-Environment-Variablen bleiben ausschließlich im Render-Dashboard.
-

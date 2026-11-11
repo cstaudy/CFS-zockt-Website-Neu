@@ -51,4 +51,3 @@ create table if not exists audit_events (
 );
 
 create index if not exists audit_events_created_at_idx on audit_events(created_at desc);
-

@@ -45,4 +45,3 @@ export async function updateScene(req, id, body, publish = false) {
   const next = await pool.query("update creator_projects set name = coalesce($3, name), data = $4::jsonb, status = case when $5 then 'published' else status end, version = version + 1, updated_at = now() where id = $1 and account_id = $2 returning id, name, data, status, version, created_at, updated_at", [id, account.id, body.name ? String(body.name).trim().slice(0, 160) : null, JSON.stringify(data), publish]);
   return { scene: scene(next.rows[0]) };
 }
-

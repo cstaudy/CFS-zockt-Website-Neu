@@ -1,0 +1,590 @@
+{
+  "source": "assets/data/original-design-catalog-v32065.json im geprüften ZIP",
+  "design_count": 31,
+  "predefined_color_count": 16,
+  "presets": [
+    {
+      "id": "blau",
+      "name": "Blau",
+      "accent": "#38bdf8"
+    },
+    {
+      "id": "bordeaux",
+      "name": "Bordeaux",
+      "accent": "#7f1d3a"
+    },
+    {
+      "id": "dunkelblau",
+      "name": "Dunkelblau",
+      "accent": "#1e3a8a"
+    },
+    {
+      "id": "dunkelgruen",
+      "name": "Dunkelgruen",
+      "accent": "#166534"
+    },
+    {
+      "id": "gelb",
+      "name": "Gelb",
+      "accent": "#fde047"
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "accent": "#fbbf24"
+    },
+    {
+      "id": "gruen",
+      "name": "Gruen",
+      "accent": "#34d399"
+    },
+    {
+      "id": "kupfer",
+      "name": "Kupfer",
+      "accent": "#b45309"
+    },
+    {
+      "id": "lavendel",
+      "name": "Lavendel",
+      "accent": "#a78bfa"
+    },
+    {
+      "id": "lila",
+      "name": "Lila",
+      "accent": "#8b5cf6"
+    },
+    {
+      "id": "orange",
+      "name": "Orange",
+      "accent": "#fb923c"
+    },
+    {
+      "id": "pink",
+      "name": "Pink",
+      "accent": "#ec4899"
+    },
+    {
+      "id": "rot",
+      "name": "Rot",
+      "accent": "#ef4444"
+    },
+    {
+      "id": "silber",
+      "name": "Silber",
+      "accent": "#cbd5e1"
+    },
+    {
+      "id": "tuerkis",
+      "name": "Tuerkis",
+      "accent": "#2dd4bf"
+    },
+    {
+      "id": "weiss",
+      "name": "Weiss",
+      "accent": "#f8fafc"
+    }
+  ],
+  "scene_states": {
+    "starting": "Stream startet",
+    "paused": "Streampause",
+    "ending": "Stream beendet"
+  },
+  "designs": [
+    {
+      "id": "abendstudio",
+      "name": "Abendstudio",
+      "category": "premium",
+      "vibe": "Nächtliches Studio mit leuchtender Szene.",
+      "visual_motif_requirement": "Nächtliches Streaming-Studio mit Studiolichtern, Panels und dunkler Tiefe; kein Text im Master.",
+      "master_art": "assets/designs/abendstudio/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "aprikosenglas",
+      "name": "Aprikosenglas",
+      "category": "premium",
+      "vibe": "Warmer Glanz mit sanfter Eleganz.",
+      "visual_motif_requirement": "Transparente Glasformen, warme Reflexionen, weicher Lichtbrechungseffekt.",
+      "master_art": "assets/designs/aprikosenglas/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "blitze",
+      "name": "Blitze",
+      "category": "scifi",
+      "vibe": "Elektrische Energie und harte Kontraste.",
+      "visual_motif_requirement": "Erkennbarer Gewitterhimmel mit echten verzweigten Blitzen und elektrischer Energie, kein generischer Startscreen.",
+      "master_art": "assets/designs/blitze/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "chromgasse",
+      "name": "Chromgasse",
+      "category": "scifi",
+      "vibe": "Metallisch, urban und technisch.",
+      "visual_motif_requirement": "Futuristische enge Stadtgasse mit reflektierendem Chrom, Metallkanten und urbaner Perspektive.",
+      "master_art": "assets/designs/chromgasse/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "drachenhort",
+      "name": "Drachenhort",
+      "category": "fantasy",
+      "vibe": "Epische Fantasy-Atmosphäre mit Wucht.",
+      "visual_motif_requirement": "Fantastischer Drachenhort: Drachen-Silhouette, Felsen, Ruinen und epische Tiefenwirkung.",
+      "master_art": "assets/designs/drachenhort/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "eiskristall",
+      "name": "Eiskristall",
+      "category": "atmo",
+      "vibe": "Klar, kühl und kristallin.",
+      "visual_motif_requirement": "Große erkennbare Eis- und Schneekristalle, Frostfacetten, kühle kristalline Struktur.",
+      "master_art": "assets/designs/eiskristall/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "fliedernacht",
+      "name": "Fliedernacht",
+      "category": "atmo",
+      "vibe": "Violette Nachtstimmung und weiche Tiefe.",
+      "visual_motif_requirement": "Geheimnisvolle Nachtlandschaft mit violetten Silhouetten und sanften Lichtschleiern.",
+      "master_art": "assets/designs/fliedernacht/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "flutlichtliga",
+      "name": "Flutlichtliga",
+      "category": "sport",
+      "vibe": "Arena-Vibes und Broadcast-Energie.",
+      "visual_motif_requirement": "Stadiontribünen, starke Flutlichtmasten, Spielfeldlinien und Broadcast-Feeling.",
+      "master_art": "assets/designs/flutlichtliga/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "frostsignal",
+      "name": "Frostsignal",
+      "category": "atmo",
+      "vibe": "Kühle Signale mit klarer Leuchtkante.",
+      "visual_motif_requirement": "Eisige Nebelsignale, gefrorene Linien und kühle technologische Signale.",
+      "master_art": "assets/designs/frostsignal/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "futuristisch",
+      "name": "Futuristisch",
+      "category": "scifi",
+      "vibe": "Reines Future-Design mit Neonfokus.",
+      "visual_motif_requirement": "Futuristischer Tunnel mit perspektivischen Lichtbahnen und technischer Architektur.",
+      "master_art": "assets/designs/futuristisch/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "graphitgold",
+      "name": "Graphitgold",
+      "category": "premium",
+      "vibe": "Dunkler Luxus mit goldenen Akzenten.",
+      "visual_motif_requirement": "Graphit- und Steinoberflächen mit präzisen metallischen Goldadern.",
+      "master_art": "assets/designs/graphitgold/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "kirschseide",
+      "name": "Kirschseide",
+      "category": "premium",
+      "vibe": "Kräftig, elegant und farbstark.",
+      "visual_motif_requirement": "Fließende Seidentexturen mit kirschrotem Grundmotiv und elegantem Faltenwurf.",
+      "master_art": "assets/designs/kirschseide/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "klingenhain",
+      "name": "Klingenhain",
+      "category": "fantasy",
+      "vibe": "Scharfe Formen, epischer Wald-Look.",
+      "visual_motif_requirement": "Dunkler Wald mit klingenförmigen Felsformationen, Fantasy-Waffen-Silhouetten.",
+      "master_art": "assets/designs/klingenhain/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "mecha",
+      "name": "Mecha",
+      "category": "scifi",
+      "vibe": "Robotisch, massiv und technisch.",
+      "visual_motif_requirement": "Großes erkennbares Mecha-Roboter-Motiv mit Panzerplatten, Hydraulik und futuristischer Technik.",
+      "master_art": "assets/designs/mecha/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "mintwelle",
+      "name": "Mintwelle",
+      "category": "nature",
+      "vibe": "Frisch, klar und modern organisch.",
+      "visual_motif_requirement": "Organische, gewellte Flüssigkeitsformen und sanfte Wellenstruktur in frischer Landschaft.",
+      "master_art": "assets/designs/mintwelle/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "nachtgarten",
+      "name": "Nachtgarten",
+      "category": "nature",
+      "vibe": "Dunkle Blätter, ruhige Nachtenergie.",
+      "visual_motif_requirement": "Dunkle Blätter, Äste, botanische Silhouetten und dezente Tiefenbeleuchtung.",
+      "master_art": "assets/designs/nachtgarten/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "nachtkurve",
+      "name": "Nachtkurve",
+      "category": "scifi",
+      "vibe": "Sleek, dunkel und racing-nah.",
+      "visual_motif_requirement": "Rennstrecke bei Nacht mit Kurve, Lichtspuren, dynamischer Straßenperspektive.",
+      "master_art": "assets/designs/nachtkurve/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "nebelrevier",
+      "name": "Nebelrevier",
+      "category": "atmo",
+      "vibe": "Verhangene Flächen und diffuse Tiefe.",
+      "visual_motif_requirement": "Verhangene Gebirgs-/Tallandschaft mit mehreren klaren Nebelschichten und Tiefenstaffelung.",
+      "master_art": "assets/designs/nebelrevier/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "orbitkommando",
+      "name": "Orbitkommando",
+      "category": "scifi",
+      "vibe": "Weltraum, Ringe und starke Horizonte.",
+      "visual_motif_requirement": "Raumschiff-/Satelliten-Silhouette, Umlaufbahnen und ein erkennbarer Planetenhorizont.",
+      "master_art": "assets/designs/orbitkommando/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "perlglanz",
+      "name": "Perlglanz",
+      "category": "premium",
+      "vibe": "Sanft reflektierend und hochwertig.",
+      "visual_motif_requirement": "Perlmuttoberfläche, weiche Reflexionen, transluzente Perlen-/Muschelstrukturen.",
+      "master_art": "assets/designs/perlglanz/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "pixelhafen",
+      "name": "Pixelhafen",
+      "category": "retro",
+      "vibe": "Pixel-Art und Digitalhafen-Charme.",
+      "visual_motif_requirement": "Deutlich pixelige Retro-Hafenlandschaft mit Schiffssilhouetten und Pixel-Art-Ästhetik.",
+      "master_art": "assets/designs/pixelhafen/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "rasterrausch",
+      "name": "Rasterrausch",
+      "category": "retro",
+      "vibe": "Raster, Rhythmus und Grafikdruck.",
+      "visual_motif_requirement": "Dynamische Rasterlinien, modulare Druckgrafik, rhythmische Retro-Digital-Muster.",
+      "master_art": "assets/designs/rasterrausch/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "salbeiruhe",
+      "name": "Salbeiruhe",
+      "category": "nature",
+      "vibe": "Leise Farben und entspannte Klarheit.",
+      "visual_motif_requirement": "Ruhiges Naturpanorama mit Salbeiblättern, zurückhaltenden Formen und sanften Farbflächen.",
+      "master_art": "assets/designs/salbeiruhe/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "sandkrone",
+      "name": "Sandkrone",
+      "category": "premium",
+      "vibe": "Warme Sandtöne mit königlicher Ruhe.",
+      "visual_motif_requirement": "Wüste/Dünen mit einer markanten krönenden Silhouette, Sandstaub und goldenen Konturen.",
+      "master_art": "assets/designs/sandkrone/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "silberkante",
+      "name": "Silberkante",
+      "category": "scifi",
+      "vibe": "Cleanes Metall und präzise Kanten.",
+      "visual_motif_requirement": "Geometrische metallisch-silberne Kanten mit klaren scharfen Schnittflächen.",
+      "master_art": "assets/designs/silberkante/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "sonnenwinkel",
+      "name": "Sonnenwinkel",
+      "category": "nature",
+      "vibe": "Helle Energie und positive Wärme.",
+      "visual_motif_requirement": "Strahlendes, schräg einfallendes Sonnenlicht in einer atmosphärischen Landschaft.",
+      "master_art": "assets/designs/sonnenwinkel/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "staubmond",
+      "name": "Staubmond",
+      "category": "retro",
+      "vibe": "Staubig, filmisch und analog inspiriert.",
+      "visual_motif_requirement": "Großer staubiger Mond über retro-filmischer Landschaft, körnige Staubschleier.",
+      "master_art": "assets/designs/staubmond/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "sternenatlas",
+      "name": "Sternenatlas",
+      "category": "scifi",
+      "vibe": "Kosmisch, weiträumig und leuchtend.",
+      "visual_motif_requirement": "Sternenkarte mit Konstellationen, Sternfeldern und orbitaler Diagramm-Ästhetik.",
+      "master_art": "assets/designs/sternenatlas/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "tiefenrausch",
+      "name": "Tiefenrausch",
+      "category": "nature",
+      "vibe": "Wasser, Tiefe und dunkle Strömung.",
+      "visual_motif_requirement": "Unterwasserlandschaft mit Tiefsee, Lichtstrahlen und erkennbaren Wasserströmen.",
+      "master_art": "assets/designs/tiefenrausch/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "tuschefluss",
+      "name": "Tuschefluss",
+      "category": "retro",
+      "vibe": "Illustrativ und fließend wie Tinte.",
+      "visual_motif_requirement": "Fließende Tinte, gezeichnete Pinselstriche und klare illustrativ-analoge Strömungsformen.",
+      "master_art": "assets/designs/tuschefluss/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    },
+    {
+      "id": "wurzellicht",
+      "name": "Wurzellicht",
+      "category": "fantasy",
+      "vibe": "Organische Tiefe mit mystischem Kern.",
+      "visual_motif_requirement": "Große leuchtende Wurzelsysteme in mystischem Wald, organische Tiefe, Fantasy-Stimmung.",
+      "master_art": "assets/designs/wurzellicht/master.webp",
+      "default_color": "blau",
+      "supported_scene_states": [
+        "starting",
+        "paused",
+        "ending"
+      ],
+      "color_mode": "runtime_customizable",
+      "note": "Diese Mastergrafik soll kein eingebranntes GLEICH GEHTS LOS, keinen Szenentext und keine Statusinfo enthalten."
+    }
+  ]
+}

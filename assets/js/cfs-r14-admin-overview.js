@@ -39,4 +39,3 @@
  }
  document.addEventListener('DOMContentLoaded',()=>{if(!by('r14-ops'))return;by('r14-finance-month').value=new Date().toLocaleDateString('sv-SE').slice(0,7);by('r14-refresh').addEventListener('click',load);by('r14-finance-month').addEventListener('change',loadFinance);load();},{once:true});
 })();
-

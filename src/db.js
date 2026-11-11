@@ -37,4 +37,3 @@ export async function closeDatabase() {
   if (pool) await pool.end();
   pool = undefined;
 }
-

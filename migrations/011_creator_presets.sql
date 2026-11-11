@@ -9,4 +9,3 @@ create table if not exists creator_presets (
   unique(account_id, kind, name)
 );
 create index if not exists creator_presets_account_kind_idx on creator_presets(account_id, kind, updated_at desc);
-

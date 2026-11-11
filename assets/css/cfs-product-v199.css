@@ -168,4 +168,3 @@ body[data-cfs-product-v199="1"] :where(h1,h2,h3){color:#fff!important;text-shado
 body[data-cfs-product-v199="1"] :where(.eyebrow,.kicker,.section-label,.meta){color:var(--ref-cyan)!important;letter-spacing:.18em!important}
 body[data-cfs-product-v199="1"] :where(.btn.primary,.button-primary,.primary){background:var(--ref-cyan)!important;color:#00121b!important;border-color:var(--ref-cyan)!important;box-shadow:none!important}
 body[data-cfs-product-v199="1"] :where(.btn,.button,button){border-radius:8px!important;box-shadow:none!important}
-

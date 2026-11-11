@@ -388,4 +388,3 @@ $("#cutTimeline").onclick=e=>{const item=e.target.closest("[data-timeline-clip]"
  setInterval(()=>loadJobs().catch(()=>{}),5000);
 });
 })();
-
