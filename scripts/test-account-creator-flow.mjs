@@ -124,7 +124,83 @@ try {
   assert.equal(login.status, 200, 'Creator must be able to sign back in');
   assert(login.cookie.startsWith('cfs_session='), 'Login must issue a session cookie');
   assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true);
-  console.log('PostgreSQL E2E passed: registration, duplicate rejection, password check, login, session, creator CRUD, logout and admin denial.');
+  // Two-account isolation for settings, media metadata and the actual file bytes.
+  const second = await request('POST', '/api/account/register', {
+    body: { ...registration, email: `creator-other-${randomUUID()}@example.test`, display_name: 'Other Creator' }
+  });
+  assert.equal(second.status, 201);
+  const otherCookie = second.cookie;
+  const settingsSaved = await request('PUT', '/api/creator/settings', {
+    cookie: login.cookie, body: { settings: { accountMarker: 'creator-A-private' } }
+  });
+  assert.equal(settingsSaved.status, 200);
+  const otherSettings = await request('GET', '/api/creator/settings', { cookie: otherCookie });
+  assert.equal(otherSettings.status, 200);
+  assert.equal(otherSettings.data.settings?.accountMarker, undefined,
+    'Private settings from creator A must not appear in creator B session');
+
+  const upload = async (path, mimeType, filename, bytes) => {
+    const response = await fetch(base + path, {
+      method: 'POST',
+      headers: {
+        origin: base, cookie: login.cookie,
+        'content-type': mimeType,
+        'x-cfs-file-name': encodeURIComponent(filename)
+      },
+      body: bytes, signal: AbortSignal.timeout(8000)
+    });
+    return { status: response.status, data: await response.json() };
+  };
+  const privateImage = Buffer.from('private-image-payload-ci');
+  const privateVideo = Buffer.from('private-video-payload-ci');
+  const asset = await upload('/api/creator/widget-studio/assets', 'image/png', 'private-ci.png', privateImage);
+  assert.equal(asset.status, 201, `Asset upload failed: ${JSON.stringify(asset.data)}`);
+  const media = await upload('/api/creator/media/videos', 'video/mp4', 'private-ci.mp4', privateVideo);
+  assert.equal(media.status, 201, `Media upload failed: ${JSON.stringify(media.data)}`);
+
+  assert(!(await request('GET', '/api/creator/widget-studio/assets', { cookie: otherCookie }))
+    .data.assets?.some(item => item.id === asset.data.asset.id),
+    'Second creator cannot see private asset metadata');
+  assert(!(await request('GET', '/api/creator/media/videos', { cookie: otherCookie }))
+    .data.media?.some(item => item.id === media.data.media.id),
+    'Second creator cannot see private media metadata');
+
+  for (const [path, expected] of [
+    [asset.data.asset.url, privateImage],
+    [media.data.media.url, privateVideo]
+  ]) {
+    assert(path?.startsWith('/assets/uploads/'), 'Uploaded file must have a private legacy URL');
+    for (const [who, cookie, status] of [
+      ['anonymous', undefined, 401],
+      ['foreign creator', otherCookie, 404],
+      ['owner', login.cookie, 200]
+    ]) {
+      for (const method of ['GET', 'HEAD']) {
+        const response = await fetch(base + path, {
+          method, headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(8000)
+        });
+        assert.equal(response.status, status, `${who} ${method} ${path} must return ${status}`);
+        if (status === 200) {
+          assert.equal(response.headers.get('cache-control'), 'private, no-store',
+            'Private uploads must never be cached as public');
+          if (method === 'GET') {
+            const actual = Buffer.from(await response.arrayBuffer());
+            assert.deepEqual(actual, expected, 'Owner must receive original upload bytes');
+          }
+        }
+      }
+    }
+  }
+
+  const deleted = await request('DELETE', `/api/creator/media/videos/${media.data.media.id}`, {
+    cookie: login.cookie
+  });
+  assert.equal(deleted.status, 200, 'Owner must be able to delete own media metadata');
+  assert.equal((await fetch(base + media.data.media.url, {
+    headers: { cookie: login.cookie }
+  })).status, 404, 'Deleted media must not be accessible even if bytes remain on disk');
+
+  console.log('PostgreSQL E2E passed: registration, duplicate rejection, password check, login, session, creator CRUD, logout, private upload delivery and account isolation.');
 } finally {
   server.kill('SIGTERM');
   await delay(300);
