@@ -8,7 +8,7 @@ assert.equal(verifyTotp(secret, '287082', 59), true);
 assert.equal(verifyTotp(secret, '287082', 29), true, 'one early step allowed');
 assert.equal(verifyTotp(secret, '287082', 89), true, 'one late step allowed');
 assert.equal(verifyTotp(secret, '287082', 119), false, 'two late steps denied');
-assert.equal(verifyTotp(secret, '287082', 0), false, 'far out of window denied');
+assert.equal(verifyTotp(secret, '287082', 149), false, 'far out of window denied');
 assert.equal(verifyTotp(secret, '287082 ', 59), false, 'whitespace denied');
 assert.equal(verifyTotp(secret, 287082, 59), true, 'numeric code accepted only if six digits');
 assert.equal(verifyTotp(secret, '0287082', 59), false, 'seven digits denied');
