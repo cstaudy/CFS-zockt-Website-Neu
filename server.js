@@ -152,6 +152,7 @@ async function serveStatic(req, res) {
         join creator_projects project on project.account_id=asset.account_id
         where asset.storage_path=$1
           and project.status='published'
+          and project.kind in ('widget','scene')
           and jsonb_path_exists(
             project.data,
             '$.** ? (@ == $url)'::jsonpath,
