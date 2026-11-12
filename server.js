@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { readJson as readJsonBody } from "./src/request-json.js";
 import { createReadStream } from "node:fs";
 import { access, readFile, stat } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
@@ -12,7 +13,7 @@ import { createSupportReport, listSupportReports, updateSupportReport } from "./
 import { gameState, gameRuntime, gameRules } from "./src/games.js";
 import { modulesState, launcherModuleState, audioModuleState } from "./src/modules.js";
 import { publicReviews } from "./src/reviews.js";
-import { createProject, deleteProject, listProjects, updateProject, requireAdmin } from "./src/projects.js";
+import { createProject, deleteProject, listProjects, updateProject, requireAdmin, requireAccount } from "./src/projects.js";
 import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
 import { listAssets, uploadAsset } from "./src/assets.js";
@@ -100,14 +101,7 @@ function requestOriginAllowed(req) {
 }
 
 async function readJson(req) {
-  if (!req.headers["content-length"]) return {};
-  let raw = "";
-  for await (const chunk of req) {
-    raw += chunk;
-    if (Buffer.byteLength(raw) > maxJsonBytes) throw Object.assign(new Error("PAYLOAD_TOO_LARGE"), { status: 413 });
-  }
-  if (!raw.trim()) return {};
-  try { return JSON.parse(raw); } catch { throw Object.assign(new Error("INVALID_JSON"), { status: 400 }); }
+  return readJsonBody(req, maxJsonBytes);
 }
 
 async function readRaw(req) {
@@ -212,7 +206,21 @@ async function handle(req, res) {
   }
 
   if (url.pathname === "/api/public/status" && ["GET", "HEAD"].includes(method)) {
-    return json(res, 200, { ok: true, service: "cfs-zockt", environment: process.env.NODE_ENV || "production", api_version: "1", generated_at: new Date().toISOString() });
+    // Public status reports real account-store readiness, not a synthetic green light.
+    // Do not expose database connection strings or internal errors to visitors.
+    const database = await databaseCheck();
+    const accountsReady = database.connected === true;
+    return json(res, 200, {
+      ok: true,
+      service: "cfs-zockt",
+      environment: process.env.NODE_ENV || "production",
+      api_version: "1",
+      generated_at: new Date().toISOString(),
+      status: accountsReady ? "online" : "degraded",
+      message: accountsReady
+        ? "Website und Datenbank sind erreichbar."
+        : "Die Website ist erreichbar. Anmeldung und Creator-Speicherung sind derzeit möglicherweise eingeschränkt."
+    });
   }
 
   if (url.pathname === "/api/public/live-session" && ["GET", "HEAD"].includes(method)) {
@@ -329,7 +337,11 @@ async function handle(req, res) {
   if(url.pathname==="/api/creator/cut-studio/jobs"&&method==="GET"){const result=await listJobs(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const mediaList=url.pathname.match(/^\/api\/creator\/media\/(videos|clips)$/);
   if(mediaList&&method==="GET"){const result=await listUserMedia(req,mediaList[1]);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
-  if(mediaList&&method==="POST"){const result=await uploadUserMedia(req,await readRaw(req),mediaList[1]);return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  if(mediaList&&method==="POST"){
+    if (!await requireAccount(req)) return json(res,401,{error:"AUTHENTICATION_REQUIRED"});
+    const result=await uploadUserMedia(req,await readRaw(req),mediaList[1]);
+    return result.error?json(res,result.status,{error:result.error}):json(res,201,result);
+  }
   const mediaItem=url.pathname.match(/^\/api\/creator\/media\/(videos|clips)\/([^/]+)$/);
   if(mediaItem&&method==="DELETE"){const result=await deleteUserMedia(req,decodeURIComponent(mediaItem[2]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const presetList=url.pathname.match(/^\/api\/creator\/presets(?:\/(caption|export|scene))?$/);
@@ -432,6 +444,7 @@ async function handle(req, res) {
     return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
   }
   if (url.pathname === "/api/creator/widget-studio/assets" && method === "POST") {
+    if (!await requireAccount(req)) return json(res, 401, { error: "AUTHENTICATION_REQUIRED" });
     const result = await uploadAsset(req, await readRaw(req));
     return result.error ? json(res, result.status, { error: result.error }) : json(res, 201, result);
   }
