@@ -203,6 +203,36 @@ try {
     assert.equal((await request('POST', '/api/account/mfa/login', {
       cookie: replayPending.cookie, body: { code: totpCode(testSecret) }
     })).status, 401, 'Five failed attempts must invalidate the challenge');
+    // Two concurrent MFA-disable requests may never both succeed. The winner
+    // must also revoke all full sessions and pending login challenges.
+    const disableCode = enabled.data.recovery_codes[1];
+    const disableAttempts = await Promise.all([
+      request('POST', '/api/account/mfa/disable', { cookie: success.cookie, body: { recovery_code: disableCode } }),
+      request('POST', '/api/account/mfa/disable', { cookie: success.cookie, body: { recovery_code: disableCode } })
+    ]);
+    assert.deepEqual(disableAttempts.map(result => result.status).sort((a,b) => a-b)[0], 200,
+      'Exactly one concurrent MFA-disable request must succeed');
+    assert([401, 409].includes(disableAttempts.map(result => result.status).sort((a,b) => a-b)[1]),
+      'Concurrent attempt must be rejected after the first disables MFA');
+    const stateAfterDisable = (await testPool.query(
+      "select enabled,recovery_codes from account_mfa where account_id=$1", [created.data.account.id]
+    )).rows[0];
+    assert.equal(stateAfterDisable.enabled, false);
+    assert.deepEqual(stateAfterDisable.recovery_codes, [], 'Disable must remove all recovery-code hashes');
+    assert.equal((await request('GET', '/api/account/me', { cookie: success.cookie })).data.authenticated, false,
+      'Disabling MFA must revoke the previously authenticated session');
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: replayPending.cookie, body: { code: totpCode(testSecret) }
+    })).status, 401, 'Disabling MFA must cancel pending login challenges');
+    assert.equal((await testPool.query(
+      "select count(*)::int as count from mfa_login_challenges where account_id=$1",
+      [created.data.account.id]
+    )).rows[0].count, 0);
+    const disabledAccountLogin = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal(disabledAccountLogin.status, 200, 'After explicit MFA-disable, normal login must be possible');
+    assert.equal(disabledAccountLogin.data.authenticated, true);
+    assert(disabledAccountLogin.cookie.startsWith('cfs_session='));
+
   } finally {
     await testPool.end();
   }

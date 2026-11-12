@@ -14,5 +14,42 @@ export async function mfaEnable(req,body){const a=await account(req);if(!a)retur
 await getPool().query("delete from sessions where account_id=$1 and token_hash<>$2",[a.id,createHash("sha256").update(sessionFromRequest(req)).digest("hex")]);
 await getPool().query("delete from mfa_login_challenges where account_id=$1",[a.id]);
 await getPool().query("insert into account_security_events(account_id,event_type) values($1,'mfa_enabled')",[a.id]);return{ok:true,recovery_codes:recovery,message:"MFA ist aktiviert. Speichere die Recovery-Codes sicher."};}
-export async function mfaDisable(req,body){const a=await account(req);if(!a)return{error:"AUTHENTICATION_REQUIRED",status:401};const row=(await getPool().query("select secret,recovery_codes from account_mfa where account_id=$1 and enabled=true",[a.id])).rows[0];if(!row)return{error:"MFA_NOT_ENABLED",status:409};const valid=verifyTotp(row.secret, body?.code)||await verifyRecoveryCode(row.recovery_codes,body?.recovery_code);if(!valid)return{error:"MFA_CODE_INVALID",status:400};await getPool().query("update account_mfa set enabled=false,recovery_codes='[]',updated_at=now() where account_id=$1",[a.id]);await getPool().query("delete from sessions where account_id=$1",[a.id]);return{ok:true,message:"MFA wurde deaktiviert."};}
+export async function mfaDisable(req, body) {
+  const a = await account(req);
+  if (!a) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    // Serialize with concurrent MFA login/recovery and other disable requests.
+    const row = (await client.query(
+      "select secret,recovery_codes from account_mfa where account_id=$1 and enabled=true for update",
+      [a.id]
+    )).rows[0];
+    if (!row) {
+      await client.query("ROLLBACK");
+      return { error: "MFA_NOT_ENABLED", status: 409 };
+    }
+    const valid = verifyTotp(row.secret, body?.code) ||
+      await verifyRecoveryCode(row.recovery_codes, body?.recovery_code);
+    if (!valid) {
+      await client.query("ROLLBACK");
+      return { error: "MFA_CODE_INVALID", status: 400 };
+    }
+    await client.query(
+      "update account_mfa set enabled=false,recovery_codes='[]'::jsonb,updated_at=now() where account_id=$1",
+      [a.id]
+    );
+    // A successful disable must also revoke pending MFA and all full sessions.
+    await client.query("delete from mfa_login_challenges where account_id=$1", [a.id]);
+    await client.query("delete from sessions where account_id=$1", [a.id]);
+    await client.query("insert into account_security_events(account_id,event_type) values($1,'mfa_disabled')", [a.id]);
+    await client.query("COMMIT");
+    return { ok: true, message: "MFA wurde deaktiviert." };
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 export async function mfaRecovery(req,body){const a=await account(req);if(!a)return{error:"AUTHENTICATION_REQUIRED",status:401};const row=(await getPool().query("select secret from account_mfa where account_id=$1 and enabled=true",[a.id])).rows[0];if(!row||!verifyTotp(row.secret, body?.code))return{error:"MFA_CODE_INVALID",status:400};const recovery=generateRecoveryCodes();const storedRecovery=await hashRecoveryCodes(recovery);await getPool().query("update account_mfa set recovery_codes=$2::jsonb,updated_at=now() where account_id=$1",[a.id,JSON.stringify(storedRecovery)]);return{ok:true,recovery_codes:recovery};}
