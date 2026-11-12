@@ -137,14 +137,52 @@ function safePath(urlPath) {
 }
 
 async function serveStatic(req, res) {
-  const filePath = safePath(new URL(req.url, "http://localhost").pathname);
+  const pathname = new URL(req.url, "http://localhost").pathname;
+  const filePath = safePath(pathname);
   if (!filePath) return json(res, 403, { error: "FORBIDDEN", message: "Ungültiger Pfad." });
+  const isUpload = filePath.startsWith(uploadRoot + sep);
+  if (isUpload) {
+    const storagePath = filePath.slice(uploadRoot.length + 1).split(sep).join("/");
+    const pool = getPool();
+    // Public widget assets are a deliberate exception, but only for an image
+    // referenced as an exact string in a published project of the SAME owner.
+    // Never expose user_media or another creator's unpublished files.
+    const published = pool ? await pool.query(
+      `select exists(
+        select 1 from creator_assets asset
+        join creator_projects project on project.account_id=asset.account_id
+        where asset.storage_path=$1
+          and project.status='published'
+          and project.kind in ('widget','scene')
+          and jsonb_path_exists(
+            project.data,
+            '$.** ? (@ == $url)'::jsonpath,
+            jsonb_build_object('url', $2::text)
+          )
+      ) as allowed`,
+      [storagePath, `/assets/uploads/${storagePath}`]
+    ) : { rows: [{ allowed: false }] };
+    const publicWidgetAsset = published.rows[0]?.allowed === true;
+    if (!publicWidgetAsset) {
+      const account = await currentAccount(req);
+      if (!account) return json(res, 401, { error: "AUTHENTICATION_REQUIRED" });
+      const owned = await pool.query(
+        `select exists(
+          select 1 from creator_assets where account_id=$1 and storage_path=$2
+          union all
+          select 1 from user_media where account_id=$1 and storage_path=$2
+        ) as allowed`,
+        [account.id, storagePath]
+      );
+      if (!owned.rows[0]?.allowed) return json(res, 404, { error: "NOT_FOUND" });
+    }
+  }
   try {
     const info = await stat(filePath);
     if (!info.isFile()) return json(res, 404, { error: "NOT_FOUND" });
     res.writeHead(200, {
       "content-type": mimeTypes[extname(filePath).toLowerCase()] || "application/octet-stream",
-      "cache-control": extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
+      "cache-control": isUpload ? "private, no-store" : extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
     });
     if (req.method === "HEAD") return res.end();
     createReadStream(filePath).pipe(res);
