@@ -6,7 +6,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const ALLOWED_ELEMENTS = new Set(["text", "counter", "progress", "shape"]);
 const ALLOWED_SETTINGS = new Set(["goal", "manualValue", "offlineBehavior"]);
 const safeNumber = (value, fallback, min, max) => Number.isFinite(Number(value)) ? Math.max(min, Math.min(max, Number(value))) : fallback;
-const safeColor = value => typeof value === "string" && /^(?:#[0-9a-f]{3,8}|transparent|rgba?\\([0-9., %]+\\))$/i.test(value) ? value : "transparent";
+const safeColor = value => typeof value === "string" && /^(?:#[0-9a-f]{3,8}|transparent|rgba?\([0-9., %]+\))$/i.test(value) ? value : "transparent";
 function safeElement(e) {
   const st = e.style || {};
   return {
