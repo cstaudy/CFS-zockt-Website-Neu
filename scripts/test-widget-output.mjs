@@ -21,4 +21,12 @@ assert.equal(payload.widget.config.settings.manualValue, 7);
 assert.equal(payload.widget.config.settings.apiToken, undefined);
 assert.ok(!JSON.stringify(payload).includes("PRIVATE"));
 assert.ok(!JSON.stringify(payload).includes("draft"));
+const malicious = publicWidgetPayload({ ...row, data: { published_config: { elements: [
+  { id: "x", type: "text", data: { text: "safe", secret: "PRIVATE" }, style: { color: "red;position:fixed", backgroundColor: "url(https://evil.invalid)" } },
+  { id: "remote", type: "image", data: { src: "https://evil.invalid/pixel" } }
+] } } });
+assert.equal(malicious.widget.config.elements.length, 1);
+assert.equal(malicious.widget.config.elements[0].style.color, "transparent");
+assert.ok(!JSON.stringify(malicious).includes("evil.invalid"));
+assert.ok(!JSON.stringify(malicious).includes("PRIVATE"));
 console.log("Public widget projection tests passed.");
