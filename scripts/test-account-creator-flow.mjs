@@ -146,7 +146,7 @@ try {
     const initialStored = (await testPool.query(
       "select recovery_codes from account_mfa where account_id=$1", [created.data.account.id]
     )).rows[0].recovery_codes;
-    assert(initialStored.every(value => /^scrypt\\$[a-f0-9]{32}\\$[a-f0-9]{64}$/.test(value)),
+    assert(initialStored.every(value => /^scrypt\$[a-f0-9]{32}\$[a-f0-9]{64}$/.test(value)),
       'Database must store only salted recovery-code hashes');
     assert(!initialStored.includes(recoveryCode), 'No raw recovery codes may appear in PostgreSQL');
     assert.equal((await request('GET', '/api/account/me', { cookie: created.cookie })).data.authenticated, false,
