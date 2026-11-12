@@ -43,7 +43,7 @@
     if (explicit) return explicit;
     try {
       const me = await CFS.me();
-      if (me?.admin) return "/pages/admin.html";
+      if (me?.authenticated === true && me?.account?.admin === true) return "/pages/admin.html";
     } catch {}
     return "/pages/dashboard.html";
   };
