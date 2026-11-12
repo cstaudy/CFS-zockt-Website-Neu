@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { getPool } from "./db.js";
 import { isAdminEmail } from "./auth.js";
 import { verifyTotp } from "./totp.js";
+import { consumeRecoveryCode } from "./recovery-codes.js";
 
 const pendingCookie = "cfs_mfa_pending";
 const sessionDays = 30;
@@ -50,7 +51,8 @@ export async function finishMfaLogin(req, body = {}) {
     }
     const codes = Array.isArray(settings.recovery_codes) ? settings.recovery_codes : [];
     const totpValid = verifyTotp(settings.secret, inputCode);
-    const recoveryValid = !totpValid && /^[A-F0-9]{10}$/.test(recovery) && codes.includes(recovery);
+    const recoveryResult = totpValid ? { valid: false, remaining: codes } : await consumeRecoveryCode(codes, recovery);
+    const recoveryValid = recoveryResult.valid;
     if (!totpValid && !recoveryValid) {
       await client.query(
         "update mfa_login_challenges set attempts=attempts+1 where token_hash=$1",
@@ -60,7 +62,7 @@ export async function finishMfaLogin(req, body = {}) {
       return { error: "MFA_CODE_INVALID", status: 401 };
     }
     if (recoveryValid) {
-      const unused = codes.filter(code => code !== recovery);
+      const unused = recoveryResult.remaining;
       await client.query(
         "update account_mfa set recovery_codes=$2::jsonb,updated_at=now() where account_id=$1",
         [challenge.account_id, JSON.stringify(unused)]
