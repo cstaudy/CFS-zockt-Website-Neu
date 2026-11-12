@@ -3,11 +3,11 @@ import { getPool } from "./db.js";
 import { currentAccount, sessionFromRequest, cookie } from "./auth.js";
 
 const redirectUri = () => process.env.TIKTOK_REDIRECT_URI || `${process.env.APP_BASE_URL || ""}/api/auth/tiktok/callback`;
-const key = () => createHash("sha256").update(String(process.env.SESSION_SECRET || "missing-session-secret")).digest();
-function seal(value) { const iv=randomBytes(12), cipher=createCipheriv("aes-256-gcm",key(),iv); const data=Buffer.concat([cipher.update(String(value),"utf8"),cipher.final()]); return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${data.toString("base64url")}`; }
-function open(value) { const [iv,tag,data]=String(value||"").split("."); if(!iv||!tag||!data)return ""; try{const decipher=createDecipheriv("aes-256-gcm",key(),Buffer.from(iv,"base64url")); decipher.setAuthTag(Buffer.from(tag,"base64url")); return Buffer.concat([decipher.update(Buffer.from(data,"base64url")),decipher.final()]).toString("utf8");}catch{return ""} }
+const key = () => process.env.SESSION_SECRET ? createHash("sha256").update(process.env.SESSION_SECRET).digest() : null;
+function seal(value) { const secret=key(); if(!secret)throw new Error("SESSION_SECRET fehlt für TikTok-OAuth"); const iv=randomBytes(12), cipher=createCipheriv("aes-256-gcm",secret,iv); const data=Buffer.concat([cipher.update(String(value),"utf8"),cipher.final()]); return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${data.toString("base64url")}`; }
+function open(value) { const secret=key(); if(!secret)return ""; const [iv,tag,data]=String(value||"").split("."); if(!iv||!tag||!data)return ""; try{const decipher=createDecipheriv("aes-256-gcm",secret,Buffer.from(iv,"base64url")); decipher.setAuthTag(Buffer.from(tag,"base64url")); return Buffer.concat([decipher.update(Buffer.from(data,"base64url")),decipher.final()]).toString("utf8");}catch{return ""} }
 
-export function tiktokConfigured() { return Boolean(process.env.TIKTOK_CLIENT_KEY && process.env.TIKTOK_CLIENT_SECRET && redirectUri()); }
+export function tiktokConfigured() { return Boolean(process.env.TIKTOK_CLIENT_KEY && process.env.TIKTOK_CLIENT_SECRET && process.env.SESSION_SECRET && redirectUri()); }
 export async function getTikTokStatus(req) {
   const account=await currentAccount(req); if(!account)return{error:"AUTHENTICATION_REQUIRED",status:401};
   const row=(await getPool().query("select open_id,scope,expires_at,updated_at from tiktok_connections where account_id=$1",[account.id])).rows[0];
@@ -28,6 +28,7 @@ export async function startTikTok(req, res) {
 }
 
 export async function finishTikTok(req, res, url) {
+  if (!tiktokConfigured()) return { error:"TIKTOK_NOT_CONFIGURED", status:503 };
   const state = String(url.searchParams.get("state")||""), code=String(url.searchParams.get("code")||""), cookiePrefix="cfs_tiktok_oauth=", cookieState=String(req.headers.cookie||"").split(";").map(x=>x.trim()).find(x=>x.startsWith(cookiePrefix))?.slice(cookiePrefix.length)||"";
   if (!state || state!==cookieState || !code) return { error:"TIKTOK_OAUTH_STATE_INVALID", status:400 };
   const row = (await getPool().query("delete from oauth_states where provider='tiktok' and state=$1 and expires_at > now() returning account_id",[state])).rows[0];

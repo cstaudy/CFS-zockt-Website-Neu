@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
+import { uploadRoot } from "./upload-storage.js";
+import { decodeUploadFilename } from "./upload-filename.js";
 
-const uploadRoot = fileURLToPath(new URL("../assets/uploads/", import.meta.url));
 const categories = { image: "Bilder", overlay: "Overlays", frame_overlay: "Rahmen", background: "Hintergründe" };
 
 function asset(row) {
@@ -28,7 +28,8 @@ export async function uploadAsset(req, body) {
   const mime = String(req.headers["content-type"] || "application/octet-stream").split(";")[0];
   if (!/^image\/(png|jpeg|webp|gif)$/.test(mime)) return { error: "UNSUPPORTED_MEDIA_TYPE", status: 415 };
   if (!body?.length || body.length > 16 * 1024 * 1024) return { error: "INVALID_ASSET_SIZE", status: 400 };
-  const original = decodeURIComponent(String(req.headers["x-cfs-file-name"] || "upload"));
+  const original = decodeUploadFilename(req.headers["x-cfs-file-name"], "upload");
+  if (original === null) return { error: "INVALID_FILE_NAME", status: 400 };
   const stored = `${randomUUID()}-${cleanName(original)}`;
   await mkdir(uploadRoot, { recursive: true });
   await writeFile(join(uploadRoot, stored), body, { flag: "wx" });
