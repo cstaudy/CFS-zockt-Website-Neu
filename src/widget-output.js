@@ -39,7 +39,7 @@ export function publicWidgetPayload(row) {
     outputs: {}, // placement settings require a separate validated schema
     settings: Object.fromEntries(Object.entries(published.settings && typeof published.settings === "object" ? published.settings : {}).filter(([key]) => ALLOWED_SETTINGS.has(key)).map(([key, value]) => [key, key === "offlineBehavior" ? (value === "zero" ? "zero" : "hold") : safeNumber(value, 0, 0, 1000000000)]))
   };
-  return { widget: { id: row.id, config, definition: { source_kind: "static", mode: "static" } }, data: { profile: {}, live: {}, bridge: {} } };
+  return { widget: { id: row.id, config, definition: { source_kind: published.widgetType === "manual_counter" ? "manual" : "static", mode: published.widgetType === "manual_counter" ? "manual_counter" : "static" } }, data: { profile: {}, live: {}, bridge: {} } };
 }
 
 export async function getPublicWidget(id) {
