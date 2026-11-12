@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { readJson as readJsonBody } from "./src/request-json.js";
 import { createReadStream } from "node:fs";
 import { access, readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
@@ -86,14 +87,7 @@ function requestId(req) {
 }
 
 async function readJson(req) {
-  if (!req.headers["content-length"]) return {};
-  let raw = "";
-  for await (const chunk of req) {
-    raw += chunk;
-    if (Buffer.byteLength(raw) > maxJsonBytes) throw Object.assign(new Error("PAYLOAD_TOO_LARGE"), { status: 413 });
-  }
-  if (!raw.trim()) return {};
-  try { return JSON.parse(raw); } catch { throw Object.assign(new Error("INVALID_JSON"), { status: 400 }); }
+  return readJsonBody(req, maxJsonBytes);
 }
 
 async function readRaw(req) {
