@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { applyMigrations } from '../src/migration-runner.js';
+import { applyMigrations, baselineMigrations } from '../src/migration-runner.js';
+import { migrationFiles, loadMigrationSql } from '../src/migrations.js';
 
 function fakeClient() {
   const rows = new Map();
@@ -35,3 +36,37 @@ await assert.rejects(applyMigrations(failed, ['003.sql'], () => 'fail sql'), /SQ
 assert(failed.executed.includes('rollback'), 'failed SQL must roll back');
 assert.equal(failed.rows.size, 0);
 console.log('Migration runner: apply, skip, checksum guard and rollback passed.');
+
+function baselineClient() {
+  const executed = [];
+  const inserted = [];
+  return {
+    executed, inserted,
+    async query(sql, params = []) {
+      executed.push(sql);
+      if (sql.startsWith('select name, checksum')) return { rows: [] };
+      if (sql.startsWith('insert into schema_migrations')) inserted.push(params);
+      return { rows: [] };
+    }
+  };
+}
+
+const baseline = baselineClient();
+await baselineMigrations(baseline, files, file => sql[file], async () => 'unchanged');
+assert.equal(baseline.inserted.length, 2, 'baseline should record every unchanged migration');
+assert.equal(baseline.executed.filter(item => item === 'rollback').length, 1, 'baseline probe must roll back');
+const changed = baselineClient();
+let fingerprintCall = 0;
+await assert.rejects(
+  baselineMigrations(changed, files, file => sql[file], async () => ++fingerprintCall === 1 ? 'before' : 'after'),
+  /würde das vorhandene Schema verändern/
+);
+assert.equal(changed.inserted.length, 0, 'changed schema must never be baselined');
+await assert.rejects(
+  baselineMigrations(baselineClient(), ['unsafe.sql'], () => 'delete from accounts', async () => 'same'),
+  /datenverändernde Migration/
+);
+const productionBaseline = baselineClient();
+await baselineMigrations(productionBaseline, migrationFiles, loadMigrationSql, async () => 'unchanged');
+assert.equal(productionBaseline.inserted.length, 21, 'all production migrations must be baseline-safe');
+console.log('Migration baseline: unchanged-schema guard, rollback and unsafe-SQL guard passed.');

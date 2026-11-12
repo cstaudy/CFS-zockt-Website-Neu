@@ -12,6 +12,11 @@
 
 ## Render-Abnahme
 
+- Kostenloser Staging-Webservice: `https://cfs-zockt-staging.onrender.com`, Service `cfs-zockt-staging`, Branch `codex/render-hardening`, Auto-Deploy aus. Commit `6d3c990` wurde live geprüft: Health und Startseite 200, interne Dateien und fremde Origins 403.
+- Render erlaubt in diesem Workspace nur eine aktive Free-PostgreSQL-Datenbank. Eine zweite kostenlose Staging-Datenbank konnte daher nicht angelegt werden. Der Staging-Service läuft absichtlich ohne `DATABASE_URL`; `/api/ready` meldet deshalb 503.
+- Der Free-Webservice unterstützt keine Persistent Disk. `ASSET_UPLOAD_ROOT=/tmp/cfs-zockt-staging-uploads` dient nur dem Laufzeittest und ist nicht dauerhaft.
+- Für die bestehende Datenbank ohne Historie steht `npm run migrate:baseline` bereit. Nur nach Export und mit `CONFIRM_MIGRATION_BASELINE=yes` ausführen; der Befehl verweigert unvollständige oder datenverändernde Migrationen.
+
 - `DATABASE_URL`, `DATABASE_SSL`, `APP_BASE_URL`, `SESSION_SECRET` und Provider-Redirects sicher in Render konfigurieren. Secrets nicht in Git/Chat speichern.
 - Zustandsändernde Browser-Anfragen (`POST`, `PUT`, `PATCH`, `DELETE`) werden bei einem fremden `Origin` abgewiesen. Requests ohne `Origin` bleiben für authentifizierte Launcher/API-Clients möglich.
 - Readiness-Antworten melden Datenbank, OAuth, Session-Secret und persistenten Upload-Pfad anhand der tatsächlichen Konfiguration statt pauschal als bereit.

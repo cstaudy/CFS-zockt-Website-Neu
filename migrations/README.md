@@ -10,4 +10,6 @@ create extension if not exists pgcrypto;
 
 `npm start` führt bei gesetzter `DATABASE_URL` ausstehende Migrationen automatisch aus. Eine Datenbanksperre verhindert parallele Läufe; `schema_migrations` speichert Name und SHA-256-Prüfsumme. Bereits ausgeführte Dateien werden übersprungen. Eine nachträglich geänderte SQL-Datei stoppt den Start, statt unbemerkt erneut ausgeführt zu werden.
 
-Bei einer bestehenden Datenbank ohne `schema_migrations` werden die vorhandenen, idempotent angelegten Migrationen einmal erneut geprüft und danach vermerkt. Vor dem ersten Deploy gegen produktive Daten eine Datenbanksicherung und einen Testlauf gegen eine Kopie durchführen. Die Zugangsdaten gehören ausschließlich in Render unter Environment Variables und niemals in GitHub.
+Bei einer bestehenden Datenbank ohne `schema_migrations` darf `npm run migrate:baseline` einmalig verwendet werden. Der Befehl benötigt die ausdrückliche Freigabe `CONFIRM_MIGRATION_BASELINE=yes`. Er führt alle Migrationen zunächst in einer Transaktion aus, vergleicht Tabellen, Spalten, Constraints, Indizes und Erweiterungen davor und danach und rollt den Test vollständig zurück. Nur wenn keine Migration das Schema verändern würde, werden die SHA-256-Prüfsummen registriert. Migrationen mit datenverändernden SQL-Befehlen werden grundsätzlich abgewiesen.
+
+Vor diesem einmaligen Produktionsschritt weiterhin einen Datenbankexport anlegen. Die Zugangsdaten gehören ausschließlich in Render unter Environment Variables und niemals in GitHub.
