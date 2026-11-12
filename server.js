@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { readJson as readJsonBody } from "./src/request-json.js";
+import { loginThrottle } from "./src/login-throttle.js";
 import { createReadStream } from "node:fs";
 import { access, readFile, stat } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
@@ -385,8 +386,17 @@ async function handle(req, res) {
   }
 
   if (["/api/auth/login", "/api/account/login"].includes(url.pathname) && method === "POST") {
-    const result = await login(await readJson(req));
+    const credentials = await readJson(req);
+    // Never trust client-supplied forwarding headers for the source address.
+    const address = req.socket.remoteAddress || "unknown";
+    const attempt = loginThrottle.allow(address, credentials.email);
+    if (!attempt.allowed) {
+      res.setHeader("retry-after", String(attempt.retryAfter));
+      return json(res, 429, { error: "LOGIN_RATE_LIMITED" });
+    }
+    const result = await login(credentials);
     if (result.error) return json(res, result.status, { error: result.error });
+    loginThrottle.successful(address, credentials.email);
     res.setHeader("set-cookie", cookie("cfs_session", result.token, result.maxAge));
     return json(res, 200, { authenticated: true, account: result.account });
   }
