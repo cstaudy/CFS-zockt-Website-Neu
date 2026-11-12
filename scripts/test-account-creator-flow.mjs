@@ -320,7 +320,7 @@ try {
     const failed = await request('POST', endpoint, { body: { email: mediaSecond.data.account.email, password: 'definitely-wrong-password' } });
     assert.equal(failed.status, 401, 'Failures below quota must return normal invalid-credential response');
   }
-  const rateLimited = await request('POST', '/api/account/login', { body: { email, password } });
+  const rateLimited = await request('POST', '/api/account/login', { body: { email: mediaSecond.data.account.email, password } });
   assert.equal(rateLimited.status, 429, 'A correct password must not bypass an active login quota');
   assert.equal(rateLimited.data.error, 'LOGIN_RATE_LIMITED');
   assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true,
