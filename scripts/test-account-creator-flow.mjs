@@ -28,7 +28,8 @@ const server = spawn(process.execPath, ['scripts/start.js'], {
     ...process.env,
     HOST: '127.0.0.1',
     PORT: String(port),
-    MIGRATION_BASELINE_ON_START: 'no'
+    MIGRATION_BASELINE_ON_START: 'no',
+    CFS_LOGIN_THROTTLE_SOCKET_MODE: 'enabled'
   },
   stdio: ['ignore', 'pipe', 'pipe']
 });
