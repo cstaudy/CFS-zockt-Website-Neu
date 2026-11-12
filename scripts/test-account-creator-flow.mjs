@@ -110,6 +110,75 @@ try {
   assert.equal(edited.status, 200, `Creator update failed: ${JSON.stringify(edited.data)}`);
   assert.equal(edited.data.project?.name, 'Updated CI Widget');
 
+  // Every creator endpoint must enforce ownership, not just authentication.
+  const secondEmail = `creator-other-${randomUUID()}@example.test`;
+  const second = await request('POST', '/api/account/register', {
+    body: { ...registration, email: secondEmail, display_name: 'Second Creator' }
+  });
+  assert.equal(second.status, 201, 'Second creator registration must succeed');
+  const otherCookie = second.cookie;
+  const foreignList = await request('GET', '/api/creator/projects', { cookie: otherCookie });
+  assert.equal(foreignList.status, 200);
+  assert(!foreignList.data.projects?.some(p => p.id === projectId),
+    'Creator B must never see creator A projects');
+
+  for (const [verb, path, body] of [
+    ['PATCH', `/api/creator/projects/${encodeURIComponent(projectId)}`, { name: 'Hijacked widget' }],
+    ['DELETE', `/api/creator/projects/${encodeURIComponent(projectId)}`, undefined]
+  ]) {
+    const denied = await request(verb, path, { cookie: otherCookie, body });
+    assert.equal(denied.status, 404,
+      'Cross-account project modifications must not reveal or modify another creator data');
+  }
+  const stillOwned = await request('GET', '/api/creator/projects', { cookie: created.cookie });
+  assert(stillOwned.data.projects?.some(p => p.id === projectId && p.name === 'Updated CI Widget'),
+    'Foreign modification attempts must not change the owner project');
+
+  const sceneCreated = await request('POST', '/api/creator/widget-studio/scenes', {
+    cookie: created.cookie, body: { name: 'Owner Scene', config: { marker: 'private scene' } }
+  });
+  assert.equal(sceneCreated.status, 201, `Scene creation failed: ${JSON.stringify(sceneCreated.data)}`);
+  const sceneId = sceneCreated.data.scene?.id;
+  assert(sceneId);
+  assert(!(await request('GET', '/api/creator/widget-studio/scenes', {
+    cookie: otherCookie
+  })).data.scenes?.some(scene => scene.id === sceneId),
+    'Second creator must not see owner scenes');
+  assert.equal((await request('PUT', `/api/creator/widget-studio/scenes/${sceneId}`, {
+    cookie: otherCookie, body: { name: 'Stolen Scene' }
+  })).status, 404, 'Second creator must not edit foreign scenes');
+  assert.equal((await request('POST', `/api/creator/widget-studio/scenes/${sceneId}/publish`, {
+    cookie: otherCookie, body: {}
+  })).status, 404, 'Second creator must not publish foreign scenes');
+
+  const widgetCreated = await request('POST', '/api/creator/widget-studio/widgets', {
+    cookie: created.cookie, body: { name: 'Owner Widget', widget_type: 'manual_counter' }
+  });
+  assert.equal(widgetCreated.status, 201, `Widget creation failed: ${JSON.stringify(widgetCreated.data)}`);
+  const widgetId = widgetCreated.data.widget?.id;
+  assert(widgetId);
+  assert(!(await request('GET', '/api/creator/widget-studio/widgets', {
+    cookie: otherCookie
+  })).data.widgets?.some(widget => widget.id === widgetId),
+    'Creator B must not see creator A widgets');
+  for (const [verb, suffix] of [['GET', ''], ['PUT', '/draft'], ['POST', '/publish']]) {
+    const denied = await request(verb, `/api/creator/widget-studio/widgets/${widgetId}${suffix}`, {
+      cookie: otherCookie, body: verb === 'GET' ? undefined : { name: 'Stolen Widget' }
+    });
+    assert.equal(denied.status, 404, 'Foreign widget access must return not found');
+  }
+  assert.equal((await request('GET', `/api/creator/widget-studio/widgets/${widgetId}`, {
+    cookie: created.cookie
+  })).status, 200, 'Owner must still access their own widget');
+
+  const secondProject = await request('POST', '/api/creator/projects', {
+    cookie: otherCookie, body: { kind: 'design', name: 'Private B Design', data: { secret: 'B only' } }
+  });
+  assert.equal(secondProject.status, 201);
+  assert(!(await request('GET', '/api/creator/projects', { cookie: created.cookie }))
+    .data.projects?.some(project => project.id === secondProject.data.project.id),
+    'Creator A must also be unable to see creator B private data');
+
   const archived = await request('DELETE', `/api/creator/projects/${encodeURIComponent(projectId)}`, { cookie: created.cookie });
   assert.equal(archived.status, 200, 'Owner must be able to archive their project');
   const afterArchive = await request('GET', '/api/creator/projects', { cookie: created.cookie });
@@ -241,7 +310,7 @@ try {
     headers: { cookie: login.cookie }
   })).status, 404, 'Deleted media must not be accessible even if bytes remain on disk');
 
-  console.log('PostgreSQL E2E passed: registration, duplicate rejection, password check, login, session, creator CRUD, logout, private upload delivery and account isolation.');
+  console.log('PostgreSQL E2E passed: registration, duplicate rejection, password check, account isolation, scene/widget ownership, creator CRUD, logout and admin denial.');
 } finally {
   server.kill('SIGTERM');
   await delay(300);
