@@ -13,6 +13,8 @@
 ## Render-Abnahme
 
 - `DATABASE_URL`, `DATABASE_SSL`, `APP_BASE_URL`, `SESSION_SECRET` und Provider-Redirects sicher in Render konfigurieren. Secrets nicht in Git/Chat speichern.
+- Zustandsändernde Browser-Anfragen (`POST`, `PUT`, `PATCH`, `DELETE`) werden bei einem fremden `Origin` abgewiesen. Requests ohne `Origin` bleiben für authentifizierte Launcher/API-Clients möglich.
+- Readiness-Antworten melden Datenbank, OAuth, Session-Secret und persistenten Upload-Pfad anhand der tatsächlichen Konfiguration statt pauschal als bereit.
 - Für dauerhafte Uploads eine Render Persistent Disk mounten und `ASSET_UPLOAD_ROOT` auf exakt diesen absoluten Mount-Pfad setzen. Ein Pfad ohne Disk ist nicht dauerhaft.
 - Vor dem ersten Start gegen eine bestehende Datenbank Backup und Migrationslauf gegen eine Kopie durchführen. Es gibt lokal keine `DATABASE_URL`, keinen PostgreSQL-Server und keine Testkonten; dieser Teil ist **BLOCKED**.
 - `/api/ready` muss nach dem Deploy HTTP 200 melden. Login, Rollen, Creator-Projekte, Uploads, OAuth und Bezahlabläufe in einer nichtproduktiven Umgebung prüfen.
