@@ -81,8 +81,11 @@ try {
     assert.equal(response.status, 401, `${path} should reject unauthenticated uploads`);
     assert.equal((await response.json()).error, 'AUTHENTICATION_REQUIRED');
   }
-  assert.equal(await (await fetch(`${base}/assets/uploads/probe.txt`)).text(), 'mounted upload');
-  console.log('Static boundary: 51 HTML pages reachable; internal files denied; mounted uploads served; creator uploads require authentication; cross-origin mutations denied.');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(`${base}/assets/uploads/probe.txt`, { method });
+    assert.equal(response.status, 401, 'Unregistered upload bytes must not be publicly accessible');
+  }
+  console.log('Static boundary: 51 HTML pages reachable; internal files denied; mounted uploads require authentication; creator uploads require authentication; cross-origin mutations denied.');
 } finally {
   server.kill();
   await unlink(join(uploadRoot, 'probe.txt'));

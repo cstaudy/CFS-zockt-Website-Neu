@@ -193,6 +193,123 @@ try {
   assert.equal(login.status, 200, 'Creator must be able to sign back in');
   assert(login.cookie.startsWith('cfs_session='), 'Login must issue a session cookie');
   assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true);
+  // Two-account isolation for settings, media metadata and the actual file bytes.
+  const mediaSecond = await request('POST', '/api/account/register', {
+    body: { ...registration, email: `creator-other-${randomUUID()}@example.test`, display_name: 'Other Creator' }
+  });
+  assert.equal(mediaSecond.status, 201);
+  const mediaOtherCookie = mediaSecond.cookie;
+  const settingsSaved = await request('PUT', '/api/creator/settings', {
+    cookie: login.cookie, body: { settings: { accountMarker: 'creator-A-private' } }
+  });
+  assert.equal(settingsSaved.status, 200);
+  const otherSettings = await request('GET', '/api/creator/settings', { cookie: mediaOtherCookie });
+  assert.equal(otherSettings.status, 200);
+  assert.equal(otherSettings.data.settings?.accountMarker, undefined,
+    'Private settings from creator A must not appear in creator B session');
+
+  const upload = async (path, mimeType, filename, bytes) => {
+    const response = await fetch(base + path, {
+      method: 'POST',
+      headers: {
+        origin: base, cookie: login.cookie,
+        'content-type': mimeType,
+        'x-cfs-file-name': encodeURIComponent(filename)
+      },
+      body: bytes, signal: AbortSignal.timeout(8000)
+    });
+    return { status: response.status, data: await response.json() };
+  };
+  const privateImage = Buffer.from('private-image-payload-ci');
+  const privateVideo = Buffer.from('private-video-payload-ci');
+  const asset = await upload('/api/creator/widget-studio/assets', 'image/png', 'private-ci.png', privateImage);
+  assert.equal(asset.status, 201, `Asset upload failed: ${JSON.stringify(asset.data)}`);
+  const media = await upload('/api/creator/media/videos', 'video/mp4', 'private-ci.mp4', privateVideo);
+  assert.equal(media.status, 201, `Media upload failed: ${JSON.stringify(media.data)}`);
+
+  assert(!(await request('GET', '/api/creator/widget-studio/assets', { cookie: mediaOtherCookie }))
+    .data.assets?.some(item => item.id === asset.data.asset.id),
+    'Second creator cannot see private asset metadata');
+  assert(!(await request('GET', '/api/creator/media/videos', { cookie: mediaOtherCookie }))
+    .data.media?.some(item => item.id === media.data.media.id),
+    'Second creator cannot see private media metadata');
+
+  for (const [path, expected] of [
+    [asset.data.asset.url, privateImage],
+    [media.data.media.url, privateVideo]
+  ]) {
+    assert(path?.startsWith('/assets/uploads/'), 'Uploaded file must have a private legacy URL');
+    for (const [who, cookie, status] of [
+      ['anonymous', undefined, 401],
+      ['foreign creator', mediaOtherCookie, 404],
+      ['owner', login.cookie, 200]
+    ]) {
+      for (const method of ['GET', 'HEAD']) {
+        const response = await fetch(base + path, {
+          method, headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(8000)
+        });
+        assert.equal(response.status, status, `${who} ${method} ${path} must return ${status}`);
+        if (status === 200) {
+          assert.equal(response.headers.get('cache-control'), 'private, no-store',
+            'Private uploads must never be cached as public');
+          if (method === 'GET') {
+            const actual = Buffer.from(await response.arrayBuffer());
+            assert.deepEqual(actual, expected, 'Owner must receive original upload bytes');
+          }
+        }
+      }
+    }
+  }
+
+  // A public project's image reference allows OBS to fetch JUST that image.
+  // A different creator cannot publish someone else's asset by referencing its URL.
+  const attackerProject = await request('POST', '/api/creator/projects', {
+    cookie: mediaOtherCookie,
+    body: { kind: 'widget', name: 'Foreign URL reference', data: { image: asset.data.asset.url } }
+  });
+  assert.equal(attackerProject.status, 201);
+  assert.equal((await request('PATCH', `/api/creator/projects/${attackerProject.data.project.id}`, {
+    cookie: mediaOtherCookie, body: { status: 'published' }
+  })).status, 200);
+  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
+    'A published reference from a foreign creator must not expose the private image');
+
+  const ownerProject = await request('POST', '/api/creator/projects', {
+    cookie: login.cookie,
+    body: {
+      kind: 'widget',
+      name: 'Owner OBS overlay',
+      data: { config: { elements: [{ type: 'image', data: { src: asset.data.asset.url } }] } }
+    }
+  });
+  assert.equal(ownerProject.status, 201);
+  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
+    'A draft image reference must not grant public access');
+  assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
+    cookie: login.cookie, body: { status: 'published' }
+  })).status, 200);
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + asset.data.asset.url, { method });
+    assert.equal(response.status, 200, 'Published OBS image must be accessible without a login');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store',
+      'Uploads should not persist in public caches after unpublish');
+    if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), privateImage);
+  }
+  assert.equal((await fetch(base + media.data.media.url)).status, 401,
+    'Public overlay reference must not expose private videos');
+  assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
+    cookie: login.cookie, body: { status: 'private' }
+  })).status, 200);
+  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
+    'Unpublishing the owner widget must immediately revoke anonymous access');
+  const deleted = await request('DELETE', `/api/creator/media/videos/${media.data.media.id}`, {
+    cookie: login.cookie
+  });
+  assert.equal(deleted.status, 200, 'Owner must be able to delete own media metadata');
+  assert.equal((await fetch(base + media.data.media.url, {
+    headers: { cookie: login.cookie }
+  })).status, 404, 'Deleted media must not be accessible even if bytes remain on disk');
+
   console.log('PostgreSQL E2E passed: registration, duplicate rejection, password check, account isolation, scene/widget ownership, creator CRUD, logout and admin denial.');
 } finally {
   server.kill('SIGTERM');
