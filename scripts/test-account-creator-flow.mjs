@@ -194,16 +194,16 @@ try {
   assert(login.cookie.startsWith('cfs_session='), 'Login must issue a session cookie');
   assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true);
   // Two-account isolation for settings, media metadata and the actual file bytes.
-  const second = await request('POST', '/api/account/register', {
+  const mediaSecond = await request('POST', '/api/account/register', {
     body: { ...registration, email: `creator-other-${randomUUID()}@example.test`, display_name: 'Other Creator' }
   });
-  assert.equal(second.status, 201);
-  const otherCookie = second.cookie;
+  assert.equal(mediaSecond.status, 201);
+  const mediaOtherCookie = mediaSecond.cookie;
   const settingsSaved = await request('PUT', '/api/creator/settings', {
     cookie: login.cookie, body: { settings: { accountMarker: 'creator-A-private' } }
   });
   assert.equal(settingsSaved.status, 200);
-  const otherSettings = await request('GET', '/api/creator/settings', { cookie: otherCookie });
+  const otherSettings = await request('GET', '/api/creator/settings', { cookie: mediaOtherCookie });
   assert.equal(otherSettings.status, 200);
   assert.equal(otherSettings.data.settings?.accountMarker, undefined,
     'Private settings from creator A must not appear in creator B session');
@@ -227,10 +227,10 @@ try {
   const media = await upload('/api/creator/media/videos', 'video/mp4', 'private-ci.mp4', privateVideo);
   assert.equal(media.status, 201, `Media upload failed: ${JSON.stringify(media.data)}`);
 
-  assert(!(await request('GET', '/api/creator/widget-studio/assets', { cookie: otherCookie }))
+  assert(!(await request('GET', '/api/creator/widget-studio/assets', { cookie: mediaOtherCookie }))
     .data.assets?.some(item => item.id === asset.data.asset.id),
     'Second creator cannot see private asset metadata');
-  assert(!(await request('GET', '/api/creator/media/videos', { cookie: otherCookie }))
+  assert(!(await request('GET', '/api/creator/media/videos', { cookie: mediaOtherCookie }))
     .data.media?.some(item => item.id === media.data.media.id),
     'Second creator cannot see private media metadata');
 
@@ -241,7 +241,7 @@ try {
     assert(path?.startsWith('/assets/uploads/'), 'Uploaded file must have a private legacy URL');
     for (const [who, cookie, status] of [
       ['anonymous', undefined, 401],
-      ['foreign creator', otherCookie, 404],
+      ['foreign creator', mediaOtherCookie, 404],
       ['owner', login.cookie, 200]
     ]) {
       for (const method of ['GET', 'HEAD']) {
@@ -264,12 +264,12 @@ try {
   // A public project's image reference allows OBS to fetch JUST that image.
   // A different creator cannot publish someone else's asset by referencing its URL.
   const attackerProject = await request('POST', '/api/creator/projects', {
-    cookie: otherCookie,
+    cookie: mediaOtherCookie,
     body: { kind: 'widget', name: 'Foreign URL reference', data: { image: asset.data.asset.url } }
   });
   assert.equal(attackerProject.status, 201);
   assert.equal((await request('PATCH', `/api/creator/projects/${attackerProject.data.project.id}`, {
-    cookie: otherCookie, body: { status: 'published' }
+    cookie: mediaOtherCookie, body: { status: 'published' }
   })).status, 200);
   assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
     'A published reference from a foreign creator must not expose the private image');
