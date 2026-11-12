@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { totpCode } from '../src/totp.js';
+import { ADMIN_EMAIL } from '../src/admin-access.js';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
@@ -537,6 +538,69 @@ try {
   } finally {
     await testPool.end();
   }
+  // Admin authority is explicit, verified and revocable on already-issued sessions.
+  // All database changes below target this disposable 127.0.0.1 CI database.
+  const adminRegistration = await request('POST', '/api/account/register', {
+    body: { ...registration, email: ADMIN_EMAIL, display_name: 'CI Admin candidate' }
+  });
+  assert.equal(adminRegistration.status, 201);
+  const adminCookie = adminRegistration.cookie;
+  const adminId = adminRegistration.data.account?.id;
+  assert(adminId);
+  assert.equal((await request('GET', '/api/admin/status', { cookie: adminCookie })).status, 403,
+    'Allowlisted email alone must never authorize admin access');
+  const adminPool = new pg.Pool({ connectionString: databaseUrl, ssl: false });
+  try {
+    await adminPool.query("update accounts set role='admin' where id=$1", [adminId]);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: adminCookie })).status, 403,
+      'Database admin role is insufficient without verified email ownership');
+    await adminPool.query("update accounts set email_verified_at=now() where id=$1", [adminId]);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: adminCookie })).status, 200);
+    const adminView = await request('GET', '/api/account/me', { cookie: adminCookie });
+    assert.equal(adminView.data.account.admin, true);
+    assert.equal(adminView.data.account.role, 'admin');
+
+    const adminMfaSetup = await request('POST', '/api/account/mfa/setup', {
+      cookie: adminCookie, body: { password }
+    });
+    assert.equal(adminMfaSetup.status, 200, 'Admin may configure MFA without losing role');
+    const adminSecret = adminMfaSetup.data.secret;
+    assert.equal((await request('POST', '/api/account/mfa/enable', {
+      cookie: adminCookie, body: { code: totpCode(adminSecret) }
+    })).status, 200);
+    const pendingAdmin = await request('POST', '/api/account/login', {
+      body: { email: ADMIN_EMAIL, password }
+    });
+    assert.equal(pendingAdmin.data.mfa_required, true,
+      'Verified admin must still complete the second factor');
+    assert.equal(pendingAdmin.data.authenticated, false);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: pendingAdmin.cookie })).status, 401,
+      'Admin access must not be granted by a pending MFA challenge');
+    const adminMfaLogin = await request('POST', '/api/account/mfa/login', {
+      cookie: pendingAdmin.cookie, body: { code: totpCode(adminSecret) }
+    });
+    assert.equal(adminMfaLogin.status, 200, 'Admin second factor should create full session');
+    assert.equal((await request('GET', '/api/admin/status', { cookie: adminMfaLogin.cookie })).status, 200,
+      'Verified admin should retain authority after completing MFA');
+
+    await adminPool.query("update accounts set role='creator' where id=$1", [adminId]);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: adminMfaLogin.cookie })).status, 403,
+      'Changing the database role must revoke existing admin session authority');
+    await adminPool.query("update accounts set role='admin',email_verified_at=null where id=$1", [adminId]);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: adminMfaLogin.cookie })).status, 403,
+      'Unverifying email must revoke admin authority immediately');
+    assert.equal((await request('GET', '/api/account/me', { cookie: adminMfaLogin.cookie })).data.account.admin,
+      false, 'Account API must never display revoked privileges');
+
+    // Even an unrelated verified role-admin cannot pass the email allowlist.
+    await adminPool.query("update accounts set role='admin',email_verified_at=now() where id=$1",
+      [created.data.account.id]);
+    const nonAdminSession = await request('GET', '/api/admin/status', { cookie: login.cookie });
+    assert.equal(nonAdminSession.status, 403, 'Wrong email cannot receive privileged rights');
+  } finally {
+    await adminPool.end();
+  }
+
   console.log('PostgreSQL E2E passed: registration, duplicate rejection, password check, account isolation, scene/widget ownership, creator CRUD, logout and admin denial.');
 } finally {
   server.kill('SIGTERM');
