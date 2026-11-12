@@ -9,6 +9,7 @@ import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
 import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
 import { mailStatus } from "./src/mail.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
+import { finishMfaLogin, pendingMfaCookie, clearPendingMfaCookie } from "./src/mfa-login.js";
 import { createSupportReport, listSupportReports, updateSupportReport } from "./src/support.js";
 import { gameState, gameRuntime, gameRules } from "./src/games.js";
 import { modulesState, launcherModuleState, audioModuleState } from "./src/modules.js";
@@ -306,6 +307,12 @@ async function handle(req, res) {
   if(url.pathname.startsWith("/api/account/passkeys/")&&(method==="POST"||method==="DELETE")){return json(res,503,{error:"PASSKEYS_NOT_CONFIGURED",message:"WebAuthn/Passkeys sind für diese Installation noch nicht aktiviert."});}
   if(url.pathname.startsWith("/api/account/mfa/passkey/")&&method==="POST"){return json(res,503,{error:"PASSKEYS_NOT_CONFIGURED",message:"WebAuthn/Passkeys sind für diese Installation noch nicht aktiviert."});}
   if(url.pathname==="/api/account/mfa/login"&&method==="POST"){return json(res,503,{error:"MFA_LOGIN_FLOW_NOT_CONFIGURED",message:"MFA-Login wird erst nach Aktivierung des vollständigen Login-Challenges aktiviert."});}
+  if(url.pathname==="/api/account/mfa/login"&&method==="POST"){
+    const result=await finishMfaLogin(req,await readJson(req));
+    if(result.error)return json(res,result.status,{error:result.error});
+    res.setHeader("set-cookie",[cookie("cfs_session",result.token,result.maxAge),clearPendingMfaCookie()]);
+    return json(res,200,{authenticated:true,account:result.account,recovery_code_used:result.recovery_code_used});
+  }
   if(url.pathname==="/api/public/support/report"&&method==="POST"){const result=await createSupportReport(await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
   if(url.pathname==="/api/public/reviews/merch"&&(method==="GET"||method==="POST")){const result=await publicReviews(req,method==="POST"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,method==="POST"?201:200,result);}
   if(url.pathname==="/api/public/tiktok/videos"&&method==="GET")return json(res,200,await publicTikTokVideos());
@@ -438,9 +445,16 @@ async function handle(req, res) {
       return json(res, 429, { error: "LOGIN_RATE_LIMITED" });
     }
     const result = await login(credentials);
-    if (result.error) return json(res, result.status, { error: result.error });
+    if (result.error) {
+      if (result.status === 429) res.setHeader("retry-after", "900");
+      return json(res, result.status, { error: result.error });
+    }
     if (throttleEnabled) loginThrottle.successful(address, credentials.email);
-    res.setHeader("set-cookie", cookie("cfs_session", result.token, result.maxAge));
+    if (result.mfa_required) {
+      res.setHeader("set-cookie", pendingMfaCookie(result.pendingToken));
+      return json(res, 200, { authenticated: false, mfa_required: true, mfa_methods: result.mfa_methods });
+    }
+    res.setHeader("set-cookie", [cookie("cfs_session", result.token, result.maxAge), clearPendingMfaCookie()]);
     return json(res, 200, { authenticated: true, account: result.account });
   }
 

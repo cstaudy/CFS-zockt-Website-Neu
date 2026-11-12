@@ -37,16 +37,22 @@ export function totpCode(secret, timeSeconds = Math.floor(Date.now() / 1000)) {
   return String(value).padStart(digits, "0");
 }
 
-export function verifyTotp(secret, submitted, timeSeconds = Math.floor(Date.now() / 1000)) {
+// Return the matched time step so a caller can reject previously consumed
+// codes while holding an account-level database lock.
+export function matchingTotpStep(secret, submitted, timeSeconds = Math.floor(Date.now() / 1000)) {
   const input = String(submitted ?? "");
-  if (!/^\d{6}$/.test(input) || !Number.isSafeInteger(timeSeconds) || timeSeconds < 0) return false;
-  const secretBytes = decodeTotpSecret(secret);
-  if (!secretBytes) return false;
+  if (!/^\d{6}$/.test(input) || !Number.isSafeInteger(timeSeconds) || timeSeconds < 0) return null;
+  if (!decodeTotpSecret(secret)) return null;
   const step = Math.floor(timeSeconds / steps);
   for (const offset of [-1, 0, 1]) {
-    if (step + offset < 0) continue;
-    const expected = totpCode(secret, (step + offset) * steps);
-    if (expected && timingSafeEqual(Buffer.from(input), Buffer.from(expected))) return true;
+    const candidate = step + offset;
+    if (candidate < 0) continue;
+    const expected = totpCode(secret, candidate * steps);
+    if (expected && timingSafeEqual(Buffer.from(input), Buffer.from(expected))) return candidate;
   }
-  return false;
+  return null;
+}
+
+export function verifyTotp(secret, submitted, timeSeconds = Math.floor(Date.now() / 1000)) {
+  return matchingTotpStep(secret, submitted, timeSeconds) !== null;
 }

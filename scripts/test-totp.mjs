@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
-import { totpCode, verifyTotp, decodeTotpSecret } from '../src/totp.js';
+import { totpCode, verifyTotp, decodeTotpSecret, matchingTotpStep } from '../src/totp.js';
 
 // RFC 6238 SHA-1 test vector (8-digit 94287082 => 6-digit 287082).
 const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
 assert.equal(totpCode(secret, 59), '287082');
 assert.equal(verifyTotp(secret, '287082', 59), true);
+assert.equal(matchingTotpStep(secret, '287082', 59), 1, 'Matching step is recorded for replay prevention');
+assert.equal(matchingTotpStep(secret, '287082', 89), 1, 'Clock tolerance must not alter the actual used step');
+assert.equal(matchingTotpStep(secret, '287082', 119), null, 'Outside permitted clock tolerance is rejected');
 assert.equal(verifyTotp(secret, '287082', 29), true, 'one early step allowed');
 assert.equal(verifyTotp(secret, '287082', 89), true, 'one late step allowed');
 assert.equal(verifyTotp(secret, '287082', 119), false, 'two late steps denied');
