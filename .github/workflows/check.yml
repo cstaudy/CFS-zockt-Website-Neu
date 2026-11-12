@@ -44,6 +44,11 @@ jobs:
           DATABASE_URL: postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci
           CFS_CI_DATABASE_ACCEPTANCE: 'yes'
         run: node scripts/test-legacy-upgrade-pg18.mjs
+      - name: PostgreSQL 18 legacy dump-to-restore migration rehearsal
+        env:
+          DATABASE_URL: postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci
+          CFS_CI_DATABASE_ACCEPTANCE: 'yes'
+        run: node scripts/test-legacy-dump-restore-upgrade-pg18.mjs
       - name: PostgreSQL 18 dump and isolated restore acceptance
         env:
           DATABASE_URL: postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci
