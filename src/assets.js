@@ -1,11 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
+import { uploadRoot } from "./upload-storage.js";
 
-const uploadRoot = fileURLToPath(new URL("../assets/uploads/", import.meta.url));
 const categories = { image: "Bilder", overlay: "Overlays", frame_overlay: "Rahmen", background: "Hintergründe" };
 
 function asset(row) {
