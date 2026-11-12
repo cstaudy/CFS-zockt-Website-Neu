@@ -192,6 +192,47 @@ try {
     }
   }
 
+  // A public project's image reference allows OBS to fetch JUST that image.
+  // A different creator cannot publish someone else's asset by referencing its URL.
+  const attackerProject = await request('POST', '/api/creator/projects', {
+    cookie: otherCookie,
+    body: { kind: 'widget', name: 'Foreign URL reference', data: { image: asset.data.asset.url } }
+  });
+  assert.equal(attackerProject.status, 201);
+  assert.equal((await request('PATCH', `/api/creator/projects/${attackerProject.data.project.id}`, {
+    cookie: otherCookie, body: { status: 'published' }
+  })).status, 200);
+  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
+    'A published reference from a foreign creator must not expose the private image');
+
+  const ownerProject = await request('POST', '/api/creator/projects', {
+    cookie: login.cookie,
+    body: {
+      kind: 'widget',
+      name: 'Owner OBS overlay',
+      data: { config: { elements: [{ type: 'image', data: { src: asset.data.asset.url } }] } }
+    }
+  });
+  assert.equal(ownerProject.status, 201);
+  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
+    'A draft image reference must not grant public access');
+  assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
+    cookie: login.cookie, body: { status: 'published' }
+  })).status, 200);
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + asset.data.asset.url, { method });
+    assert.equal(response.status, 200, 'Published OBS image must be accessible without a login');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store',
+      'Uploads should not persist in public caches after unpublish');
+    if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), privateImage);
+  }
+  assert.equal((await fetch(base + media.data.media.url)).status, 401,
+    'Public overlay reference must not expose private videos');
+  assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
+    cookie: login.cookie, body: { status: 'private' }
+  })).status, 200);
+  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
+    'Unpublishing the owner widget must immediately revoke anonymous access');
   const deleted = await request('DELETE', `/api/creator/media/videos/${media.data.media.id}`, {
     cookie: login.cookie
   });
