@@ -130,11 +130,22 @@ try {
   // application session. Test against the isolated disposable PostgreSQL instance.
   const testPool = new pg.Pool({ connectionString: databaseUrl, ssl: false });
   try {
-    const testSecret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
-    await testPool.query(
-      "insert into account_mfa(account_id,secret,enabled,enabled_at,recovery_codes) values($1,$2,true,now(),$3::jsonb)",
-      [created.data.account.id, testSecret, JSON.stringify(['ABCDEF1234', 'ABCDEF5678'])]
-    );
+    const setup = await request('POST', '/api/account/mfa/setup', {
+      cookie: login.cookie, body: { password }
+    });
+    assert.equal(setup.status, 200, `MFA setup failed: ${JSON.stringify(setup.data)}`);
+    const testSecret = setup.data.secret;
+    assert(testSecret, 'Authenticator setup must create a secret');
+    const enabled = await request('POST', '/api/account/mfa/enable', {
+      cookie: login.cookie, body: { code: totpCode(testSecret) }
+    });
+    assert.equal(enabled.status, 200, `MFA enable failed: ${JSON.stringify(enabled.data)}`);
+    const recoveryCode = enabled.data.recovery_codes?.[0];
+    assert(recoveryCode, 'MFA setup must issue recovery codes');
+    assert.equal((await request('GET', '/api/account/me', { cookie: created.cookie })).data.authenticated, false,
+      'Enabling MFA must revoke older sessions');
+    assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true,
+      'The current setup session remains available to save recovery codes');
 
     const pending = await request('POST', '/api/account/login', { body: { email, password } });
     assert.equal(pending.status, 200);
@@ -164,18 +175,18 @@ try {
     const recoveryPending = await request('POST', '/api/account/login', { body: { email, password } });
     assert.equal(recoveryPending.data.mfa_required, true);
     const recovery = await request('POST', '/api/account/mfa/login', {
-      cookie: recoveryPending.cookie, body: { recovery_code: 'ABCDEF1234' }
+      cookie: recoveryPending.cookie, body: { recovery_code: recoveryCode }
     });
     assert.equal(recovery.status, 200);
     assert.equal(recovery.data.recovery_code_used, true);
     const remainingCodes = (await testPool.query(
       "select recovery_codes from account_mfa where account_id=$1", [created.data.account.id]
     )).rows[0].recovery_codes;
-    assert(!remainingCodes.includes('ABCDEF1234'), 'Recovery code must be consumed atomically');
+    assert(!remainingCodes.includes(recoveryCode), 'Recovery code must be consumed atomically');
 
     const replayPending = await request('POST', '/api/account/login', { body: { email, password } });
     assert.equal((await request('POST', '/api/account/mfa/login', {
-      cookie: replayPending.cookie, body: { recovery_code: 'ABCDEF1234' }
+      cookie: replayPending.cookie, body: { recovery_code: recoveryCode }
     })).status, 401, 'A used recovery code must never work again');
     for (let i = 0; i < 4; i++) {
       assert.equal((await request('POST', '/api/account/mfa/login', {
