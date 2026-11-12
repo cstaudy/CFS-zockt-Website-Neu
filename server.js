@@ -17,6 +17,7 @@ import { publicReviews } from "./src/reviews.js";
 import { createProject, deleteProject, listProjects, updateProject, requireAdmin, requireAccount } from "./src/projects.js";
 import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
+import { getPublicWidget } from "./src/widget-output.js";
 import { listAssets, uploadAsset } from "./src/assets.js";
 import { createPackage, listPackages, listShopCatalog, convertBundle } from "./src/packages.js";
 import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnectTikTok, syncTikTok, publicTikTokVideos } from "./src/tiktok.js";
@@ -205,6 +206,12 @@ async function handle(req, res) {
   }
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && !requestOriginAllowed(req)) {
     return json(res, 403, { error: "ORIGIN_NOT_ALLOWED", message: "Die Anfrage stammt nicht von dieser Website." });
+  }
+
+  const publicWidgetMatch = url.pathname.match(/^\/api\/public\/widgets\/([^/]+)$/);
+  if (publicWidgetMatch && method === "GET") {
+    const result = await getPublicWidget(publicWidgetMatch[1]);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result.payload);
   }
 
   if (url.pathname === "/api/health" && ["GET", "HEAD"].includes(method)) {
