@@ -67,6 +67,19 @@ export async function login({ email, password }) {
   const result = await pool.query("select id, email, display_name, role, plan, password_hash, created_at from accounts where email = $1", [normalizeEmail(email)]);
   const account = result.rows[0];
   if (!account || !account.password_hash || !(await verifyPassword(password, account.password_hash))) return { error: "INVALID_CREDENTIALS", status: 401 };
+  const secondFactor = (await pool.query("select enabled, recovery_codes from account_mfa where account_id=$1", [account.id])).rows[0];
+  if (secondFactor?.enabled === true) {
+    const pendingToken = randomBytes(32).toString("base64url");
+    // Invalidate older challenges for this account to bound pending sessions.
+    await pool.query("delete from mfa_login_challenges where account_id=$1 or expires_at<=now()", [account.id]);
+    await pool.query("insert into mfa_login_challenges(token_hash,account_id,expires_at) values($1,$2,now()+interval '10 minutes')", [tokenHash(pendingToken), account.id]);
+    return {
+      mfa_required: true,
+      mfa_methods: { totp: true, recovery: Array.isArray(secondFactor.recovery_codes) && secondFactor.recovery_codes.length > 0, passkey: false },
+      pendingToken,
+      pendingMaxAge: 600
+    };
+  }
   const token = randomBytes(32).toString("base64url");
   await pool.query("insert into sessions (account_id, token_hash, expires_at) values ($1, $2, now() + ($3 || ' days')::interval)", [account.id, tokenHash(token), String(sessionDays)]);
   delete account.password_hash;
