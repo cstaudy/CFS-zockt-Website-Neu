@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { readJson as readJsonBody } from "./src/request-json.js";
 import { createReadStream } from "node:fs";
 import { access, readFile, stat } from "node:fs/promises";
-import { extname, join, normalize, resolve } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
 import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
@@ -18,7 +18,7 @@ import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget
 import { listAssets, uploadAsset } from "./src/assets.js";
 import { createPackage, listPackages, listShopCatalog, convertBundle } from "./src/packages.js";
 import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnectTikTok, syncTikTok, publicTikTokVideos } from "./src/tiktok.js";
-import { startTwitch, finishTwitch, getTwitchStatus, disconnectTwitch, syncTwitch } from "./src/twitch.js";
+import { startTwitch, finishTwitch, twitchConfigured, getTwitchStatus, disconnectTwitch, syncTwitch } from "./src/twitch.js";
 import { getPlayStationState, publicPlayStationState, syncPlayStationFromLauncher } from "./src/playstation.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
@@ -30,6 +30,7 @@ import { publicTwitchState, publicTwitchCommunity } from "./src/public-twitch.js
 import { paypalStatus, createPayPalOrder, capturePayPalOrder } from "./src/paypal.js";
 import { publicLiveControl } from "./src/public-live.js";
 import { creatorSettings } from "./src/creator-settings.js";
+import { uploadRoot, persistentUploadsConfigured } from "./src/upload-storage.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -86,6 +87,18 @@ function requestId(req) {
   return req.headers["x-request-id"] || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function requestOriginAllowed(req) {
+  const origin = String(req.headers.origin || "").trim();
+  if (!origin) return true;
+  const configured = String(process.env.APP_BASE_URL || "").trim();
+  if (configured) {
+    try { return origin === new URL(configured).origin; } catch { return false; }
+  }
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const protocol = forwardedProto || (req.socket?.encrypted ? "https" : "http");
+  return origin === `${protocol}://${req.headers.host || ""}`;
+}
+
 async function readJson(req) {
   return readJsonBody(req, maxJsonBytes);
 }
@@ -97,10 +110,29 @@ async function readRaw(req) {
   return Buffer.concat(chunks);
 }
 
+const publicRootFiles = new Set([
+  "index.html", "favicon.ico", "app-icon.png", "cfs-zockt-logo.png",
+  "robots.txt", "sitemap.xml", "site.webmanifest", "cfs-studio.webmanifest"
+]);
+const publicDirectories = new Set(["assets", "pages", "widgets", "games", "auth"]);
+
 function safePath(urlPath) {
-  const requested = decodeURIComponent(urlPath === "/" ? "/index.html" : urlPath);
-  const candidate = resolve(root, `.${normalize(requested)}`);
-  return candidate.startsWith(root) ? candidate : null;
+  let requested;
+  try { requested = decodeURIComponent(urlPath === "/" ? "/index.html" : urlPath); }
+  catch { return null; }
+  if (!requested.startsWith("/") || requested.includes("\\") || requested.includes("\0")) return null;
+  if (requested === "/.well-known/security.txt") return resolve(root, ".well-known", "security.txt");
+  if (requested === "/config/monetization.json") return resolve(root, "config", "monetization.json");
+  const segments = requested.slice(1).split("/");
+  if (segments.some(segment => !segment || segment === "." || segment === ".." || segment.startsWith("."))) return null;
+  if (segments.length === 1 ? !publicRootFiles.has(segments[0]) : !publicDirectories.has(segments[0])) return null;
+  if (segments[0] === "assets" && segments[1] === "uploads") {
+    if (segments.length < 3) return null;
+    const uploadedFile = resolve(uploadRoot, ...segments.slice(2));
+    return uploadedFile.startsWith(uploadRoot + sep) ? uploadedFile : null;
+  }
+  const candidate = resolve(root, ...segments);
+  return candidate.startsWith(root + sep) ? candidate : null;
 }
 
 async function serveStatic(req, res) {
@@ -131,16 +163,19 @@ async function handle(req, res) {
     res.writeHead(204, { "access-control-allow-methods": "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS", "access-control-allow-headers": "content-type,x-csrf-token" });
     return res.end();
   }
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && !requestOriginAllowed(req)) {
+    return json(res, 403, { error: "ORIGIN_NOT_ALLOWED", message: "Die Anfrage stammt nicht von dieser Website." });
+  }
 
   if (url.pathname === "/api/health" && ["GET", "HEAD"].includes(method)) {
     return json(res, 200, { ok: true, service: "cfs-zockt", status: "healthy", started_at: startedAt, uptime_seconds: Math.floor(process.uptime()), version });
   }
   if (url.pathname === "/api/integrations/status" && ["GET", "HEAD"].includes(method)) {
-    return json(res, 200, { ok: true, integrations: { database: Boolean(process.env.DATABASE_URL), session_secret: Boolean(process.env.SESSION_SECRET), twitch: Boolean(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET), tiktok: tiktokConfigured(), launcher: Boolean(process.env.LAUNCHER_BRIDGE_SECRET), paypal: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET), playstation: Boolean(process.env.PSN_PROVIDER && process.env.PSN_CLIENT_ID), storage: Boolean(process.env.ASSET_STORAGE_BUCKET) || (process.env.ASSET_STORAGE_PROVIDER || "local") === "local" }, note: "Nur Konfigurationsstatus; keine Secrets werden ausgegeben." });
+    return json(res, 200, { ok: true, integrations: { database: Boolean(process.env.DATABASE_URL), session_secret: Boolean(process.env.SESSION_SECRET), twitch: twitchConfigured(), tiktok: tiktokConfigured(), launcher: Boolean(process.env.LAUNCHER_BRIDGE_SECRET), paypal: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET), playstation: Boolean(process.env.PSN_PROVIDER && process.env.PSN_CLIENT_ID), storage: Boolean(process.env.ASSET_STORAGE_BUCKET) || (process.env.ASSET_STORAGE_PROVIDER || "local") === "local", persistent_upload_path: persistentUploadsConfigured }, note: "Nur Konfigurationsstatus; keine Secrets werden ausgegeben. Ein Upload-Pfad ist erst mit persistentem Mount dauerhaft." });
   }
   if (url.pathname === "/api/creator/integration-capabilities" && method === "GET") {
     const account=await currentAccount(req); if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});
-    return json(res,200,{ok:true,integrations:{oauth:[{provider:"tiktok",configured:tiktokConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TIKTOK_CLIENT_KEY),client_secret:Boolean(process.env.TIKTOK_CLIENT_SECRET),redirect_uri:Boolean(process.env.TIKTOK_REDIRECT_URI||process.env.APP_BASE_URL)}},{provider:"twitch",configured:Boolean(process.env.TWITCH_CLIENT_ID&&process.env.TWITCH_CLIENT_SECRET),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TWITCH_CLIENT_ID),client_secret:Boolean(process.env.TWITCH_CLIENT_SECRET),redirect_uri:Boolean(process.env.TWITCH_REDIRECT_URI||process.env.APP_BASE_URL)}}],obs_websocket:Boolean(process.env.OBS_WEBSOCKET_URL||process.env.OBS_WS_URL),launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET),paypal:paypalStatus(),playstation:Boolean(process.env.PSN_PROVIDER&&process.env.PSN_CLIENT_ID)}});
+    return json(res,200,{ok:true,integrations:{oauth:[{provider:"tiktok",configured:tiktokConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TIKTOK_CLIENT_KEY),client_secret:Boolean(process.env.TIKTOK_CLIENT_SECRET),redirect_uri:Boolean(process.env.TIKTOK_REDIRECT_URI||process.env.APP_BASE_URL),session_secret:Boolean(process.env.SESSION_SECRET)}},{provider:"twitch",configured:twitchConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TWITCH_CLIENT_ID),client_secret:Boolean(process.env.TWITCH_CLIENT_SECRET),redirect_uri:Boolean(process.env.TWITCH_REDIRECT_URI||process.env.APP_BASE_URL),session_secret:Boolean(process.env.SESSION_SECRET)}}],obs_websocket:Boolean(process.env.OBS_WEBSOCKET_URL||process.env.OBS_WS_URL),launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET),paypal:paypalStatus(),playstation:Boolean(process.env.PSN_PROVIDER&&process.env.PSN_CLIENT_ID)}});
   }
 
   if (url.pathname === "/api/integrations/tiktok/start" && method === "GET") {
@@ -229,18 +264,18 @@ async function handle(req, res) {
   if(url.pathname==="/api/creator/modules"&&method==="GET"){const result=await modulesState(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/modules/launcher/state"&&method==="GET"){const result=await launcherModuleState(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/modules/audio_studio/state"&&(method==="GET"||method==="PUT")){const result=await audioModuleState(req,method==="PUT"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
-  if(url.pathname==="/api/creator/stream-ready"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,ready:false,status:"setup_required",checks:{twitch:Boolean(process.env.TWITCH_CLIENT_ID&&process.env.TWITCH_CLIENT_SECRET),tiktok:tiktokConfigured(),launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET),obs:false},message:"Provider und Launcher prüfen, bevor live gestartet wird."});}
-  if(url.pathname==="/api/creator/technical-status"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,service:"cfs-zockt",status:"operational_with_setup_requirements",checks:{database:Boolean(process.env.DATABASE_URL),oauth:true,mail:mailStatus().email_verification_available,paypal:paypalStatus().configured,launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET)}});}
+  if(url.pathname==="/api/creator/stream-ready"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,ready:false,status:"setup_required",checks:{twitch:twitchConfigured(),tiktok:tiktokConfigured(),launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET),obs:false},message:"Provider und Launcher prüfen, bevor live gestartet wird."});}
+  if(url.pathname==="/api/creator/technical-status"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const database=Boolean(process.env.DATABASE_URL),oauth=twitchConfigured()||tiktokConfigured();return json(res,200,{ok:true,service:"cfs-zockt",status:database?"operational_with_setup_requirements":"database_required",checks:{database,oauth,mail:mailStatus().email_verification_available,paypal:paypalStatus().configured,launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET)}});}
   if(url.pathname==="/api/creator/settings"&&(method==="GET"||method==="PUT")){const result=await creatorSettings(req,method==="PUT"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
-  if(url.pathname==="/api/creator/security-readiness"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,ready:true,security:{session_secret:Boolean(process.env.SESSION_SECRET),csrf:true,headers:true,mfa_available:true},message:"Sicherheits-Baseline aktiv; Provider- und Browser-Acceptance bleiben separat."});}
-  if(url.pathname==="/api/creator/suite-readiness"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,ready:true,checks:{database:Boolean(process.env.DATABASE_URL),account:true,creator_tools:true,storage:Boolean(process.env.STORAGE_BUCKET||process.env.S3_BUCKET)},message:"Creator-Suite-Kern ist bereit; externe Provider werden separat geprüft."});}
+  if(url.pathname==="/api/creator/security-readiness"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const sessionSecret=Boolean(process.env.SESSION_SECRET);return json(res,200,{ok:true,ready:sessionSecret,security:{session_secret:sessionSecret,csrf_origin_check:true,headers:true,mfa_available:true},message:sessionSecret?"Sicherheits-Baseline aktiv; Provider- und Browser-Acceptance bleiben separat.":"SESSION_SECRET fehlt; OAuth ist gesperrt."});}
+  if(url.pathname==="/api/creator/suite-readiness"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const database=Boolean(process.env.DATABASE_URL),storage=persistentUploadsConfigured;return json(res,200,{ok:true,ready:database,checks:{database,account:true,creator_tools:true,persistent_uploads:storage},message:database?storage?"Creator-Suite-Kern und persistente Uploads sind konfiguriert.":"Creator-Suite-Kern ist bereit; Uploads sind ohne Persistent Disk nicht dauerhaft.":"Datenbank fehlt; Creator-Suite ist nicht bereit."});}
   if(url.pathname==="/api/creator/release-readiness"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,release:{local_ready:true,production_deploy_required:true,provider_acceptance_pending:true},message:"Code und Datenbank sind vorbereitet; Render-Deployment und externe Acceptance stehen aus."});}
   if(url.pathname==="/api/plans/catalog"&&method==="GET")return json(res,200,{ok:true,configured:false,plans:[],message:"Kein kostenpflichtiger Produktkatalog freigegeben. Statische Planübersicht bleibt verfügbar."});
   if(url.pathname==="/api/creator/billing/status"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,configured:false,subscription:{plan:account.plan||"free",access_active:true},paypal:paypalStatus(),message:"Billing ist vorbereitet, aber kostenpflichtige Planwechsel sind noch gesperrt."});}
   if((url.pathname==="/api/creator/billing/checkout"||url.pathname==="/api/creator/billing/portal")&&method==="POST"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,503,{error:"BILLING_NOT_CONFIGURED",message:"Kostenpflichtige Billing-Funktionen sind bis zur Produkt- und Providerfreigabe gesperrt."});}
   if(url.pathname==="/api/creator/public-live-control"&&(method==="GET"||method==="POST")){const result=await publicLiveControl(req,method==="POST"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/stream-studio/runtime"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const devices=(await getPool().query("select machine_name,client_version,status,obs_connected,obs_version,last_seen_at from launcher_devices where account_id=$1 and status='active' order by updated_at desc",[account.id])).rows;const d=devices[0]||null;return json(res,200,{ok:true,runtime:{connected:Boolean(d),launcher:d?{machine_name:d.machine_name,client_version:d.client_version}:null,obs_connected:Boolean(d?.obs_connected),status:d?.obs_connected?"ready":d?"launcher_only":"offline"}});}
-  if(url.pathname==="/api/creator/universal-builder/live-readiness"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,ready:false,providers:{tiktok:tiktokConfigured(),twitch:Boolean(process.env.TWITCH_CLIENT_ID&&process.env.TWITCH_CLIENT_SECRET)},message:"Live-Daten erscheinen nach Provider-Verbindung und Veröffentlichung des Widgets."});}
+  if(url.pathname==="/api/creator/universal-builder/live-readiness"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,ready:false,providers:{tiktok:tiktokConfigured(),twitch:twitchConfigured()},message:"Live-Daten erscheinen nach Provider-Verbindung und Veröffentlichung des Widgets."});}
   if(url.pathname==="/api/creator/stream-maker-shop"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,enabled:false,templates:[],message:"Noch keine veröffentlichten Maker-Vorlagen vorhanden."});}
   if(url.pathname.startsWith("/api/creator/cfson/")&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});if(url.pathname.endsWith("/status"))return json(res,200,{ok:true,mode:"private_alpha",integration:"ui_preview_only",version:"Alpha",enabled:false,message:"CFSON ist nur als lokaler, lesender Diagnosetest vorbereitet."});return json(res,503,{ok:false,state:"disabled",error:"CFSON_NOT_CONNECTED",liveIngestDisabled:true,message:"Kein CFSON-Dienst verbunden. Es werden keine Konto-, Medien- oder Live-Daten freigegeben."});}
   if(url.pathname.startsWith("/api/creator/cfs-ai/")&&(method==="GET"||method==="POST")){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const enabled=Boolean(process.env.CFS_AI_ENABLED&&process.env.CFS_AI_BRIDGE_TOKEN);if(url.pathname.endsWith("/status"))return json(res,200,{ok:true,enabled,configured:enabled,provider:null,status:enabled?"configured":"disabled",message:enabled?"AI-Bridge konfiguriert.":"CFS-AI ist aktuell nicht konfiguriert."});if(url.pathname.endsWith("/bridge"))return json(res,200,{ok:true,enabled,connected:false,provider:null,message:"Keine AI-Bridge verbunden."});if(url.pathname.endsWith("/knowledge"))return json(res,200,{ok:true,enabled,items:[]});if(url.pathname.endsWith("/roadmap"))return json(res,200,{ok:true,enabled,items:[]});if(url.pathname.endsWith("/proposals"))return json(res,200,{ok:true,enabled,proposals:[]});return json(res,enabled?501:503,{error:enabled?"AI_BRIDGE_NOT_IMPLEMENTED":"AI_NOT_CONFIGURED",message:"Dieser optionale AI-Bereich ist derzeit deaktiviert."});}

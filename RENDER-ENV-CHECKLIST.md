@@ -62,13 +62,21 @@ PAYPAL_WEBHOOK_ID=<PayPal Sandbox Webhook ID>
 
 ## Storage
 
-Für die aktuelle Beta genügt:
+Für lokale Tests genügt:
 
 ```text
 ASSET_STORAGE_PROVIDER=local
 ```
 
-Für dauerhafte Uploads später ergänzen:
+Für dauerhafte Creator-Uploads auf Render eine Persistent Disk mounten und ihren absoluten Mount-Pfad eintragen:
+
+```text
+ASSET_UPLOAD_ROOT=/var/data/cfs-uploads
+```
+
+Ohne diese Disk gehen lokal gespeicherte Uploads bei Neustarts und Deploys verloren. Der Pfad muss exakt zum Mount-Pfad in Render passen. `ASSET_STORAGE_BUCKET` allein aktiviert im aktuellen Code keinen Object-Storage-Upload.
+
+Für eine spätere echte Object-Storage-Implementierung wäre zusätzlich nötig:
 
 ```text
 ASSET_STORAGE_BUCKET=<Object Storage Bucket>
@@ -82,12 +90,11 @@ Admin-Elevation-, CSRF- und Launcher-Varianten.
 
 ## Deploy-Reihenfolge
 
-1. Pflichtvariablen und TikTok-Variablen in Render eintragen.
+1. Pflichtvariablen eintragen; Provider-Variablen nur für tatsächlich freigegebene Integrationen setzen.
 2. Aktuellen Code in das mit Render verbundene GitHub-Repository committen.
 3. Render deployen.
 4. `/api/ready` prüfen.
 5. `/api/integrations/status` prüfen.
 6. TikTok-Verbindung über `/api/integrations/tiktok/start` starten.
 
-Die Datenbankmigration `005_tiktok_oauth.sql` läuft beim Start automatisch,
-sobald `DATABASE_URL` gesetzt ist.
+Alle noch nicht protokollierten Datenbankmigrationen laufen beim Start automatisch, sobald `DATABASE_URL` gesetzt ist. Vor dem ersten Start mit einer bestehenden Datenbank Backup und Staging-Durchlauf durchführen. Der Produktionsstart darf erst nach erfolgreichem `/api/ready` und geprüften Logs als bereit gelten.
