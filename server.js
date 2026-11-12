@@ -136,14 +136,31 @@ function safePath(urlPath) {
 }
 
 async function serveStatic(req, res) {
-  const filePath = safePath(new URL(req.url, "http://localhost").pathname);
+  const pathname = new URL(req.url, "http://localhost").pathname;
+  const filePath = safePath(pathname);
   if (!filePath) return json(res, 403, { error: "FORBIDDEN", message: "Ungültiger Pfad." });
+  const isUpload = filePath.startsWith(uploadRoot + sep);
+  if (isUpload) {
+    // The legacy upload URLs are not public: possession of a path is not authorization.
+    const account = await currentAccount(req);
+    if (!account) return json(res, 401, { error: "AUTHENTICATION_REQUIRED" });
+    const storagePath = filePath.slice(uploadRoot.length + 1).split(sep).join("/");
+    const owned = await getPool().query(
+      `select exists(
+        select 1 from creator_assets where account_id=$1 and storage_path=$2
+        union all
+        select 1 from user_media where account_id=$1 and storage_path=$2
+      ) as allowed`,
+      [account.id, storagePath]
+    );
+    if (!owned.rows[0]?.allowed) return json(res, 404, { error: "NOT_FOUND" });
+  }
   try {
     const info = await stat(filePath);
     if (!info.isFile()) return json(res, 404, { error: "NOT_FOUND" });
     res.writeHead(200, {
       "content-type": mimeTypes[extname(filePath).toLowerCase()] || "application/octet-stream",
-      "cache-control": extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
+      "cache-control": isUpload ? "private, no-store" : extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
     });
     if (req.method === "HEAD") return res.end();
     createReadStream(filePath).pipe(res);
