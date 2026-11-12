@@ -15,7 +15,9 @@ await writeFile(join(uploadRoot, 'probe.txt'), 'mounted upload');
 const env = { ...process.env, HOST: '127.0.0.1', PORT: String(port), ASSET_UPLOAD_ROOT: uploadRoot };
 delete env.DATABASE_URL;
 delete env.APP_BASE_URL;
-const server = spawn(process.execPath, ['server.js'], { cwd: new URL('..', import.meta.url), env, stdio: 'ignore' });
+const server = spawn(process.execPath, ['server.js'], { cwd: new URL('..', import.meta.url), env, stdio: ['ignore', 'ignore', 'pipe'] });
+let serverErrors = '';
+server.stderr.on('data', chunk => { serverErrors = (serverErrors + chunk.toString()).slice(-4000); });
 const base = `http://127.0.0.1:${port}`;
 try {
   let ready = false;
@@ -24,7 +26,7 @@ try {
     if (ready) break;
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-  assert(ready, 'Server did not start');
+  assert(ready, `Server did not start: ${serverErrors}`);
   for (const path of ['/', '/pages/login.html', '/assets/css/styles.css', '/widgets/scene.html', '/games/runtime.html', '/auth/tiktok/callback.html', '/.well-known/security.txt', '/config/monetization.json']) {
     assert.equal((await fetch(base + path)).status, 200, `${path} should be public`);
   }
