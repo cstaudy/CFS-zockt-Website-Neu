@@ -140,6 +140,15 @@ try {
       cookie: login.cookie, body: { code: totpCode(testSecret) }
     });
     assert.equal(enabled.status, 200, `MFA enable failed: ${JSON.stringify(enabled.data)}`);
+    const duplicateEnable = await request('POST', '/api/account/mfa/enable', {
+      cookie: login.cookie, body: { code: totpCode(testSecret) }
+    });
+    assert.equal(duplicateEnable.status, 409, 'MFA must never be enabled twice with overwritten recovery codes');
+    const failedRotation = await request('POST', '/api/account/mfa/recovery-codes', {
+      cookie: login.cookie, body: { code: 'incorrect' }
+    });
+    assert.equal(failedRotation.status, 400, 'Invalid authenticator cannot rotate recovery codes');
+
     const recoveryCode = enabled.data.recovery_codes?.[0];
     assert(recoveryCode, 'MFA setup must issue recovery codes');
     assert.match(recoveryCode, /^[A-F0-9]{20}$/, 'New recovery codes must contain 80 bits');
@@ -205,7 +214,24 @@ try {
     })).status, 401, 'Five failed attempts must invalidate the challenge');
     // Two concurrent MFA-disable requests may never both succeed. The winner
     // must also revoke all full sessions and pending login challenges.
-    const disableCode = enabled.data.recovery_codes[1];
+    const previousCodes = enabled.data.recovery_codes;
+    const rotated = await request('POST', '/api/account/mfa/recovery-codes', {
+      cookie: success.cookie, body: { code: totpCode(testSecret) }
+    });
+    assert.equal(rotated.status, 200, 'Valid authenticator must rotate recovery codes');
+    const freshCodes = rotated.data.recovery_codes;
+    assert.equal(freshCodes?.length, 8);
+    const afterRotation = (await testPool.query(
+      "select recovery_codes from account_mfa where account_id=$1", [created.data.account.id]
+    )).rows[0].recovery_codes;
+    assert(afterRotation.every(value => /^scrypt\$[a-f0-9]{32}\$[a-f0-9]{64}$/.test(value)),
+      'Rotation must persist only hashes');
+    assert(!afterRotation.includes(freshCodes[1]), 'Rotation must not persist plaintext');
+    const obsoletePending = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: obsoletePending.cookie, body: { recovery_code: previousCodes[1] }
+    })).status, 401, 'Rotating codes must invalidate previous recovery codes');
+    const disableCode = freshCodes[1];
     const disableAttempts = await Promise.all([
       request('POST', '/api/account/mfa/disable', { cookie: success.cookie, body: { recovery_code: disableCode } }),
       request('POST', '/api/account/mfa/disable', { cookie: success.cookie, body: { recovery_code: disableCode } })
