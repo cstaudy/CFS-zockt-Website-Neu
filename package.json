@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node scripts/start.js",
-    "check": "node --check server.js",
+    "check": "node --check server.js && node scripts/test-request-json.mjs",
     "migrate": "node scripts/migrate.js"
   },
   "dependencies": {
