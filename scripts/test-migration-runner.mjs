@@ -2,14 +2,18 @@ import assert from 'node:assert/strict';
 import { applyMigrations, baselineMigrations } from '../src/migration-runner.js';
 import { migrationFiles, loadMigrationSql } from '../src/migrations.js';
 
-function fakeClient() {
+function fakeClient({ legacyTables = false, historyExists = false } = {}) {
   const rows = new Map();
   const executed = [];
   let pending;
+  let historyInitialized = historyExists;
   return {
     rows, executed,
     async query(sql, params = []) {
       executed.push(sql.trim().toLowerCase().split(/\s+/).slice(0, 3).join(' '));
+      if (sql.includes("to_regclass('public.schema_migrations')")) return { rows: [{ history_exists: historyInitialized, application_tables_exist: legacyTables || rows.size > 0 }] };
+      if (sql === 'select exists (select 1 from schema_migrations) as has_entries') return { rows: [{ has_entries: rows.size > 0 }] };
+      if (sql.startsWith('create table if not exists schema_migrations')) { historyInitialized = true; return {}; }
       if (sql.startsWith('select checksum')) return { rows: rows.has(params[0]) ? [{ checksum: rows.get(params[0]) }] : [] };
       if (sql === 'begin') { pending = null; return {}; }
       if (sql.startsWith('insert into schema_migrations')) { pending = params; return {}; }
@@ -35,7 +39,16 @@ const failed = fakeClient();
 await assert.rejects(applyMigrations(failed, ['003.sql'], () => 'fail sql'), /SQL failed/);
 assert(failed.executed.includes('rollback'), 'failed SQL must roll back');
 assert.equal(failed.rows.size, 0);
-console.log('Migration runner: apply, skip, checksum guard and rollback passed.');
+const legacy = fakeClient({ legacyTables: true });
+await assert.rejects(applyMigrations(legacy, files, file => sql[file]), /Bestehende Datenbank ohne Migrationshistorie/);
+assert(!legacy.executed.some(item => item.startsWith('create table')), 'legacy schema must not be modified');
+assert.equal(legacy.executed.at(-1), 'select pg_advisory_unlock($1)', 'lock released on legacy schema guard');
+
+const emptyHistory = fakeClient({ legacyTables: true, historyExists: true });
+await assert.rejects(applyMigrations(emptyHistory, files, file => sql[file]), /leerer Migrationshistorie/);
+assert(!emptyHistory.executed.some(item => item.startsWith('create table')), 'empty history must not be modified');
+
+console.log('Migration runner: apply, skip, checksum guard, legacy schema guard and rollback passed.');
 
 function baselineClient(existing = []) {
   const executed = [];

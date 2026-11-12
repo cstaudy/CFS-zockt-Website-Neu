@@ -72,8 +72,17 @@ try {
     body: JSON.stringify({ email: 'test@example.com', password: 'invalid' })
   });
   assert.notEqual(sameOrigin.status, 403, 'Same-origin mutation should reach the API handler');
+  for (const path of ['/api/creator/media/videos', '/api/creator/media/clips', '/api/creator/widget-studio/assets']) {
+    const response = await fetch(base + path, {
+      method: 'POST',
+      headers: { 'content-type': path.includes('assets') ? 'image/png' : 'video/mp4', origin: base },
+      body: Buffer.from('unauthenticated upload')
+    });
+    assert.equal(response.status, 401, `${path} should reject unauthenticated uploads`);
+    assert.equal((await response.json()).error, 'AUTHENTICATION_REQUIRED');
+  }
   assert.equal(await (await fetch(`${base}/assets/uploads/probe.txt`)).text(), 'mounted upload');
-  console.log('Static boundary: public pages, source access, origin protection, account API gating and truthful status verified.');
+  console.log('Static boundary: 51 HTML pages reachable; internal files denied; mounted uploads served; creator uploads require authentication; cross-origin mutations denied.');
 } finally {
   server.kill();
   await unlink(join(uploadRoot, 'probe.txt'));

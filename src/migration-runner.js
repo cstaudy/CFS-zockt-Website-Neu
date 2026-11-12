@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { assertMigrationHistorySafe } from './migration-history-guard.js';
 
 const lockId = 62917431;
 
@@ -35,6 +36,7 @@ function assertBaselineSafe(sql, file) {
 export async function applyMigrations(client, files, loadSql) {
   await client.query('select pg_advisory_lock($1)', [lockId]);
   try {
+    await assertMigrationHistorySafe(client);
     await client.query(`create table if not exists schema_migrations (
       name text primary key,
       checksum text not null,
