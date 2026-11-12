@@ -141,19 +141,39 @@ async function serveStatic(req, res) {
   if (!filePath) return json(res, 403, { error: "FORBIDDEN", message: "Ungültiger Pfad." });
   const isUpload = filePath.startsWith(uploadRoot + sep);
   if (isUpload) {
-    // The legacy upload URLs are not public: possession of a path is not authorization.
-    const account = await currentAccount(req);
-    if (!account) return json(res, 401, { error: "AUTHENTICATION_REQUIRED" });
     const storagePath = filePath.slice(uploadRoot.length + 1).split(sep).join("/");
-    const owned = await getPool().query(
+    const pool = getPool();
+    // Public widget assets are a deliberate exception, but only for an image
+    // referenced as an exact string in a published project of the SAME owner.
+    // Never expose user_media or another creator's unpublished files.
+    const published = pool ? await pool.query(
       `select exists(
-        select 1 from creator_assets where account_id=$1 and storage_path=$2
-        union all
-        select 1 from user_media where account_id=$1 and storage_path=$2
+        select 1 from creator_assets asset
+        join creator_projects project on project.account_id=asset.account_id
+        where asset.storage_path=$1
+          and project.status='published'
+          and jsonb_path_exists(
+            project.data,
+            '$.** ? (@ == $url)'::jsonpath,
+            jsonb_build_object('url', $2::text)
+          )
       ) as allowed`,
-      [account.id, storagePath]
-    );
-    if (!owned.rows[0]?.allowed) return json(res, 404, { error: "NOT_FOUND" });
+      [storagePath, `/assets/uploads/${storagePath}`]
+    ) : { rows: [{ allowed: false }] };
+    const publicWidgetAsset = published.rows[0]?.allowed === true;
+    if (!publicWidgetAsset) {
+      const account = await currentAccount(req);
+      if (!account) return json(res, 401, { error: "AUTHENTICATION_REQUIRED" });
+      const owned = await pool.query(
+        `select exists(
+          select 1 from creator_assets where account_id=$1 and storage_path=$2
+          union all
+          select 1 from user_media where account_id=$1 and storage_path=$2
+        ) as allowed`,
+        [account.id, storagePath]
+      );
+      if (!owned.rows[0]?.allowed) return json(res, 404, { error: "NOT_FOUND" });
+    }
   }
   try {
     const info = await stat(filePath);
