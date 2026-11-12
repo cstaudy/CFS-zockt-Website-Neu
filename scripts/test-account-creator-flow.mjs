@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import pg from 'pg';
+import { totpCode } from '../src/totp.js';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
@@ -315,15 +317,226 @@ try {
   // This check runs last because a locked account must remain locked.
   for (let i = 0; i < 8; i++) {
     const endpoint = i % 2 === 0 ? '/api/account/login' : '/api/auth/login';
-    const failed = await request('POST', endpoint, { body: { email, password: 'definitely-wrong-password' } });
+    const failed = await request('POST', endpoint, { body: { email: mediaSecond.data.account.email, password: 'definitely-wrong-password' } });
     assert.equal(failed.status, 401, 'Failures below quota must return normal invalid-credential response');
   }
-  const rateLimited = await request('POST', '/api/account/login', { body: { email, password } });
+  const rateLimited = await request('POST', '/api/account/login', { body: { email: mediaSecond.data.account.email, password } });
   assert.equal(rateLimited.status, 429, 'A correct password must not bypass an active login quota');
   assert.equal(rateLimited.data.error, 'LOGIN_RATE_LIMITED');
   assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true,
     'Rate-limited login must never invalidate an existing authenticated session');
 
+  // Activated MFA must prevent the password step from creating any usable
+  // application session. Test against the isolated disposable PostgreSQL instance.
+  const testPool = new pg.Pool({ connectionString: databaseUrl, ssl: false });
+  try {
+    const setup = await request('POST', '/api/account/mfa/setup', {
+      cookie: login.cookie, body: { password }
+    });
+    assert.equal(setup.status, 200, `MFA setup failed: ${JSON.stringify(setup.data)}`);
+    const testSecret = setup.data.secret;
+    assert(testSecret, 'Authenticator setup must create a secret');
+    const enabled = await request('POST', '/api/account/mfa/enable', {
+      cookie: login.cookie, body: { code: totpCode(testSecret) }
+    });
+    assert.equal(enabled.status, 200, `MFA enable failed: ${JSON.stringify(enabled.data)}`);
+    const duplicateEnable = await request('POST', '/api/account/mfa/enable', {
+      cookie: login.cookie, body: { code: totpCode(testSecret) }
+    });
+    assert.equal(duplicateEnable.status, 409, 'MFA must never be enabled twice with overwritten recovery codes');
+    const failedRotation = await request('POST', '/api/account/mfa/recovery-codes', {
+      cookie: login.cookie, body: { code: 'incorrect' }
+    });
+    assert.equal(failedRotation.status, 400, 'Invalid authenticator cannot rotate recovery codes');
+
+    const recoveryCode = enabled.data.recovery_codes?.[0];
+    assert(recoveryCode, 'MFA setup must issue recovery codes');
+    assert.match(recoveryCode, /^[A-F0-9]{20}$/, 'New recovery codes must contain 80 bits');
+    const initialStored = (await testPool.query(
+      "select recovery_codes from account_mfa where account_id=$1", [created.data.account.id]
+    )).rows[0].recovery_codes;
+    assert(initialStored.every(value => /^scrypt\$[a-f0-9]{32}\$[a-f0-9]{64}$/.test(value)),
+      'Database must store only salted recovery-code hashes');
+    assert(!initialStored.includes(recoveryCode), 'No raw recovery codes may appear in PostgreSQL');
+    assert.equal((await request('GET', '/api/account/me', { cookie: created.cookie })).data.authenticated, false,
+      'Enabling MFA must revoke older sessions');
+    assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true,
+      'The current setup session remains available to save recovery codes');
+
+    const pending = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal(pending.status, 200);
+    assert.equal(pending.data.mfa_required, true, 'An MFA-enabled account requires a second factor');
+    assert.equal(pending.data.authenticated, false);
+    assert(pending.cookie.startsWith('cfs_mfa_pending='), 'Pending challenge cookie is required');
+    assert(!pending.cookie.includes('cfs_session='), 'Password may not create a full session');
+    assert.equal((await request('GET', '/api/account/me', { cookie: pending.cookie })).data.authenticated, false);
+    assert.equal((await request('GET', '/api/creator/projects', { cookie: pending.cookie })).status, 401);
+
+    const wrong = await request('POST', '/api/account/mfa/login', {
+      cookie: pending.cookie, body: { code: 'abcdef' }
+    });
+    assert.equal(wrong.status, 401, 'Invalid MFA code must be rejected');
+    assert.equal((await request('GET', '/api/creator/projects', { cookie: pending.cookie })).status, 401);
+    const code = totpCode(testSecret);
+    const success = await request('POST', '/api/account/mfa/login', {
+      cookie: pending.cookie, body: { code }
+    });
+    assert.equal(success.status, 200, `Valid TOTP login failed: ${JSON.stringify(success.data)}`);
+    assert(success.cookie.startsWith('cfs_session='), 'Full session only after valid MFA');
+    assert.equal((await request('GET', '/api/account/me', { cookie: success.cookie })).data.authenticated, true);
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: pending.cookie, body: { code }
+    })).status, 401, 'Consumed challenge cannot be replayed');
+    const replayStep = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal(replayStep.data.mfa_required, true);
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: replayStep.cookie, body: { code }
+    })).status, 401, 'Consumed TOTP must not work in a new challenge while still in its time window');
+    assert.equal((await request('GET', '/api/creator/projects', { cookie: replayStep.cookie })).status, 401);
+    const afterReplay = (await testPool.query(
+      "select last_login_totp_step from account_mfa where account_id=$1", [created.data.account.id]
+    )).rows[0];
+    assert(afterReplay.last_login_totp_step !== null, 'Accepted TOTP step must persist in PostgreSQL');
+    const differentRecovery = await request('POST', '/api/account/mfa/login', {
+      cookie: replayStep.cookie, body: { recovery_code: enabled.data.recovery_codes[2] }
+    });
+    assert.equal(differentRecovery.status, 200, 'Recovery-code fallback must still work after a rejected repeated TOTP');
+
+
+    const recoveryPending = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal(recoveryPending.data.mfa_required, true);
+    const recovery = await request('POST', '/api/account/mfa/login', {
+      cookie: recoveryPending.cookie, body: { recovery_code: recoveryCode }
+    });
+    assert.equal(recovery.status, 200);
+    assert.equal(recovery.data.recovery_code_used, true);
+    const remainingCodes = (await testPool.query(
+      "select recovery_codes from account_mfa where account_id=$1", [created.data.account.id]
+    )).rows[0].recovery_codes;
+    assert(!remainingCodes.includes(recoveryCode), 'Recovery code must be consumed atomically');
+
+    const replayPending = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: replayPending.cookie, body: { recovery_code: recoveryCode }
+    })).status, 401, 'A used recovery code must never work again');
+    for (let i = 0; i < 4; i++) {
+      assert.equal((await request('POST', '/api/account/mfa/login', {
+        cookie: replayPending.cookie, body: { code: 'invalid' }
+      })).status, 401);
+    }
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: replayPending.cookie, body: { code: totpCode(testSecret) }
+    })).status, 401, 'Five failed attempts must invalidate the challenge');
+    // Two concurrent MFA-disable requests may never both succeed. The winner
+    // must also revoke all full sessions and pending login challenges.
+    const previousCodes = enabled.data.recovery_codes;
+    const rotationAttempts = await Promise.all([
+      request('POST', '/api/account/mfa/recovery-codes', {
+        cookie: success.cookie, body: { code: totpCode(testSecret) }
+      }),
+      request('POST', '/api/account/mfa/recovery-codes', {
+        cookie: success.cookie, body: { code: totpCode(testSecret) }
+      })
+    ]);
+    assert.deepEqual(rotationAttempts.map(result => result.status).sort((a,b) => a-b), [200, 429],
+      'Concurrent valid MFA recovery rotations must produce exactly one new code set');
+    const rotated = rotationAttempts.find(result => result.status === 200);
+    const repeatedRotation = await request('POST', '/api/account/mfa/recovery-codes', {
+      cookie: success.cookie, body: { code: totpCode(testSecret) }
+    });
+    assert.equal(repeatedRotation.status, 429, 'Recovery rotation cooldown must persist across new HTTP requests');
+    const freshCodes = rotated.data.recovery_codes;
+    assert.equal(freshCodes?.length, 8);
+    const persistedRotation = (await testPool.query(
+      "select recovery_codes, recovery_rotated_at from account_mfa where account_id=$1",
+      [created.data.account.id]
+    )).rows[0];
+    assert(persistedRotation.recovery_rotated_at, 'Rotation timestamp must be stored in PostgreSQL');
+    const afterRotation = persistedRotation.recovery_codes;
+    assert(afterRotation.every(value => /^scrypt\$[a-f0-9]{32}\$[a-f0-9]{64}$/.test(value)),
+      'Rotation must persist only hashes');
+    assert(!afterRotation.includes(freshCodes[1]), 'Rotation must not persist plaintext');
+    const obsoletePending = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: obsoletePending.cookie, body: { recovery_code: previousCodes[1] }
+    })).status, 401, 'Rotating codes must invalidate previous recovery codes');
+    // A new password submission must not reset pending-code attempts or
+    // mint unlimited fresh challenges. The account-wide quota is in Postgres.
+    const quotaBefore = (await testPool.query(
+      "select login_challenge_window_count from account_mfa where account_id=$1",
+      [created.data.account.id]
+    )).rows[0].login_challenge_window_count;
+    assert(quotaBefore >= 5 && quotaBefore <= 8,
+      'The existing MFA login attempts must already count against the account quota');
+    const remainingChallengeSlots = 8 - quotaBefore;
+    const concurrentChallenges = await Promise.all(
+      Array.from({ length: remainingChallengeSlots + 3 }, () =>
+        request('POST', '/api/account/login', { body: { email, password } }))
+    );
+    assert.equal(concurrentChallenges.filter(result =>
+      result.status === 200 && result.data.mfa_required === true
+    ).length, remainingChallengeSlots, 'Only the remaining challenge slots may be issued');
+    assert.equal(concurrentChallenges.filter(result =>
+      result.status === 429 && result.data.error === 'MFA_CHALLENGE_RATE_LIMITED'
+    ).length, 3, 'Excess password-correct logins must be rate limited across the account');
+    assert.equal((await testPool.query(
+      "select login_challenge_window_count from account_mfa where account_id=$1",
+      [created.data.account.id]
+    )).rows[0].login_challenge_window_count, 8,
+    'Concurrent challenge issuance must not exceed its persisted maximum');
+    const blockedChallenge = await request('POST', '/api/account/login', {
+      body: { email, password }
+    });
+    assert.equal(blockedChallenge.status, 429);
+    assert.equal(blockedChallenge.cookie, '', 'A blocked login must not issue a pending MFA cookie');
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: obsoletePending.cookie, body: { recovery_code: freshCodes[0] }
+    })).status, 200, 'An earlier pending challenge must survive additional login requests');
+    const disableCode = freshCodes[1];
+    const racePending = concurrentChallenges.find(result =>
+      result.status === 200 && result.data.mfa_required === true
+    );
+    assert(racePending?.cookie, 'A pending challenge is needed for the login-disable race');
+    const [disableOne, disableTwo, racingLogin] = await Promise.all([
+      request('POST', '/api/account/mfa/disable', { cookie: success.cookie, body: { recovery_code: disableCode } }),
+      request('POST', '/api/account/mfa/disable', { cookie: success.cookie, body: { recovery_code: disableCode } }),
+      request('POST', '/api/account/mfa/login', {
+        cookie: racePending.cookie, body: { recovery_code: freshCodes[3] }
+      })
+    ]);
+    const disableAttempts = [disableOne, disableTwo];
+    assert([200, 401].includes(racingLogin.status),
+      'A racing MFA login must succeed before disable or fail after disable, never deadlock');
+    if (racingLogin.status === 200) {
+      assert.equal((await request('GET', '/api/account/me', { cookie: racingLogin.cookie })).data.authenticated,
+        false, 'Disabling MFA must also invalidate a newly issued racing session');
+    }
+    assert.deepEqual(disableAttempts.map(result => result.status).sort((a,b) => a-b)[0], 200,
+      'Exactly one concurrent MFA-disable request must succeed');
+    assert([401, 409].includes(disableAttempts.map(result => result.status).sort((a,b) => a-b)[1]),
+      'Concurrent attempt must be rejected after the first disables MFA');
+    const stateAfterDisable = (await testPool.query(
+      "select enabled,recovery_codes from account_mfa where account_id=$1", [created.data.account.id]
+    )).rows[0];
+    assert.equal(stateAfterDisable.enabled, false);
+    assert.deepEqual(stateAfterDisable.recovery_codes, [], 'Disable must remove all recovery-code hashes');
+    assert.equal((await request('GET', '/api/account/me', { cookie: success.cookie })).data.authenticated, false,
+      'Disabling MFA must revoke the previously authenticated session');
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: replayPending.cookie, body: { code: totpCode(testSecret) }
+    })).status, 401, 'Disabling MFA must cancel pending login challenges');
+    assert.equal((await testPool.query(
+      "select count(*)::int as count from mfa_login_challenges where account_id=$1",
+      [created.data.account.id]
+    )).rows[0].count, 0);
+    const disabledAccountLogin = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal(disabledAccountLogin.status, 200, 'After explicit MFA-disable, normal login must be possible');
+    assert.equal(disabledAccountLogin.data.authenticated, true);
+    assert(disabledAccountLogin.cookie.startsWith('cfs_session='));
+
+  } finally {
+    await testPool.end();
+  }
   console.log('PostgreSQL E2E passed: registration, duplicate rejection, password check, account isolation, scene/widget ownership, creator CRUD, logout and admin denial.');
 } finally {
   server.kill('SIGTERM');
