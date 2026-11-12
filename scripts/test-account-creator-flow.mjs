@@ -215,15 +215,29 @@ try {
     // Two concurrent MFA-disable requests may never both succeed. The winner
     // must also revoke all full sessions and pending login challenges.
     const previousCodes = enabled.data.recovery_codes;
-    const rotated = await request('POST', '/api/account/mfa/recovery-codes', {
+    const rotationAttempts = await Promise.all([
+      request('POST', '/api/account/mfa/recovery-codes', {
+        cookie: success.cookie, body: { code: totpCode(testSecret) }
+      }),
+      request('POST', '/api/account/mfa/recovery-codes', {
+        cookie: success.cookie, body: { code: totpCode(testSecret) }
+      })
+    ]);
+    assert.deepEqual(rotationAttempts.map(result => result.status).sort((a,b) => a-b), [200, 429],
+      'Concurrent valid MFA recovery rotations must produce exactly one new code set');
+    const rotated = rotationAttempts.find(result => result.status === 200);
+    const repeatedRotation = await request('POST', '/api/account/mfa/recovery-codes', {
       cookie: success.cookie, body: { code: totpCode(testSecret) }
     });
-    assert.equal(rotated.status, 200, 'Valid authenticator must rotate recovery codes');
+    assert.equal(repeatedRotation.status, 429, 'Recovery rotation cooldown must persist across new HTTP requests');
     const freshCodes = rotated.data.recovery_codes;
     assert.equal(freshCodes?.length, 8);
-    const afterRotation = (await testPool.query(
-      "select recovery_codes from account_mfa where account_id=$1", [created.data.account.id]
-    )).rows[0].recovery_codes;
+    const persistedRotation = (await testPool.query(
+      "select recovery_codes, recovery_rotated_at from account_mfa where account_id=$1",
+      [created.data.account.id]
+    )).rows[0];
+    assert(persistedRotation.recovery_rotated_at, 'Rotation timestamp must be stored in PostgreSQL');
+    const afterRotation = persistedRotation.recovery_codes;
     assert(afterRotation.every(value => /^scrypt\$[a-f0-9]{32}\$[a-f0-9]{64}$/.test(value)),
       'Rotation must persist only hashes');
     assert(!afterRotation.includes(freshCodes[1]), 'Rotation must not persist plaintext');

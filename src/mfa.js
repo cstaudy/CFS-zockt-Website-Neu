@@ -33,7 +33,7 @@ export async function mfaEnable(req, body) {
     const recovery = generateRecoveryCodes();
     const stored = await hashRecoveryCodes(recovery);
     await client.query(
-      "update account_mfa set enabled=true,enabled_at=now(),recovery_codes=$2::jsonb,updated_at=now() where account_id=$1",
+      "update account_mfa set enabled=true,enabled_at=now(),recovery_codes=$2::jsonb,recovery_rotated_at=null,updated_at=now() where account_id=$1",
       [a.id, JSON.stringify(stored)]
     );
     const sessionHash = createHash("sha256").update(sessionFromRequest(req)).digest("hex");
@@ -95,7 +95,7 @@ export async function mfaRecovery(req, body) {
     await client.query("BEGIN");
     // Serializes rotation with login, disable and other rotation requests.
     const row = (await client.query(
-      "select secret from account_mfa where account_id=$1 and enabled=true for update",
+      "select secret, (recovery_rotated_at > now() - interval '60 seconds') as rotation_cooldown from account_mfa where account_id=$1 and enabled=true for update",
       [a.id]
     )).rows[0];
     if (!row) {
@@ -106,10 +106,15 @@ export async function mfaRecovery(req, body) {
       await client.query("ROLLBACK");
       return { error: "MFA_CODE_INVALID", status: 400 };
     }
+    // The locked row and database clock limit recovery rotations to once per minute.
+    if (row.rotation_cooldown === true) {
+      await client.query("ROLLBACK");
+      return { error: "MFA_RECOVERY_ROTATION_TOO_SOON", status: 429 };
+    }
     const recovery = generateRecoveryCodes();
     const stored = await hashRecoveryCodes(recovery);
     await client.query(
-      "update account_mfa set recovery_codes=$2::jsonb,updated_at=now() where account_id=$1",
+      "update account_mfa set recovery_codes=$2::jsonb,recovery_rotated_at=now(),updated_at=now() where account_id=$1",
       [a.id, JSON.stringify(stored)]
     );
     await client.query("insert into account_security_events(account_id,event_type) values($1,'mfa_recovery_rotated')", [a.id]);
