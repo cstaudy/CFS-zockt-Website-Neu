@@ -14,7 +14,7 @@ function safeElement(e) {
     position: { x: safeNumber(e.position?.x, 0, -4000, 4000), y: safeNumber(e.position?.y, 0, -4000, 4000) },
     size: { width: safeNumber(e.size?.width, 100, 1, 4000), height: safeNumber(e.size?.height, 30, 1, 4000) },
     rotation: safeNumber(e.rotation, 0, -360, 360), opacity: safeNumber(e.opacity, 1, 0, 1), zIndex: safeNumber(e.zIndex, 0, -1000, 1000),
-    style: { color: safeColor(st.color), backgroundColor: safeColor(st.backgroundColor), fillColor: safeColor(st.fillColor),
+    style: { color: st.color === undefined ? "#ffffff" : safeColor(st.color), backgroundColor: safeColor(st.backgroundColor), fillColor: safeColor(st.fillColor),
       borderColor: safeColor(st.borderColor), fontSize: safeNumber(st.fontSize, 20, 8, 180),
       fontWeight: safeNumber(st.fontWeight, 700, 100, 900), borderRadius: safeNumber(st.borderRadius, 0, 0, 500) },
     data: e.type === "text" ? { text: String(e.data?.text ?? "").slice(0, 1000) }
