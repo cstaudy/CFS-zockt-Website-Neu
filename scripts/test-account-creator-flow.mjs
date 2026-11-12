@@ -293,10 +293,24 @@ try {
       cookie: obsoletePending.cookie, body: { recovery_code: freshCodes[0] }
     })).status, 200, 'An earlier pending challenge must survive additional login requests');
     const disableCode = freshCodes[1];
-    const disableAttempts = await Promise.all([
+    const racePending = concurrentChallenges.find(result =>
+      result.status === 200 && result.data.mfa_required === true
+    );
+    assert(racePending?.cookie, 'A pending challenge is needed for the login-disable race');
+    const [disableOne, disableTwo, racingLogin] = await Promise.all([
       request('POST', '/api/account/mfa/disable', { cookie: success.cookie, body: { recovery_code: disableCode } }),
-      request('POST', '/api/account/mfa/disable', { cookie: success.cookie, body: { recovery_code: disableCode } })
+      request('POST', '/api/account/mfa/disable', { cookie: success.cookie, body: { recovery_code: disableCode } }),
+      request('POST', '/api/account/mfa/login', {
+        cookie: racePending.cookie, body: { recovery_code: freshCodes[3] }
+      })
     ]);
+    const disableAttempts = [disableOne, disableTwo];
+    assert([200, 401].includes(racingLogin.status),
+      'A racing MFA login must succeed before disable or fail after disable, never deadlock');
+    if (racingLogin.status === 200) {
+      assert.equal((await request('GET', '/api/account/me', { cookie: racingLogin.cookie })).data.authenticated,
+        false, 'Disabling MFA must also invalidate a newly issued racing session');
+    }
     assert.deepEqual(disableAttempts.map(result => result.status).sort((a,b) => a-b)[0], 200,
       'Exactly one concurrent MFA-disable request must succeed');
     assert([401, 409].includes(disableAttempts.map(result => result.status).sort((a,b) => a-b)[1]),
