@@ -306,7 +306,6 @@ async function handle(req, res) {
   if(url.pathname==="/api/account/passkeys"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,available:false,passkeys:[],message:"Passkeys sind für diese Installation noch nicht aktiviert."});}
   if(url.pathname.startsWith("/api/account/passkeys/")&&(method==="POST"||method==="DELETE")){return json(res,503,{error:"PASSKEYS_NOT_CONFIGURED",message:"WebAuthn/Passkeys sind für diese Installation noch nicht aktiviert."});}
   if(url.pathname.startsWith("/api/account/mfa/passkey/")&&method==="POST"){return json(res,503,{error:"PASSKEYS_NOT_CONFIGURED",message:"WebAuthn/Passkeys sind für diese Installation noch nicht aktiviert."});}
-  if(url.pathname==="/api/account/mfa/login"&&method==="POST"){return json(res,503,{error:"MFA_LOGIN_FLOW_NOT_CONFIGURED",message:"MFA-Login wird erst nach Aktivierung des vollständigen Login-Challenges aktiviert."});}
   if(url.pathname==="/api/account/mfa/login"&&method==="POST"){
     const result=await finishMfaLogin(req,await readJson(req));
     if(result.error)return json(res,result.status,{error:result.error});
