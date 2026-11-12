@@ -32,21 +32,33 @@ export async function finishMfaLogin(req, body = {}) {
   const client = await getPool().connect();
   try {
     await client.query("BEGIN");
-    const challenge = (await client.query(
-      "select token_hash,account_id,attempts from mfa_login_challenges where token_hash=$1 and expires_at>now() for update",
+    // Read just enough to discover the account without taking a challenge
+    // row lock. A concurrent MFA-disable locks account_mfa before deleting
+    // challenges, so the lock ordering must be account_mfa -> challenge.
+    const candidate = (await client.query(
+      "select account_id from mfa_login_challenges where token_hash=$1 and expires_at>now()",
       [sha256(token)]
     )).rows[0];
-    if (!challenge || challenge.attempts >= 5) {
+    if (!candidate) {
       await client.query("ROLLBACK");
       return { error: "MFA_CHALLENGE_INVALID_OR_EXPIRED", status: 401 };
     }
     const settings = (await client.query(
       "select secret,recovery_codes,last_login_totp_step from account_mfa where account_id=$1 and enabled=true for update",
-      [challenge.account_id]
+      [candidate.account_id]
     )).rows[0];
     if (!settings) {
-      await client.query("delete from mfa_login_challenges where token_hash=$1", [sha256(token)]);
-      await client.query("COMMIT");
+      await client.query("ROLLBACK");
+      return { error: "MFA_CHALLENGE_INVALID_OR_EXPIRED", status: 401 };
+    }
+    // Re-check the challenge AFTER locking the MFA settings. It may have been
+    // consumed, expired or deleted since the first unprotected lookup.
+    const challenge = (await client.query(
+      "select token_hash,account_id,attempts from mfa_login_challenges where token_hash=$1 and account_id=$2 and expires_at>now() for update",
+      [sha256(token), candidate.account_id]
+    )).rows[0];
+    if (!challenge || challenge.attempts >= 5) {
+      await client.query("ROLLBACK");
       return { error: "MFA_CHALLENGE_INVALID_OR_EXPIRED", status: 401 };
     }
     const codes = Array.isArray(settings.recovery_codes) ? settings.recovery_codes : [];
