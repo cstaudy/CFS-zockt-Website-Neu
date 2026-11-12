@@ -595,8 +595,12 @@ try {
     // Even an unrelated verified role-admin cannot pass the email allowlist.
     await adminPool.query("update accounts set role='admin',email_verified_at=now() where id=$1",
       [created.data.account.id]);
-    const nonAdminSession = await request('GET', '/api/admin/status', { cookie: login.cookie });
-    assert.equal(nonAdminSession.status, 403, 'Wrong email cannot receive privileged rights');
+    const unrelatedLogin = await request('POST', '/api/account/login', {
+      body: { email, password }
+    });
+    assert.equal(unrelatedLogin.status, 200);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: unrelatedLogin.cookie })).status, 403,
+      'A different verified role-admin cannot receive privileged rights');
   } finally {
     await adminPool.end();
   }
