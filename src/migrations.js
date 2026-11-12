@@ -11,7 +11,8 @@ export const migrationFiles = [
   '010_user_media.sql', '011_creator_presets.sql', '012_commerce_orders.sql',
   '013_password_recovery.sql', '014_launcher_obs.sql', '015_account_mfa.sql',
   '016_email_verification.sql', '017_support_reports.sql', '018_creator_games.sql',
-  '019_merch_reviews.sql', '020_public_live_control.sql', '021_creator_settings.sql'
+  '019_merch_reviews.sql', '020_public_live_control.sql', '021_creator_settings.sql',
+  '022_mfa_login_challenges.sql'
 ];
 
 export function loadMigrationSql(file) {

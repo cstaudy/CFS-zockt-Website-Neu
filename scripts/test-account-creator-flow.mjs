@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import pg from 'pg';
+import { totpCode } from '../src/totp.js';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
@@ -124,7 +126,80 @@ try {
   assert.equal(login.status, 200, 'Creator must be able to sign back in');
   assert(login.cookie.startsWith('cfs_session='), 'Login must issue a session cookie');
   assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true);
-  console.log('PostgreSQL E2E passed: registration, duplicate rejection, password check, login, session, creator CRUD, logout and admin denial.');
+  // Activated MFA must prevent the password step from creating any usable
+  // application session. Test against the isolated disposable PostgreSQL instance.
+  const testPool = new pg.Pool({ connectionString: databaseUrl, ssl: false });
+  try {
+    const setup = await request('POST', '/api/account/mfa/setup', {
+      cookie: login.cookie, body: { password }
+    });
+    assert.equal(setup.status, 200, `MFA setup failed: ${JSON.stringify(setup.data)}`);
+    const testSecret = setup.data.secret;
+    assert(testSecret, 'Authenticator setup must create a secret');
+    const enabled = await request('POST', '/api/account/mfa/enable', {
+      cookie: login.cookie, body: { code: totpCode(testSecret) }
+    });
+    assert.equal(enabled.status, 200, `MFA enable failed: ${JSON.stringify(enabled.data)}`);
+    const recoveryCode = enabled.data.recovery_codes?.[0];
+    assert(recoveryCode, 'MFA setup must issue recovery codes');
+    assert.equal((await request('GET', '/api/account/me', { cookie: created.cookie })).data.authenticated, false,
+      'Enabling MFA must revoke older sessions');
+    assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true,
+      'The current setup session remains available to save recovery codes');
+
+    const pending = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal(pending.status, 200);
+    assert.equal(pending.data.mfa_required, true, 'An MFA-enabled account requires a second factor');
+    assert.equal(pending.data.authenticated, false);
+    assert(pending.cookie.startsWith('cfs_mfa_pending='), 'Pending challenge cookie is required');
+    assert(!pending.cookie.includes('cfs_session='), 'Password may not create a full session');
+    assert.equal((await request('GET', '/api/account/me', { cookie: pending.cookie })).data.authenticated, false);
+    assert.equal((await request('GET', '/api/creator/projects', { cookie: pending.cookie })).status, 401);
+
+    const wrong = await request('POST', '/api/account/mfa/login', {
+      cookie: pending.cookie, body: { code: 'abcdef' }
+    });
+    assert.equal(wrong.status, 401, 'Invalid MFA code must be rejected');
+    assert.equal((await request('GET', '/api/creator/projects', { cookie: pending.cookie })).status, 401);
+    const code = totpCode(testSecret);
+    const success = await request('POST', '/api/account/mfa/login', {
+      cookie: pending.cookie, body: { code }
+    });
+    assert.equal(success.status, 200, `Valid TOTP login failed: ${JSON.stringify(success.data)}`);
+    assert(success.cookie.startsWith('cfs_session='), 'Full session only after valid MFA');
+    assert.equal((await request('GET', '/api/account/me', { cookie: success.cookie })).data.authenticated, true);
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: pending.cookie, body: { code }
+    })).status, 401, 'Consumed challenge cannot be replayed');
+
+    const recoveryPending = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal(recoveryPending.data.mfa_required, true);
+    const recovery = await request('POST', '/api/account/mfa/login', {
+      cookie: recoveryPending.cookie, body: { recovery_code: recoveryCode }
+    });
+    assert.equal(recovery.status, 200);
+    assert.equal(recovery.data.recovery_code_used, true);
+    const remainingCodes = (await testPool.query(
+      "select recovery_codes from account_mfa where account_id=$1", [created.data.account.id]
+    )).rows[0].recovery_codes;
+    assert(!remainingCodes.includes(recoveryCode), 'Recovery code must be consumed atomically');
+
+    const replayPending = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: replayPending.cookie, body: { recovery_code: recoveryCode }
+    })).status, 401, 'A used recovery code must never work again');
+    for (let i = 0; i < 4; i++) {
+      assert.equal((await request('POST', '/api/account/mfa/login', {
+        cookie: replayPending.cookie, body: { code: 'invalid' }
+      })).status, 401);
+    }
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: replayPending.cookie, body: { code: totpCode(testSecret) }
+    })).status, 401, 'Five failed attempts must invalidate the challenge');
+  } finally {
+    await testPool.end();
+  }
+  console.log('PostgreSQL E2E passed: registration, creator CRUD, and MFA challenge / TOTP / recovery / replay protection.');
 } finally {
   server.kill('SIGTERM');
   await delay(300);
