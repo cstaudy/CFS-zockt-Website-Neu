@@ -37,14 +37,14 @@ assert(failed.executed.includes('rollback'), 'failed SQL must roll back');
 assert.equal(failed.rows.size, 0);
 console.log('Migration runner: apply, skip, checksum guard and rollback passed.');
 
-function baselineClient() {
+function baselineClient(existing = []) {
   const executed = [];
   const inserted = [];
   return {
     executed, inserted,
     async query(sql, params = []) {
       executed.push(sql);
-      if (sql.startsWith('select name, checksum')) return { rows: [] };
+      if (sql.startsWith('select name, checksum')) return { rows: existing };
       if (sql.startsWith('insert into schema_migrations')) inserted.push(params);
       return { rows: [] };
     }
@@ -55,6 +55,13 @@ const baseline = baselineClient();
 await baselineMigrations(baseline, files, file => sql[file], async () => 'unchanged');
 assert.equal(baseline.inserted.length, 2, 'baseline should record every unchanged migration');
 assert.equal(baseline.executed.filter(item => item === 'rollback').length, 1, 'baseline probe must roll back');
+const repeated = baselineClient(baseline.inserted.map(([name, checksum]) => ({ name, checksum })));
+await baselineMigrations(repeated, files, file => sql[file], async () => 'unchanged');
+assert.equal(repeated.inserted.length, 0, 'matching baseline should be safely repeatable');
+await assert.rejects(
+  baselineMigrations(baselineClient([{ name: '001.sql', checksum: 'wrong' }]), files, file => sql[file], async () => 'unchanged'),
+  /Migrationshistorie stimmt nicht/
+);
 const changed = baselineClient();
 let fingerprintCall = 0;
 await assert.rejects(

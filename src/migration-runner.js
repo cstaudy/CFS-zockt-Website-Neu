@@ -92,7 +92,16 @@ export async function baselineMigrations(client, files, loadSql, fingerprint = s
       applied_at timestamptz not null default now()
     )`);
     const existing = await client.query('select name, checksum from schema_migrations order by name');
-    if (existing.rows.length) throw new Error('Baseline abgebrochen: schema_migrations enthält bereits Einträge.');
+    if (existing.rows.length) {
+      const expected = new Map(migrations.map(migration => [migration.file, migration.checksum]));
+      const valid = existing.rows.length === migrations.length
+        && existing.rows.every(row => expected.get(row.name) === row.checksum);
+      if (!valid) throw new Error('Baseline abgebrochen: Die vorhandene Migrationshistorie stimmt nicht mit den Dateien überein.');
+      await client.query('commit');
+      transactionOpen = false;
+      console.log(`migration baseline skip: ${migrations.length} migrations already registered`);
+      return;
+    }
     for (const migration of migrations) {
       await client.query('insert into schema_migrations(name, checksum) values($1, $2)', [migration.file, migration.checksum]);
     }
