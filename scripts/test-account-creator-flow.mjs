@@ -124,6 +124,19 @@ try {
   assert.equal(login.status, 200, 'Creator must be able to sign back in');
   assert(login.cookie.startsWith('cfs_session='), 'Login must issue a session cookie');
   assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true);
+  // The HTTP guard shares its counters across both public login aliases.
+  // This check runs last because a locked account must remain locked.
+  for (let i = 0; i < 8; i++) {
+    const endpoint = i % 2 === 0 ? '/api/account/login' : '/api/auth/login';
+    const failed = await request('POST', endpoint, { body: { email, password: 'definitely-wrong-password' } });
+    assert.equal(failed.status, 401, 'Failures below quota must return normal invalid-credential response');
+  }
+  const rateLimited = await request('POST', '/api/account/login', { body: { email, password } });
+  assert.equal(rateLimited.status, 429, 'A correct password must not bypass an active login quota');
+  assert.equal(rateLimited.data.error, 'LOGIN_RATE_LIMITED');
+  assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true,
+    'Rate-limited login must never invalidate an existing authenticated session');
+
   console.log('PostgreSQL E2E passed: registration, duplicate rejection, password check, login, session, creator CRUD, logout and admin denial.');
 } finally {
   server.kill('SIGTERM');
