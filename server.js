@@ -389,14 +389,19 @@ async function handle(req, res) {
     const credentials = await readJson(req);
     // Never trust client-supplied forwarding headers for the source address.
     const address = req.socket.remoteAddress || "unknown";
-    const attempt = loginThrottle.allow(address, credentials.email);
+    // Socket addresses can identify the shared Render reverse proxy rather than
+    // the visitor. Never activate address-wide lockouts automatically.
+    const throttleEnabled = process.env.CFS_LOGIN_THROTTLE_SOCKET_MODE === "enabled";
+    const attempt = throttleEnabled
+      ? loginThrottle.allow(address, credentials.email)
+      : { allowed: true };
     if (!attempt.allowed) {
       res.setHeader("retry-after", String(attempt.retryAfter));
       return json(res, 429, { error: "LOGIN_RATE_LIMITED" });
     }
     const result = await login(credentials);
     if (result.error) return json(res, result.status, { error: result.error });
-    loginThrottle.successful(address, credentials.email);
+    if (throttleEnabled) loginThrottle.successful(address, credentials.email);
     res.setHeader("set-cookie", cookie("cfs_session", result.token, result.maxAge));
     return json(res, 200, { authenticated: true, account: result.account });
   }
