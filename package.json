@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node scripts/start.js",
-    "check": "node --check server.js && node scripts/check-local-assets.js && node scripts/test-static-boundary.mjs && node scripts/test-migration-runner.mjs && node scripts/test-provider-configuration.mjs && node scripts/test-upload-filename.mjs",
+    "check": "node --check server.js && node scripts/check-local-assets.js && node scripts/test-static-boundary.mjs && node scripts/test-migration-runner.mjs && node scripts/test-provider-configuration.mjs && node scripts/test-request-json.mjs && node scripts/test-upload-filename.mjs",
     "migrate": "node scripts/migrate.js",
     "migrate:baseline": "node scripts/baseline-migrations.js"
   },
