@@ -205,7 +205,21 @@ async function handle(req, res) {
   }
 
   if (url.pathname === "/api/public/status" && ["GET", "HEAD"].includes(method)) {
-    return json(res, 200, { ok: true, service: "cfs-zockt", environment: process.env.NODE_ENV || "production", api_version: "1", generated_at: new Date().toISOString() });
+    // Public status reports real account-store readiness, not a synthetic green light.
+    // Do not expose database connection strings or internal errors to visitors.
+    const database = await databaseCheck();
+    const accountsReady = database.connected === true;
+    return json(res, 200, {
+      ok: true,
+      service: "cfs-zockt",
+      environment: process.env.NODE_ENV || "production",
+      api_version: "1",
+      generated_at: new Date().toISOString(),
+      status: accountsReady ? "online" : "degraded",
+      message: accountsReady
+        ? "Website und Datenbank sind erreichbar."
+        : "Die Website ist erreichbar. Anmeldung und Creator-Speicherung sind derzeit möglicherweise eingeschränkt."
+    });
   }
 
   if (url.pathname === "/api/public/live-session" && ["GET", "HEAD"].includes(method)) {
