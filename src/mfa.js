@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { verifyTotp } from "./totp.js";
 import { currentAccount, verifyAccountPassword, sessionFromRequest } from "./auth.js";
 import { getPool } from "./db.js";
