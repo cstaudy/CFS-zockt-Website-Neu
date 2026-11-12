@@ -33,7 +33,7 @@ export async function mfaEnable(req, body) {
     const recovery = generateRecoveryCodes();
     const stored = await hashRecoveryCodes(recovery);
     await client.query(
-      "update account_mfa set enabled=true,enabled_at=now(),recovery_codes=$2::jsonb,recovery_rotated_at=null,updated_at=now() where account_id=$1",
+      "update account_mfa set enabled=true,enabled_at=now(),recovery_codes=$2::jsonb,recovery_rotated_at=null,last_login_totp_step=null,updated_at=now() where account_id=$1",
       [a.id, JSON.stringify(stored)]
     );
     const sessionHash = createHash("sha256").update(sessionFromRequest(req)).digest("hex");

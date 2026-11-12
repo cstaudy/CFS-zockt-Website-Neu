@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { getPool } from "./db.js";
 import { isAdminEmail } from "./auth.js";
-import { verifyTotp } from "./totp.js";
+import { matchingTotpStep } from "./totp.js";
 import { consumeRecoveryCode } from "./recovery-codes.js";
 
 const pendingCookie = "cfs_mfa_pending";
@@ -41,7 +41,7 @@ export async function finishMfaLogin(req, body = {}) {
       return { error: "MFA_CHALLENGE_INVALID_OR_EXPIRED", status: 401 };
     }
     const settings = (await client.query(
-      "select secret,recovery_codes from account_mfa where account_id=$1 and enabled=true for update",
+      "select secret,recovery_codes,last_login_totp_step from account_mfa where account_id=$1 and enabled=true for update",
       [challenge.account_id]
     )).rows[0];
     if (!settings) {
@@ -50,7 +50,10 @@ export async function finishMfaLogin(req, body = {}) {
       return { error: "MFA_CHALLENGE_INVALID_OR_EXPIRED", status: 401 };
     }
     const codes = Array.isArray(settings.recovery_codes) ? settings.recovery_codes : [];
-    const totpValid = verifyTotp(settings.secret, inputCode);
+    const matchedStep = matchingTotpStep(settings.secret, inputCode);
+    const previouslyUsed = settings.last_login_totp_step === null
+      ? null : Number(settings.last_login_totp_step);
+    const totpValid = matchedStep !== null && (previouslyUsed === null || matchedStep > previouslyUsed);
     const recoveryResult = totpValid ? { valid: false, remaining: codes } : await consumeRecoveryCode(codes, recovery);
     const recoveryValid = recoveryResult.valid;
     if (!totpValid && !recoveryValid) {
@@ -60,6 +63,14 @@ export async function finishMfaLogin(req, body = {}) {
       );
       await client.query("COMMIT");
       return { error: "MFA_CODE_INVALID", status: 401 };
+    }
+    if (totpValid) {
+      // The MFA row remains locked through session creation and challenge
+      // consumption. Another pending challenge cannot reuse this TOTP step.
+      await client.query(
+        "update account_mfa set last_login_totp_step=$2,updated_at=now() where account_id=$1",
+        [challenge.account_id, matchedStep]
+      );
     }
     if (recoveryValid) {
       const unused = recoveryResult.remaining;

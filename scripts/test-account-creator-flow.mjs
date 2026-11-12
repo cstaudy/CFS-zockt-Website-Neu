@@ -187,6 +187,21 @@ try {
     assert.equal((await request('POST', '/api/account/mfa/login', {
       cookie: pending.cookie, body: { code }
     })).status, 401, 'Consumed challenge cannot be replayed');
+    const replayStep = await request('POST', '/api/account/login', { body: { email, password } });
+    assert.equal(replayStep.data.mfa_required, true);
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: replayStep.cookie, body: { code }
+    })).status, 401, 'Consumed TOTP must not work in a new challenge while still in its time window');
+    assert.equal((await request('GET', '/api/creator/projects', { cookie: replayStep.cookie })).status, 401);
+    const afterReplay = (await testPool.query(
+      "select last_login_totp_step from account_mfa where account_id=$1", [created.data.account.id]
+    )).rows[0];
+    assert(afterReplay.last_login_totp_step !== null, 'Accepted TOTP step must persist in PostgreSQL');
+    const differentRecovery = await request('POST', '/api/account/mfa/login', {
+      cookie: replayStep.cookie, body: { recovery_code: enabled.data.recovery_codes[2] }
+    });
+    assert.equal(differentRecovery.status, 200, 'Recovery-code fallback must still work after a rejected repeated TOTP');
+
 
     const recoveryPending = await request('POST', '/api/account/login', { body: { email, password } });
     assert.equal(recoveryPending.data.mfa_required, true);
