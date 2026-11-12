@@ -1,5 +1,6 @@
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
+import { widgetConfigs, nextWidgetData } from "./widget-publication.js";
 
 const registry = [
   { key: "follower_goal", label: "TikTok Follower Goal", short_label: "FOLLOWER GOAL", provider: "tiktok", mode: "goal", source_kind: "profile", metric: "followers", canvas: { width: 620, height: 132 } },
@@ -12,8 +13,9 @@ const registry = [
 
 function widget(row) {
   const data = row.data || {};
-  const config = data.config || { widgetType: data.widget_type || "follower_goal", canvas: { width: 620, height: 132 }, elements: [], settings: {}, data: {} };
-  return { id: row.id, name: row.name, widget_type: data.widget_type || config.widgetType || "follower_goal", status: row.status === "published" ? "live" : "draft", version: row.version || 1, draft_config: config, published_config: row.status === "published" ? config : null, has_unpublished_changes: false, source_url: row.status === "published" ? `/widgets/output.html?widget=${encodeURIComponent(row.id)}` : "", source_urls: row.status === "published" ? { obs: `/widgets/output.html?widget=${encodeURIComponent(row.id)}` } : {}, created_at: row.created_at, updated_at: row.updated_at };
+  const { draft, published, changed } = widgetConfigs(data, row.status);
+  const config = Object.keys(draft).length ? draft : { widgetType: data.widget_type || "follower_goal", canvas: { width: 620, height: 132 }, elements: [], settings: {}, data: {} };
+  return { id: row.id, name: row.name, widget_type: data.widget_type || config.widgetType || "follower_goal", status: row.status === "published" ? "live" : "draft", version: row.version || 1, draft_config: config, published_config: published, has_unpublished_changes: changed, source_url: row.status === "published" ? `/widgets/output.html?widget=${encodeURIComponent(row.id)}` : "", source_urls: row.status === "published" ? { obs: `/widgets/output.html?widget=${encodeURIComponent(row.id)}` } : {}, created_at: row.created_at, updated_at: row.updated_at };
 }
 
 export async function listWidgets(req) {
@@ -54,7 +56,8 @@ export async function updateWidget(req, id, body, publish = false) {
   const row = found.rows[0];
   if (!row) return { error: "WIDGET_NOT_FOUND", status: 404 };
   if (body.expected_version !== undefined && Number(body.expected_version) !== Number(row.version)) return { error: "WIDGET_VERSION_CONFLICT", status: 409 };
-  const data = { ...(row.data || {}), config: body.config || row.data?.config || {} };
-  const result = await pool.query("update creator_projects set name = coalesce($3, name), data = $4::jsonb, status = case when $5 then 'published' else status end, version = version + 1, updated_at = now() where id = $1 and account_id = $2 returning id, name, data, status, version, created_at, updated_at", [id, account.id, body.name ? String(body.name).trim().slice(0, 160) : null, JSON.stringify(data), publish]);
+  const data = nextWidgetData(row.data || {}, body, publish);
+  const result = await pool.query("update creator_projects set name = coalesce($3, name), data = $4::jsonb, status = case when $5 then 'published' else status end, version = version + 1, updated_at = now() where id = $1 and account_id = $2 and version = $6 returning id, name, data, status, version, created_at, updated_at", [id, account.id, body.name ? String(body.name).trim().slice(0, 160) : null, JSON.stringify(data), publish, row.version]);
+  if (!result.rows[0]) return { error: "WIDGET_VERSION_CONFLICT", status: 409 };
   return { widget: widget(result.rows[0]), registry, tiktok: { connected: false }, live: { connected: false } };
 }
