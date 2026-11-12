@@ -7,11 +7,12 @@ const windowMs = 15 * 60 * 1000;
 const accountLimit = 8;
 const addressLimit = 80;
 const capacity = 20000;
-const attempts = new Map();
 
 const digest = value => createHash("sha256").update(salt).update(String(value)).digest("hex");
 
-function pruneExpired(now) {
+export function createLoginThrottle() {
+  const attempts = new Map();
+  function pruneExpired(now) {
   for (const [key, bucket] of attempts) {
     if (bucket.expiresAt <= now) attempts.delete(key);
   }
@@ -36,7 +37,6 @@ function reserve(key, max, now) {
   return { allowed: true, retryAfter: 0 };
 }
 
-export function createLoginThrottle() {
   return {
     allow(address, email, now = Date.now()) {
       const source = String(address || "unknown").slice(0, 128);
