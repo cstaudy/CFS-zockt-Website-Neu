@@ -12,12 +12,16 @@ export function widgetConfigs(data = {}, status = "draft") {
   };
 }
 
-export function nextWidgetData(data = {}, body = {}, publish = false) {
+export function nextWidgetData(data = {}, body = {}, publish = false, status = "draft") {
   const draft = body.config ?? data.draft_config ?? data.config ?? {};
   return {
     ...data,
     config: draft, // legacy editor compatibility
     draft_config: draft,
-    ...(publish ? { published_config: structuredClone(draft) } : {})
+    ...(publish
+      ? { published_config: structuredClone(draft) }
+      : status === "published" && !Object.hasOwn(data, "published_config")
+        ? { published_config: structuredClone(data.config ?? {}) }
+        : {})
   };
 }
