@@ -69,16 +69,52 @@ export async function login({ email, password }) {
   if (!account || !account.password_hash || !(await verifyPassword(password, account.password_hash))) return { error: "INVALID_CREDENTIALS", status: 401 };
   const secondFactor = (await pool.query("select enabled, recovery_codes from account_mfa where account_id=$1", [account.id])).rows[0];
   if (secondFactor?.enabled === true) {
-    const pendingToken = randomBytes(32).toString("base64url");
-    // Invalidate older challenges for this account to bound pending sessions.
-    await pool.query("delete from mfa_login_challenges where account_id=$1 or expires_at<=now()", [account.id]);
-    await pool.query("insert into mfa_login_challenges(token_hash,account_id,expires_at) values($1,$2,now()+interval '10 minutes')", [tokenHash(pendingToken), account.id]);
-    return {
-      mfa_required: true,
-      mfa_methods: { totp: true, recovery: Array.isArray(secondFactor.recovery_codes) && secondFactor.recovery_codes.length > 0, passkey: false },
-      pendingToken,
-      pendingMaxAge: 600
-    };
+    // Each password login consumes one per-account allowance regardless of the
+    // caller IP, and the quota is committed atomically in PostgreSQL.
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const allowance = (await client.query(`
+        update account_mfa set
+          login_challenge_window_count = case
+            when login_challenge_window_started_at is null
+              or login_challenge_window_started_at <= now() - interval '15 minutes'
+              then 1
+            else login_challenge_window_count + 1 end,
+          login_challenge_window_started_at = case
+            when login_challenge_window_started_at is null
+              or login_challenge_window_started_at <= now() - interval '15 minutes'
+              then now()
+            else login_challenge_window_started_at end
+        where account_id=$1 and enabled=true and
+          (login_challenge_window_started_at is null
+           or login_challenge_window_started_at <= now() - interval '15 minutes'
+           or login_challenge_window_count < 8)
+        returning recovery_codes`, [account.id])).rows[0];
+      if (!allowance) {
+        await client.query("ROLLBACK");
+        return { error: "MFA_CHALLENGE_RATE_LIMITED", status: 429 };
+      }
+      const pendingToken = randomBytes(32).toString("base64url");
+      // Do not reset earlier challenges: invalidating them on each password
+      // login would let another party disrupt an existing second-factor flow.
+      await client.query(
+        "insert into mfa_login_challenges(token_hash,account_id,expires_at) values($1,$2,now()+interval '10 minutes')",
+        [tokenHash(pendingToken), account.id]
+      );
+      await client.query("COMMIT");
+      return {
+        mfa_required: true,
+        mfa_methods: { totp: true, recovery: Array.isArray(allowance.recovery_codes) && allowance.recovery_codes.length > 0, passkey: false },
+        pendingToken,
+        pendingMaxAge: 600
+      };
+    } catch (error) {
+      try { await client.query("ROLLBACK"); } catch {}
+      throw error;
+    } finally {
+      client.release();
+    }
   }
   const token = randomBytes(32).toString("base64url");
   await pool.query("insert into sessions (account_id, token_hash, expires_at) values ($1, $2, now() + ($3 || ' days')::interval)", [account.id, tokenHash(token), String(sessionDays)]);

@@ -260,6 +260,38 @@ try {
     assert.equal((await request('POST', '/api/account/mfa/login', {
       cookie: obsoletePending.cookie, body: { recovery_code: previousCodes[1] }
     })).status, 401, 'Rotating codes must invalidate previous recovery codes');
+    // A new password submission must not reset pending-code attempts or
+    // mint unlimited fresh challenges. The account-wide quota is in Postgres.
+    const quotaBefore = (await testPool.query(
+      "select login_challenge_window_count from account_mfa where account_id=$1",
+      [created.data.account.id]
+    )).rows[0].login_challenge_window_count;
+    assert(quotaBefore >= 5 && quotaBefore <= 8,
+      'The existing MFA login attempts must already count against the account quota');
+    const remainingChallengeSlots = 8 - quotaBefore;
+    const concurrentChallenges = await Promise.all(
+      Array.from({ length: remainingChallengeSlots + 3 }, () =>
+        request('POST', '/api/account/login', { body: { email, password } }))
+    );
+    assert.equal(concurrentChallenges.filter(result =>
+      result.status === 200 && result.data.mfa_required === true
+    ).length, remainingChallengeSlots, 'Only the remaining challenge slots may be issued');
+    assert.equal(concurrentChallenges.filter(result =>
+      result.status === 429 && result.data.error === 'MFA_CHALLENGE_RATE_LIMITED'
+    ).length, 3, 'Excess password-correct logins must be rate limited across the account');
+    assert.equal((await testPool.query(
+      "select login_challenge_window_count from account_mfa where account_id=$1",
+      [created.data.account.id]
+    )).rows[0].login_challenge_window_count, 8,
+    'Concurrent challenge issuance must not exceed its persisted maximum');
+    const blockedChallenge = await request('POST', '/api/account/login', {
+      body: { email, password }
+    });
+    assert.equal(blockedChallenge.status, 429);
+    assert.equal(blockedChallenge.cookie, '', 'A blocked login must not issue a pending MFA cookie');
+    assert.equal((await request('POST', '/api/account/mfa/login', {
+      cookie: obsoletePending.cookie, body: { recovery_code: freshCodes[0] }
+    })).status, 200, 'An earlier pending challenge must survive additional login requests');
     const disableCode = freshCodes[1];
     const disableAttempts = await Promise.all([
       request('POST', '/api/account/mfa/disable', { cookie: success.cookie, body: { recovery_code: disableCode } }),
