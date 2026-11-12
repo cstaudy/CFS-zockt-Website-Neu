@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import pg from 'pg';
+import { ADMIN_EMAIL } from '../src/admin-access.js';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
@@ -124,6 +126,42 @@ try {
   assert.equal(login.status, 200, 'Creator must be able to sign back in');
   assert(login.cookie.startsWith('cfs_session='), 'Login must issue a session cookie');
   assert.equal((await request('GET', '/api/account/me', { cookie: login.cookie })).data.authenticated, true);
+  // The approved operator address is not an authorization by itself.
+  // All updates below run exclusively against the disposable, localhost-only CI DB.
+  const adminRegistration = await request('POST', '/api/account/register', {
+    body: { ...registration, email: ADMIN_EMAIL, display_name: 'Test Admin' }
+  });
+  assert.equal(adminRegistration.status, 201, 'Admin test account must register without privileges');
+  const adminCookie = adminRegistration.cookie;
+  const adminId = adminRegistration.data.account?.id;
+  assert(adminId, 'Test admin account ID missing');
+  assert.equal((await request('GET', '/api/admin/status', { cookie: adminCookie })).status, 403,
+    'A matching email address alone never grants admin privileges');
+  assert.equal((await request('GET', '/api/account/me', { cookie: adminCookie })).data.account.admin, false);
+  const localDb = new pg.Pool({ connectionString: databaseUrl, ssl: false });
+  try {
+    await localDb.query("update accounts set role='admin' where id=$1", [adminId]);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: adminCookie })).status, 403,
+      'An unverified account must stay unauthorized even with an explicit admin role');
+    await localDb.query("update accounts set email_verified_at=now() where id=$1", [adminId]);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: adminCookie })).status, 200,
+      'Only a verified account with explicit role and approved address may be admin');
+    const view = (await request('GET', '/api/account/me', { cookie: adminCookie })).data;
+    assert.equal(view.account.admin, true);
+    assert.equal(view.account.role, 'admin');
+    await localDb.query("update accounts set email_verified_at=null where id=$1", [adminId]);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: adminCookie })).status, 403,
+      'Revoked email verification must immediately revoke admin access on an existing session');
+    await localDb.query("update accounts set role='creator',email_verified_at=now() where id=$1", [adminId]);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: adminCookie })).status, 403,
+      'A verified approved address without the explicit role must be rejected');
+    await localDb.query("update accounts set role='admin',email_verified_at=now() where id=$1", [created.data.account.id]);
+    assert.equal((await request('GET', '/api/admin/status', { cookie: login.cookie })).status, 403,
+      'Other verified role-admin accounts must be denied by the approved-address check');
+  } finally {
+    await localDb.end();
+  }
+
   console.log('PostgreSQL E2E passed: registration, duplicate rejection, password check, login, session, creator CRUD, logout and admin denial.');
 } finally {
   server.kill('SIGTERM');

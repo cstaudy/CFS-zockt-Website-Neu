@@ -6,14 +6,11 @@ import { isPasswordLongEnough } from "./password-policy.js";
 
 const scrypt = promisify(scryptCallback);
 const sessionDays = 30;
-export const ADMIN_EMAIL = "cstaudygaming@googlemail.com";
+import { isAdminAccount } from "./admin-access.js";
+export { ADMIN_EMAIL, isAdminEmail } from "./admin-access.js";
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
-}
-
-export function isAdminEmail(value) {
-  return normalizeEmail(value) === ADMIN_EMAIL;
 }
 
 function passwordHash(password) {
@@ -64,13 +61,13 @@ export async function register({ email, password, display_name }) {
 export async function login({ email, password }) {
   const pool = getPool();
   if (!pool) return { error: "DATABASE_UNAVAILABLE", status: 503 };
-  const result = await pool.query("select id, email, display_name, role, plan, password_hash, created_at from accounts where email = $1", [normalizeEmail(email)]);
+  const result = await pool.query("select id, email, display_name, role, plan, email_verified_at, password_hash, created_at from accounts where email = $1", [normalizeEmail(email)]);
   const account = result.rows[0];
   if (!account || !account.password_hash || !(await verifyPassword(password, account.password_hash))) return { error: "INVALID_CREDENTIALS", status: 401 };
   const token = randomBytes(32).toString("base64url");
   await pool.query("insert into sessions (account_id, token_hash, expires_at) values ($1, $2, now() + ($3 || ' days')::interval)", [account.id, tokenHash(token), String(sessionDays)]);
   delete account.password_hash;
-  account.role = isAdminEmail(account.email) ? "admin" : "creator";
+  account.role = isAdminAccount(account) ? "admin" : "creator";
   return { account, token, maxAge: sessionDays * 86400 };
 }
 
@@ -82,7 +79,7 @@ export async function currentAccount(req) {
   if (!result.rows[0]) return null;
   await pool.query("update sessions set last_seen_at = now() where token_hash = $1", [tokenHash(token)]);
   const account = result.rows[0];
-  account.role = isAdminEmail(account.email) ? "admin" : "creator";
+  account.role = isAdminAccount(account) ? "admin" : "creator";
   return account;
 }
 
