@@ -56,7 +56,7 @@ export async function updateWidget(req, id, body, publish = false) {
   const row = found.rows[0];
   if (!row) return { error: "WIDGET_NOT_FOUND", status: 404 };
   if (body.expected_version !== undefined && Number(body.expected_version) !== Number(row.version)) return { error: "WIDGET_VERSION_CONFLICT", status: 409 };
-  const data = nextWidgetData(row.data || {}, body, publish);
+  const data = nextWidgetData(row.data || {}, body, publish, row.status);
   const result = await pool.query("update creator_projects set name = coalesce($3, name), data = $4::jsonb, status = case when $5 then 'published' else status end, version = version + 1, updated_at = now() where id = $1 and account_id = $2 and version = $6 returning id, name, data, status, version, created_at, updated_at", [id, account.id, body.name ? String(body.name).trim().slice(0, 160) : null, JSON.stringify(data), publish, row.version]);
   if (!result.rows[0]) return { error: "WIDGET_VERSION_CONFLICT", status: 409 };
   return { widget: widget(result.rows[0]), registry, tiktok: { connected: false }, live: { connected: false } };
