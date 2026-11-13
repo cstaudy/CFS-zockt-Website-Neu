@@ -61,7 +61,12 @@ function runtimeData(payload={},event=null){
   // Archived provider snapshots must never be advertised as a currently active LIVE source.
   const deferredLiveProvider=String(live.provider||"").trim().toLowerCase()==="youtube";
   const bridge=snapshot.bridge||payload.bridge||{};
-  const e=event||{};
+  // Only backend-projected, signed EventSub follow records can populate
+  // public follow-alert/latest-follower placeholders.
+  const followEvents=definition.provider==="twitch_follow" && Array.isArray(payload.events)
+    ?payload.events.filter(item=>item?.event_type==="follow"&&typeof item.actor_name==="string")
+    :[];
+  const e=event||(followEvents[0]||{});
   const sourceKind=definition.source_kind||"";
   const staticMode=sourceKind==="static";
   const manualCounterMode=definition.mode==="manual_counter";
@@ -135,6 +140,10 @@ function runtimeData(payload={},event=null){
         ?(config.settings?.manualTimerRunning?"LÄUFT":"PAUSE")
         :manualMode
           ?"MANUELL"
+          :definition.provider==="twitch_follow"
+            ?(snapshot.follow?.ready
+              ?(followEvents.length?"FOLLOW BESTÄTIGT":"BEREIT · WARTE AUF FOLLOW")
+              :"FOLLOW-SIGNAL OFFEN")
           :sourceKind==="profile"
             ?(profile.connected?"PROFIL":"OFFLINE")
             :sourceKind==="hybrid"
@@ -147,7 +156,7 @@ function runtimeData(payload={},event=null){
                   ?"TWITCH OFFLINE"
                   :(bridge.online?"BRIDGE READY":"OFFLINE / STALE"))),
     timer:formatTimer(current),
-    actor:staticMode?"Creator":(e.actor_name||"Creator"),
+    actor:staticMode?"Creator":(e.actor_name||(definition.provider==="twitch_follow"?"—":"Creator")),
     actorAvatar:staticMode?"":(e.actor_avatar||""),
     gift:staticMode?"Gift":(e.payload?.gift_name||"Gift"),
     amount:staticMode?0:Number(e.amount||1),
