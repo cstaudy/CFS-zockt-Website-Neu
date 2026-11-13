@@ -280,6 +280,77 @@ try {
   assert.equal(unsupportedPublished.status, 200);
   assert.equal((await request('GET', `/api/public/widgets/${unsupportedId}`)).status, 404,
     'Twitch provider output must remain blocked before verified event/source integration');
+  // OBS scenes must contain only published widgets from the SAME creator and
+  // must keep the public snapshot untouched while a private draft is edited.
+  assert.equal((await request('GET', `/api/public/scenes/${sceneId}`)).status, 404,
+    'A private scene is not anonymously visible');
+  assert.equal((await request('GET', '/api/public/scenes/not-a-uuid')).status, 404);
+  assert.equal((await request('POST', `/api/creator/widget-studio/scenes/${sceneId}/publish`, {
+    cookie: created.cookie, body: {}
+  })).status, 400, 'An incomplete draft cannot be published as a blank OBS scene');
+  const initialSceneConfig = {
+    profile: 'landscape', canvas: { width: 1920, height: 1080, background: '#101820' },
+    items: [{ id: 'widget_one', widget_id: widgetId,
+      x: 120, y: 140, scale: 1, opacity: 1, visible: true }]
+  };
+  const sceneSaved = await request('PUT', `/api/creator/widget-studio/scenes/${sceneId}`, {
+    cookie: created.cookie, body: { config: initialSceneConfig, expected_version: 1 }
+  });
+  assert.equal(sceneSaved.status, 200, 'Scene draft save failed: ' + JSON.stringify(sceneSaved.data));
+  assert.equal(sceneSaved.data.scene.version, 2);
+  const firstScenePublish = await request('POST', `/api/creator/widget-studio/scenes/${sceneId}/publish`, {
+    cookie: created.cookie, body: { expected_version: 2 }
+  });
+  assert.equal(firstScenePublish.status, 200, 'Scene publish failed: ' + JSON.stringify(firstScenePublish.data));
+  assert.equal(firstScenePublish.data.scene.status, 'live');
+  const publicScene = await request('GET', `/api/public/scenes/${sceneId}`);
+  assert.equal(publicScene.status, 200, 'Published scene must be available to OBS');
+  assert.equal(publicScene.data.scene.items.length, 1);
+  assert.equal(publicScene.data.scene.items[0].widget_id, widgetId);
+  assert.equal(publicScene.data.scene.items[0].x, 120);
+  assert.equal(JSON.stringify(publicScene.data).includes('account_id'), false);
+  assert.equal(JSON.stringify(publicScene.data).includes('PRIVATE DRAFT'), false);
+  const sceneDraftAfterPublish = await request('PUT', `/api/creator/widget-studio/scenes/${sceneId}`, {
+    cookie: created.cookie,
+    body: { config: { ...initialSceneConfig,
+      items: [{ ...initialSceneConfig.items[0], x: 220 }] }, expected_version: 3 }
+  });
+  assert.equal(sceneDraftAfterPublish.status, 200);
+  assert.equal(sceneDraftAfterPublish.data.scene.has_unpublished_changes, true);
+  assert.equal((await request('GET', `/api/public/scenes/${sceneId}`)).data.scene.items[0].x, 120,
+    'A private scene edit must not alter the public OBS snapshot');
+  assert.equal((await request('PUT', `/api/creator/widget-studio/scenes/${sceneId}`, {
+    cookie: created.cookie, body: { expected_version: 3, name: 'Stale Scene' }
+  })).status, 409, 'Stale scene editors must not overwrite changes');
+  const secondScenePublish = await request('POST', `/api/creator/widget-studio/scenes/${sceneId}/publish`, {
+    cookie: created.cookie, body: { expected_version: 4 }
+  });
+  assert.equal(secondScenePublish.status, 200);
+  assert.equal((await request('GET', `/api/public/scenes/${sceneId}`)).data.scene.items[0].x, 220,
+    'Only explicit republish may update the public scene');
+  const foreignWidget = await request('POST', '/api/creator/widget-studio/widgets', {
+    cookie: otherCookie, body: { name: 'Creator B Widget', widget_type: 'manual_counter' }
+  });
+  assert.equal(foreignWidget.status, 201);
+  const foreignWidgetId = foreignWidget.data.widget.id;
+  assert.equal((await request('POST', `/api/creator/widget-studio/widgets/${foreignWidgetId}/publish`, {
+    cookie: otherCookie, body: {}
+  })).status, 200);
+  const foreignSceneEdit = await request('PUT', `/api/creator/widget-studio/scenes/${sceneId}`, {
+    cookie: created.cookie, body: { expected_version: 5,
+      config: { ...initialSceneConfig, items: [{
+        id: 'foreign', widget_id: foreignWidgetId, x: 15, y: 15
+      }] }
+    }
+  });
+  assert.equal(foreignSceneEdit.status, 200,
+    'Saving a private draft referencing a foreign widget is not publication');
+  assert.equal((await request('POST', `/api/creator/widget-studio/scenes/${sceneId}/publish`, {
+    cookie: created.cookie, body: { expected_version: 6 }
+  })).status, 409, 'Foreign creator widgets must never be publishable in another owner scene');
+  assert.equal((await request('GET', `/api/public/scenes/${sceneId}`)).data.scene.items[0].widget_id, widgetId,
+    'Rejected cross-account publication must retain the previously approved OBS scene');
+
 
   const secondProject = await request('POST', '/api/creator/projects', {
     cookie: otherCookie, body: { kind: 'design', name: 'Private B Design', data: { secret: 'B only' } }
