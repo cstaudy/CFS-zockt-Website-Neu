@@ -43,11 +43,15 @@ export function publicWidgetPayload(row) {
   // A timer may use live data only if Twitch is linked to THIS widget's
   // account. Alerts and follower counters have no verified event feed yet.
   const isTimer = published.widgetType === "twitch_live_timer";
+  const isLatestFollow = published.widgetType === "twitch_latest_follower";
+  const isFollowAlert = published.widgetType === "twitch_follow_alert";
+  const isFollow = isLatestFollow || isFollowAlert;
   const isManual = published.widgetType === "manual_counter";
   return { widget: { id: row.id, config, definition: {
-    source_kind: isTimer ? "live_provider" : isManual ? "manual" : "static",
-    mode: isTimer ? "timer" : isManual ? "manual_counter" : "static",
-    ...(isTimer ? { provider: "twitch" } : {})
+    source_kind: isTimer || isFollow ? "live_provider" : isManual ? "manual" : "static",
+    mode: isTimer ? "timer" : isFollowAlert ? "alert" : isLatestFollow ? "latest"
+      : isManual ? "manual_counter" : "static",
+    ...(isTimer ? { provider: "twitch" } : isFollow ? { provider: "twitch_follow" } : {})
   } }, data: { profile: {}, live: {}, bridge: {} } };
 }
 
@@ -73,15 +77,66 @@ export function applyTwitchWidgetState(payload, source) {
   };
 }
 
+// A signed and recorded EventSub notification is the only source of follower
+// identities. A Twitch status check or manual test must never forge an alert.
+export function applyTwitchFollowWidgetState(payload, signal, now = Date.now()) {
+  if (payload?.widget?.definition?.provider !== "twitch_follow") return payload;
+  const ready = signal?.status === "enabled";
+  const latest = signal?.event;
+  const followedAt = Date.parse(latest?.followed_at || "");
+  const confirmed = ready && typeof latest?.id === "string" &&
+    typeof latest?.follower_name === "string" && latest.follower_name.trim() &&
+    Number.isFinite(followedAt) && followedAt <= now + 60000 &&
+    followedAt >= now - 30 * 86400000;
+  const alertMode = payload.widget.definition.mode === "alert";
+  const visible = confirmed && (!alertMode || (followedAt <= now && now - followedAt <= 45000));
+  const events = visible ? [{
+    id: String(latest.id), event_type: "follow",
+    actor_name: latest.follower_name.trim().slice(0, 100),
+    created_at: new Date(followedAt).toISOString()
+  }] : [];
+  return {
+    ...payload,
+    data: {
+      ...payload.data,
+      // A Follow event does not prove a Twitch LIVE broadcast.
+      live: { provider: "twitch_follow_events", connected: false, stale: true },
+      follow: { ready, status: ready ? "ready" : "unavailable" }
+    },
+    events
+  };
+}
+
 export async function getPublicWidget(id) {
   if (!UUID.test(String(id))) return { error: "WIDGET_NOT_FOUND", status: 404 };
   const result = await getPool().query(
-    "select p.id, p.data, p.status, t.twitch_user_id from creator_projects p left join twitch_connections t on t.account_id=p.account_id where p.id=$1 and p.kind='widget' and p.status='published' limit 1",
+    "select p.id, p.account_id, p.data, p.status, t.twitch_user_id from creator_projects p left join twitch_connections t on t.account_id=p.account_id where p.id=$1 and p.kind='widget' and p.status='published' limit 1",
     [id]
   );
   const row = result.rows[0];
   const payload = publicWidgetPayload(row);
   if (!payload) return { error: "WIDGET_NOT_FOUND", status: 404 };
+  if (payload.widget.definition.provider === "twitch_follow") {
+    const follow = await getPool().query(
+      `select s.status as subscription_status,e.id,e.follower_name,e.followed_at
+       from twitch_follow_subscriptions s
+       join twitch_connections c on c.account_id=s.account_id
+         and c.twitch_user_id=s.broadcaster_user_id
+       left join lateral (
+         select id,follower_name,followed_at from twitch_follow_events
+         where account_id=s.account_id and broadcaster_user_id=s.broadcaster_user_id
+         order by followed_at desc,received_at desc limit 1
+       ) e on true
+       where s.account_id=$1 and s.broadcaster_user_id=$2 and s.status='enabled'
+         and ('moderator:read:followers'=any(regexp_split_to_array(c.scope,'[, ]+'))) limit 1`,
+      [row.account_id, row.twitch_user_id || ""]
+    );
+    const followRow = follow.rows[0];
+    return { payload: applyTwitchFollowWidgetState(payload, {
+      status: followRow?.subscription_status || "unavailable",
+      event: followRow?.id ? followRow : null
+    }) };
+  }
   if (payload.widget.definition.provider !== "twitch") return { payload };
   // Never fall back to the global channel or to a simulated provider.
   const signal = await twitchStreamForUserId(row?.twitch_user_id);
