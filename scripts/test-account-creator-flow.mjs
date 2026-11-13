@@ -977,6 +977,114 @@ try {
     assert.equal((await request('PUT', '/api/launcher/jobs/' + exportJobB, {
       extraHeaders: bridge(foreignDevice), body: { status: 'completed', result: {} }
     })).status, 200, 'Other creator own device can complete its own export');
+    // The opt-in Cut Studio atomic-save endpoint commits project + all timeline
+    // clip revisions together; stale/broken requests must change neither.
+    const atomicCut = await request('POST', '/api/creator/cut-studio/projects', {
+      cookie: psCookie, body: { title: 'Atomic Cut CI', notes: 'original' }
+    });
+    assert.equal(atomicCut.status, 201);
+    const atomicCutId = atomicCut.data.project.id;
+    const cutUrl = '/api/creator/cut-studio/projects/' + atomicCutId;
+    const saveUrl = cutUrl + '/save';
+    assert.equal((await request('PUT', saveUrl, {
+      body: { project: { title: 'Unauthenticated' }, clips: [] }
+    })).status, 401, 'Anonymous callers cannot alter Cut Studio projects');
+    assert.equal((await request('PUT', '/api/creator/cut-studio/projects/not-a-uuid/save', {
+      cookie: psCookie, body: {}
+    })).status, 404, 'Malformed Cut IDs return not-found');
+    assert.equal((await request('PUT', saveUrl, {
+      cookie: psCookie, body: null
+    })).status, 400, 'Malformed combined save is rejected');
+    const legacyClip = await request('POST', cutUrl + '/clips', {
+      cookie: psCookie, body: { label: 'Intro', in_ms: 0, out_ms: 1500 }
+    });
+    assert.equal(legacyClip.status, 201);
+    const cutOpened = await request('GET', cutUrl, { cookie: psCookie });
+    assert.equal(cutOpened.status, 200);
+    assert.equal(cutOpened.data.project.version, 2,
+      'Legacy clip changes must advance project revisions for the atomic endpoint');
+    const firstClip = cutOpened.data.project.data.clips[0];
+    assert.equal(firstClip.id, legacyClip.data.clip.id);
+    const cutSnapshot = {
+      project: {
+        title: 'Atomically saved cut', notes: 'new project note',
+        expected_version: cutOpened.data.project.version,
+        base_updated_at: cutOpened.data.project.updated_at
+      },
+      clips: [{ id: firstClip.id, base_updated_at: firstClip.updated_at,
+        in_ms: 0, out_ms: 1550, caption: 'New timeline caption' }]
+    };
+    assert.equal((await request('PUT', saveUrl, {
+      cookie: otherCookie, body: cutSnapshot
+    })).status, 404, 'Foreign Creator cannot save another account timeline');
+    assert.equal((await request('PUT', saveUrl, {
+      cookie: psCookie, body: {
+        ...cutSnapshot, project: { ...cutSnapshot.project, expected_version: 1 }
+      }
+    })).status, 409, 'Stale project version cannot commit a timeline');
+    assert.equal((await request('PUT', saveUrl, {
+      cookie: psCookie, body: {
+        ...cutSnapshot, clips: [{ ...cutSnapshot.clips[0], in_ms: 1600, out_ms: 1500 }]
+      }
+    })).status, 400, 'Invalid clip ranges must reject the entire save');
+    assert.equal((await request('PUT', saveUrl, {
+      cookie: psCookie, body: { ...cutSnapshot, clips: [] }
+    })).status, 409, 'A partial clip list cannot silently delete existing timeline clips');
+    assert.equal((await request('PUT', saveUrl, {
+      cookie: psCookie, body: {
+        ...cutSnapshot, project: { ...cutSnapshot.project, notes: 'x'.repeat(600000) }
+      }
+    })).status, 413, 'Cut project JSONB payload must be bounded');
+    const beforeAtomic = (await request('GET', cutUrl, { cookie: psCookie })).data.project;
+    assert.equal(beforeAtomic.name, 'Atomic Cut CI',
+      'Rejected saves must not modify project title');
+    assert.equal(beforeAtomic.data.clips[0].out_ms, 1500,
+      'Rejected saves must not modify clips');
+    const atomicallySaved = await request('PUT', saveUrl, {
+      cookie: psCookie, body: cutSnapshot
+    });
+    assert.equal(atomicallySaved.status, 200, 'Valid Cut Studio atomic save must succeed');
+    assert.equal(atomicallySaved.data.project.version, 3);
+    assert.equal(atomicallySaved.data.clips[0].caption, 'New timeline caption');
+    const afterAtomic = (await request('GET', cutUrl, { cookie: psCookie })).data.project;
+    assert.equal(afterAtomic.name, 'Atomically saved cut');
+    assert.equal(afterAtomic.data.clips[0].out_ms, 1550);
+    assert.equal(afterAtomic.version, 3);
+    assert.equal((await request('PUT', saveUrl, {
+      cookie: psCookie, body: cutSnapshot
+    })).status, 409, 'Replayed atomic snapshot must not overwrite a new revision');
+    const raceSnapshot = {
+      project: {
+        title: 'Race candidate', expected_version: afterAtomic.version,
+        base_updated_at: afterAtomic.updated_at
+      },
+      clips: [{
+        id: afterAtomic.data.clips[0].id,
+        base_updated_at: afterAtomic.data.clips[0].updated_at,
+        in_ms: 0, out_ms: 1650
+      }]
+    };
+    const racingSaves = await Promise.all(['Race Alpha', 'Race Beta'].map(title =>
+      request('PUT', saveUrl, {
+        cookie: psCookie,
+        body: { ...raceSnapshot, project: { ...raceSnapshot.project, title } }
+      })
+    ));
+    assert.deepEqual(racingSaves.map(x => x.status).sort((a, b) => a - b), [200, 409],
+      'Only one simultaneous atomic Cut Studio save may commit');
+    const afterRace = (await request('GET', cutUrl, { cookie: psCookie })).data.project;
+    assert.equal(afterRace.version, 4);
+    const legacyEdit = await request('PUT', cutUrl + '/clips/' + firstClip.id, {
+      cookie: psCookie, body: { caption: 'Legacy clip revision' }
+    });
+    assert.equal(legacyEdit.status, 200);
+    const afterLegacy = (await request('GET', cutUrl, { cookie: psCookie })).data.project;
+    assert.equal(afterLegacy.version, 5,
+      'A legacy clip edit must also invalidate stale atomic-save revisions');
+    assert.equal((await request('PUT', saveUrl, {
+      cookie: psCookie, body: raceSnapshot
+    })).status, 409, 'Atomic endpoint must not overwrite an intervening legacy clip edit');
+
 
     assert.equal((await request('POST', '/api/launcher/playstation/sync', {
       body: { games: [] }
