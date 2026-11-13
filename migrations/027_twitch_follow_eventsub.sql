@@ -10,6 +10,17 @@ create table if not exists twitch_follow_subscriptions (
   updated_at timestamptz not null default now()
 );
 
+-- Twitch can send the signed verification challenge before the API response
+-- supplies the subscription ID. Record that proof independently of request order.
+create table if not exists twitch_follow_challenges (
+  subscription_id text primary key,
+  broadcaster_user_id text not null,
+  verified_at timestamptz not null default now()
+);
+
+create index if not exists twitch_follow_challenges_verified_idx
+  on twitch_follow_challenges(verified_at);
+
 create table if not exists twitch_follow_events (
   id uuid primary key default gen_random_uuid(),
   account_id uuid not null references accounts(id) on delete cascade,
