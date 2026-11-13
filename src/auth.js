@@ -177,7 +177,29 @@ export async function resetPassword(token, newPassword) {
   }
 }
 export async function requestEmailVerification(email){const normalized=normalizeEmail(email),pool=getPool(),row=(await pool.query("select id,email from accounts where email=$1",[normalized])).rows[0];if(!row)return{ok:true,message:"Wenn ein passendes Konto existiert, wurde ein Bestätigungslink angefordert."};const token=randomBytes(32).toString("base64url");await pool.query("delete from email_verification_tokens where account_id=$1 or expires_at<=now()",[row.id]);await pool.query("insert into email_verification_tokens(account_id,token_hash,expires_at) values($1,$2,now()+interval '30 minutes')",[row.id,tokenHash(token)]);await sendMail({to:row.email,token,type:"verification"});return{ok:true,message:"Bestätigungslink wurde angefordert."};}
-export async function verifyEmail(token){const pool=getPool(),row=(await pool.query("select account_id from email_verification_tokens where token_hash=$1 and used_at is null and expires_at>now()",[tokenHash(token)])).rows[0];if(!row)return{error:"VERIFICATION_TOKEN_INVALID_OR_EXPIRED",status:400};await pool.query("update accounts set email_verified_at=now(),updated_at=now() where id=$1",[row.account_id]);await pool.query("update email_verification_tokens set used_at=now() where token_hash=$1",[tokenHash(token)]);return{ok:true,message:"E-Mail-Adresse wurde bestätigt."};}
+export async function verifyEmail(token) {
+  if (typeof token !== "string" || !token || token.length > 512) return { error: "VERIFICATION_TOKEN_INVALID_OR_EXPIRED", status: 400 };
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    const consumed = (await client.query(
+      "update email_verification_tokens set used_at=now() where token_hash=$1 and used_at is null and expires_at>now() returning account_id",
+      [tokenHash(token)]
+    )).rows[0];
+    if (!consumed) {
+      await client.query("ROLLBACK");
+      return { error: "VERIFICATION_TOKEN_INVALID_OR_EXPIRED", status: 400 };
+    }
+    await client.query("update accounts set email_verified_at=now(),updated_at=now() where id=$1", [consumed.account_id]);
+    await client.query("COMMIT");
+    return { ok: true, message: "E-Mail-Adresse wurde bestätigt." };
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 export async function updateProfile(req,body){const account=await currentAccount(req);if(!account)return{error:"AUTHENTICATION_REQUIRED",status:401};const name=String(body.display_name||"").trim();if(name.length<2||name.length>80)return{error:"INVALID_DISPLAY_NAME",status:400};const row=(await getPool().query("update accounts set display_name=$2,updated_at=now() where id=$1 returning id,email,display_name,role,plan,email_verified_at,created_at",[account.id,name])).rows[0];return{ok:true,account:row};}
 export async function verifyAccountPassword(req,password){const account=await currentAccount(req);if(!account)return null;const row=(await getPool().query("select password_hash from accounts where id=$1",[account.id])).rows[0];return row&&await verifyPassword(password,row.password_hash)?account:null;}
 export async function changePassword(req,body){const account=await currentAccount(req);if(!account)return{error:"AUTHENTICATION_REQUIRED",status:401};const row=(await getPool().query("select password_hash from accounts where id=$1",[account.id])).rows[0];if(!row||!(await verifyPassword(body.current_password,row.password_hash)))return{error:"INVALID_CURRENT_PASSWORD",status:401};if(!isPasswordLongEnough(body.new_password))return{error:"PASSWORD_TOO_SHORT",status:400};const hash=await passwordHash(body.new_password);await getPool().query("update accounts set password_hash=$2,updated_at=now() where id=$1",[account.id,hash]);await getPool().query("delete from sessions where account_id=$1",[account.id]);await getPool().query("delete from mfa_login_challenges where account_id=$1",[account.id]);return{ok:true,message:"Passwort wurde geändert. Andere Sitzungen wurden beendet."};}
