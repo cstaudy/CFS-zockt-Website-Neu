@@ -19,6 +19,7 @@ import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
 import { getPublicWidget } from "./src/widget-output.js";
 import { getPublicScene } from "./src/scene-output.js";
+import { listMakerBundles, saveMakerBundle, controlMakerBundle, rotateMakerToken, deleteMakerBundle, getPublicMakerBundle, makerAssetAllowed, listMakerShop, publishMakerShop, copyMakerShop } from "./src/stream-maker.js";
 import { listAssets, uploadAsset } from "./src/assets.js";
 import { createPackage, listPackages, listShopCatalog, convertBundle } from "./src/packages.js";
 import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnectTikTok, syncTikTok, publicTikTokVideos } from "./src/tiktok.js";
@@ -181,7 +182,9 @@ async function serveStatic(req, res) {
       ) as allowed`,
       [storagePath, `/assets/uploads/${storagePath}`]
     ) : { rows: [{ allowed: false }] };
-    const publicWidgetAsset = published.rows[0]?.allowed === true;
+    const sourceToken = new URL(req.url, "http://localhost").searchParams.get("source_token");
+    const makerAsset = sourceToken && await makerAssetAllowed(sourceToken, storagePath);
+    const publicWidgetAsset = published.rows[0]?.allowed === true || makerAsset === true;
     if (!publicWidgetAsset) {
       const account = await currentAccount(req);
       if (!account) return json(res, 401, { error: "AUTHENTICATION_REQUIRED" });
@@ -226,6 +229,12 @@ async function handle(req, res) {
   }
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && !requestOriginAllowed(req)) {
     return json(res, 403, { error: "ORIGIN_NOT_ALLOWED", message: "Die Anfrage stammt nicht von dieser Website." });
+  }
+
+  const publicMakerMatch = url.pathname.match(/^\/api\/public\/stream-maker\/([^/]+)$/);
+  if (publicMakerMatch && method === "GET") {
+    const result = await getPublicMakerBundle(publicMakerMatch[1]);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
   }
 
   const publicSceneMatch = url.pathname.match(/^\/api\/public\/scenes\/([^/]+)$/);
@@ -368,7 +377,37 @@ async function handle(req, res) {
   if(url.pathname==="/api/creator/public-live-control"&&(method==="GET"||method==="POST")){const result=await publicLiveControl(req,method==="POST"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/stream-studio/runtime"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const devices=(await getPool().query("select machine_name,client_version,status,obs_connected,obs_version,last_seen_at from launcher_devices where account_id=$1 and status='active' order by updated_at desc",[account.id])).rows;const d=devices[0]||null;return json(res,200,{ok:true,runtime:{connected:Boolean(d),launcher:d?{machine_name:d.machine_name,client_version:d.client_version}:null,obs_connected:Boolean(d?.obs_connected),status:d?.obs_connected?"ready":d?"launcher_only":"offline"}});}
   if(url.pathname==="/api/creator/universal-builder/live-readiness"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,ready:false,providers:{tiktok:tiktokConfigured(),twitch:twitchConfigured()},message:"Live-Daten erscheinen nach Provider-Verbindung und Veröffentlichung des Widgets."});}
-  if(url.pathname==="/api/creator/stream-maker-shop"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,enabled:false,templates:[],message:"Noch keine veröffentlichten Maker-Vorlagen vorhanden."});}
+  if (url.pathname === "/api/creator/stream-maker" && method === "GET") {
+    const result = await listMakerBundles(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  if (url.pathname === "/api/creator/stream-maker" && method === "POST") {
+    const result = await saveMakerBundle(req, await readJson(req));
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 201, result);
+  }
+  const makerMatch = url.pathname.match(/^\/api\/creator\/stream-maker\/([^/]+)(?:\/(control|rotate-token|publish|unpublish))?$/);
+  if (makerMatch) {
+    const makerId = makerMatch[1];
+    const action = makerMatch[2];
+    const body = await readJson(req);
+    let result;
+    if (!action && method === "PUT") result = await saveMakerBundle(req, body, makerId);
+    else if (!action && method === "DELETE") result = await deleteMakerBundle(req, makerId, body);
+    else if (action === "control" && method === "POST") result = await controlMakerBundle(req, makerId, body);
+    else if (action === "rotate-token" && method === "POST") result = await rotateMakerToken(req, makerId, body);
+    else if (action === "publish" && method === "POST") result = await publishMakerShop(req, makerId, body, true);
+    else if (action === "unpublish" && method === "POST") result = await publishMakerShop(req, makerId, body, false);
+    if (result) return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  if (url.pathname === "/api/creator/stream-maker-shop" && method === "GET") {
+    const result = await listMakerShop(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  const makerCopyMatch = url.pathname.match(/^\/api\/creator\/stream-maker-shop\/([^/]+)\/copy$/);
+  if (makerCopyMatch && method === "POST") {
+    const result = await copyMakerShop(req, makerCopyMatch[1]);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
   if(url.pathname.startsWith("/api/creator/cfson/")&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});if(url.pathname.endsWith("/status"))return json(res,200,{ok:true,mode:"private_alpha",integration:"ui_preview_only",version:"Alpha",enabled:false,message:"CFSON ist nur als lokaler, lesender Diagnosetest vorbereitet."});return json(res,503,{ok:false,state:"disabled",error:"CFSON_NOT_CONNECTED",liveIngestDisabled:true,message:"Kein CFSON-Dienst verbunden. Es werden keine Konto-, Medien- oder Live-Daten freigegeben."});}
   if(url.pathname.startsWith("/api/creator/cfs-ai/")&&(method==="GET"||method==="POST")){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const enabled=Boolean(process.env.CFS_AI_ENABLED&&process.env.CFS_AI_BRIDGE_TOKEN);if(url.pathname.endsWith("/status"))return json(res,200,{ok:true,enabled,configured:enabled,provider:null,status:enabled?"configured":"disabled",message:enabled?"AI-Bridge konfiguriert.":"CFS-AI ist aktuell nicht konfiguriert."});if(url.pathname.endsWith("/bridge"))return json(res,200,{ok:true,enabled,connected:false,provider:null,message:"Keine AI-Bridge verbunden."});if(url.pathname.endsWith("/knowledge"))return json(res,200,{ok:true,enabled,items:[]});if(url.pathname.endsWith("/roadmap"))return json(res,200,{ok:true,enabled,items:[]});if(url.pathname.endsWith("/proposals"))return json(res,200,{ok:true,enabled,proposals:[]});return json(res,enabled?501:503,{error:enabled?"AI_BRIDGE_NOT_IMPLEMENTED":"AI_NOT_CONFIGURED",message:"Dieser optionale AI-Bereich ist derzeit deaktiviert."});}
   if(url.pathname==="/api/public/launcher/releases"&&method==="GET"){return json(res,200,{ok:true,channel:String(url.searchParams.get("channel")||"stable"),build_target_version:process.env.LAUNCHER_VERSION||null,release:null,message:"Noch kein öffentlicher Launcher-Download hinterlegt."});}
