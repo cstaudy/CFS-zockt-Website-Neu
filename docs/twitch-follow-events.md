@@ -41,8 +41,10 @@ oder Twitch-Chat-Events werden aus diesen Daten abgeleitet.
   nicht erneut als Follow gespeichert.
 - Auch wenn die Challenge **vor** der Antwort der Subscription-API eingeht,
   wird die Verifizierung serverseitig vermerkt.
-- Follow-Events werden maximal 30 Tage, höchstens 500 Einträge pro Konto,
-  gespeichert. Der öffentliche OBS-Endpunkt stellt nur den bestätigten
+- Bei neuen Follow-Nachrichten werden Einträge älter als 30 Tage sowie
+  Einträge oberhalb von 500 pro Konto bereinigt. Bei längerer Inaktivität
+  ist eine zusätzliche regelmäßige Löschroutine für die Aufbewahrungsfrist
+  noch nachzurüsten. Der öffentliche OBS-Endpunkt stellt nur den bestätigten
   Follower-Anzeigenamen und Ereigniszeitpunkt bereit, niemals OAuth-Tokens.
 - `Latest Follower` verwendet den neuesten bestätigten Follow.
   `Follow Alert` erscheint nur innerhalb des kurzen Ereignisfensters
