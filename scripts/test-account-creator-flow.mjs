@@ -303,6 +303,62 @@ try {
     .data.projects?.some(project => project.id === secondProject.data.project.id),
     'Creator A must also be unable to see creator B private data');
 
+  // Universal Builder: only its own records and atomic revisions may be changed.
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie: created.cookie, body: { kind: 'design', name: 'Wrong path', data: { type: 'universal_bundle' } }
+  })).status, 409, 'Universal Builder records require their dedicated API');
+  assert.equal((await request('POST', '/api/creator/universal-builder/bundles', {
+    cookie: created.cookie, body: { name: 'Invalid config', config: [] }
+  })).status, 400, 'Universal Builder must reject malformed configurations');
+  const builderCreated = await request('POST', '/api/creator/universal-builder/bundles', {
+    cookie: created.cookie,
+    body: { name: 'Builder CI', config: { design_key: 'blitze', platforms: ['obs'],
+      elements: [{ type: 'text', id: 'main' }], settings: {} } }
+  });
+  assert.equal(builderCreated.status, 201, `Builder save failed: ${JSON.stringify(builderCreated.data)}`);
+  const builderId = builderCreated.data.bundle.id;
+  const builderVersion = builderCreated.data.bundle.version;
+  assert.equal((await request('PUT', '/api/creator/universal-builder/bundles/' + builderId, {
+    cookie: otherCookie, body: { name: 'Foreign change', version: builderVersion, config: {} }
+  })).status, 404, 'Builder updates must isolate owners');
+  assert.equal((await request('PATCH', '/api/creator/projects/' + builderId, {
+    cookie: created.cookie, body: { name: 'Outside builder' }
+  })).status, 409, 'Generic project edits must not bypass Builder version checks');
+  assert.equal((await request('DELETE', '/api/creator/projects/' + builderId, {
+    cookie: created.cookie
+  })).status, 409, 'Generic project removal must not bypass Builder version checks');
+  assert.equal((await request('PUT', '/api/creator/universal-builder/bundles/' + projectId, {
+    cookie: created.cookie, body: { name: 'Cross-type', version: builderVersion, config: {} }
+  })).status, 404, 'Builder cannot overwrite an ordinary design belonging to the same creator');
+  const racePayload = { version: builderVersion, config: { design_key: 'nacht',
+    platforms: ['obs'], elements: [{ type: 'shape' }], settings: {} } };
+  const builderRace = await Promise.all([
+    request('PUT', '/api/creator/universal-builder/bundles/' + builderId, {
+      cookie: created.cookie, body: { ...racePayload, name: 'Race A' }
+    }),
+    request('PUT', '/api/creator/universal-builder/bundles/' + builderId, {
+      cookie: created.cookie, body: { ...racePayload, name: 'Race B' }
+    })
+  ]);
+  assert.deepEqual(builderRace.map(item => item.status).sort((a, b) => a - b), [200, 409],
+    'Only one concurrent Builder save with an old version may succeed');
+  const builderNewVersion = builderRace.find(item => item.status === 200).data.bundle.version;
+  assert.equal((await request('PATCH', '/api/creator/universal-builder/bundles/' + builderId + '/name', {
+    cookie: created.cookie, body: { name: 'Stale rename', version: builderVersion }
+  })).status, 409, 'Builder rename rejects stale revisions');
+  const builderRenamed = await request('PATCH', '/api/creator/universal-builder/bundles/' + builderId + '/name', {
+    cookie: created.cookie, body: { name: 'Safe rename', version: builderNewVersion }
+  });
+  assert.equal(builderRenamed.status, 200);
+  assert.equal((await request('DELETE', '/api/creator/universal-builder/bundles/' + builderId, {
+    cookie: created.cookie, body: { version: builderNewVersion }
+  })).status, 409, 'Builder deletion rejects stale revisions');
+  assert.equal((await request('DELETE', '/api/creator/universal-builder/bundles/' + builderId, {
+    cookie: created.cookie, body: { version: builderRenamed.data.bundle.version }
+  })).status, 200, 'Owner may archive current Builder revision');
+  assert(!(await request('GET', '/api/creator/universal-builder', { cookie: created.cookie }))
+    .data.bundles?.some(row => row.id === builderId), 'Archived Builder bundles must not appear in active lists');
+
   const archived = await request('DELETE', `/api/creator/projects/${encodeURIComponent(projectId)}`, { cookie: created.cookie });
   assert.equal(archived.status, 200, 'Owner must be able to archive their project');
   const afterArchive = await request('GET', '/api/creator/projects', { cookie: created.cookie });
