@@ -1,5 +1,6 @@
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
+import { createWidget } from "./widget-adapter.js";
 
 function packageView(row) {
   return { id: row.id, name: row.name, package: row.data?.package || {}, status: row.status, version: row.version || 1, created_at: row.created_at, updated_at: row.updated_at };
@@ -37,10 +38,16 @@ export async function convertBundle(req, id) {
   const outputs = Array.isArray(row.data?.package?.outputs) ? row.data.package.outputs : ["widgets"];
   const created = [];
   if (outputs.includes("widgets")) {
-    const type = "follower_goal";
-    const config = { widgetType: type, templateKey: row.data?.package?.world || "cfs-standard", canvas: { width: 620, height: 132 }, elements: [], settings: {}, data: {} };
-    const widget = await pool.query("insert into creator_projects (account_id, kind, name, data) values ($1, 'widget', $2, $3::jsonb) returning id, name", [account.id, `${row.name} · Widget`, JSON.stringify({ widget_type: type, config })]);
-    created.push({ id: widget.rows[0].id, name: widget.rows[0].name, type: "widget" });
+    // Widget quotas and initial schema are enforced by the dedicated API.
+    // Do not insert creator_projects directly from a bundle conversion.
+    const world = String(row.data?.package?.world || "cfs-standard");
+    const templateKey = world.replace(/[^a-z0-9_-]/gi, "-").slice(0, 80) || "cfs-standard";
+    const result = await createWidget(req, {
+      widget_type: "follower_goal", template_key: templateKey,
+      name: `${row.name} · Widget`.slice(0, 160)
+    });
+    if (result.error) return result;
+    created.push({ id: result.widget.id, name: result.widget.name, type: "widget" });
   }
   return { message: "Bundle wurde für das Widget Studio vorbereitet.", created_widgets: created, summary: { created: created.length, existing: 0 } };
 }
