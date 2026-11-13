@@ -6,7 +6,7 @@ import { access, readFile, stat } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
-import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
+import { currentAccount, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
 import { mailStatus } from "./src/mail.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
 import { finishMfaLogin, pendingMfaCookie, clearPendingMfaCookie } from "./src/mfa-login.js";
@@ -14,6 +14,7 @@ import { createSupportReport, listSupportReports, updateSupportReport } from "./
 import { gameState, gameRuntime, gameRules } from "./src/games.js";
 import { modulesState, launcherModuleState, audioModuleState } from "./src/modules.js";
 import { publicReviews } from "./src/reviews.js";
+import { isAdminAccount } from "./src/admin-access.js";
 import { createProject, deleteProject, listProjects, updateProject, requireAdmin, requireAccount } from "./src/projects.js";
 import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
@@ -283,7 +284,7 @@ async function handle(req, res) {
 
   if (url.pathname === "/api/account/me" && ["GET", "HEAD"].includes(method)) {
     const account = await currentAccount(req);
-    const view = account ? { ...account, admin: isAdminEmail(account.email), role: isAdminEmail(account.email) ? "admin" : "creator", email_verified: Boolean(account.email_verified_at) } : null;
+    const view = account ? { ...account, admin: isAdminAccount(account), role: isAdminAccount(account) ? "admin" : "creator", email_verified: Boolean(account.email_verified_at) } : null;
     return json(res, 200, { authenticated: Boolean(view), account: view });
   }
   if(url.pathname==="/api/account/mail/status"&&method==="GET")return json(res,200,mailStatus());
@@ -415,7 +416,7 @@ async function handle(req, res) {
     const account = await requireAdmin(req);
     if (account.error) return json(res, account.status, { error: account.error });
     const result = await getPool().query("select id, email, display_name, role, plan, email_verified_at, created_at, updated_at from accounts order by created_at desc");
-    return json(res, 200, { accounts: result.rows.map(row => ({ ...row, admin: isAdminEmail(row.email), email_verified: Boolean(row.email_verified_at) })), total: result.rowCount });
+    return json(res, 200, { accounts: result.rows.map(row => ({ ...row, admin: isAdminAccount(row), email_verified: Boolean(row.email_verified_at) })), total: result.rowCount });
   }
 
   if (["/api/auth/register", "/api/account/register"].includes(url.pathname) && method === "POST") {
