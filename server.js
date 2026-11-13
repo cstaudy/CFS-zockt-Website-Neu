@@ -28,6 +28,7 @@ import { publicGamesFromPlayStation } from "./src/public-games.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
+import { saveCutProjectAndClips } from "./src/cut-project-save.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
 import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
 import { listPresets, savePreset, deletePreset } from "./src/creator-presets.js";
@@ -387,6 +388,11 @@ async function handle(req, res) {
   if(url.pathname==="/api/creator/stream-studio"&&method==="PUT"){const result=await saveToolProject(req,"stream",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,{...result,config:result.project.data});}
   if(url.pathname==="/api/creator/cut-studio/projects"&&method==="GET"){const result=await listToolProjects(req,"cut");return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/cut-studio/projects"&&method==="POST"){const result=await saveToolProject(req,"cut",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  const cutAtomicSave = url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/save$/);
+  if (cutAtomicSave && method === "PUT") {
+    const result = await saveCutProjectAndClips(req, decodeURIComponent(cutAtomicSave[1]), await readJson(req));
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
   const clipList=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/clips$/);
   if(clipList&&method==="GET"){const result=await listClips(req,decodeURIComponent(clipList[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(clipList&&method==="POST"){const result=await createClip(req,decodeURIComponent(clipList[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
