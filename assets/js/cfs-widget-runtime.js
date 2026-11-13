@@ -14,6 +14,27 @@
   let consecutiveFailures = 0;
   const maxStaleFailures = 4;
   const requestTimeoutMs = 10000;
+  let lastConfirmedTimer = null;
+  let timerTickerStarted = false;
+
+  // Advance only confirmed Twitch timer text locally between provider polls.
+  // Update text nodes rather than rebuilding the entire OBS scene each second.
+  function tickTimer() {
+    const payload = lastConfirmedTimer;
+    if (!payload || typeof stage.querySelectorAll !== "function") return;
+    const data = renderer.runtimeData(payload);
+    const elements = new Map((payload.widget.config.elements || [])
+      .filter(element => element && ["text", "counter"].includes(element.type))
+      .map(element => [String(element.id || ""), element]));
+    for (const node of stage.querySelectorAll("[data-element]")) {
+      const element = elements.get(node.getAttribute("data-element"));
+      const template = element?.type === "counter" ? element.data?.format : element?.data?.text;
+      if (typeof template === "string" && template.includes("{{timer}}")) {
+        node.textContent = renderer.text(template, data);
+      }
+    }
+  }
+
   async function refresh() {
     if (stopped || loading) return;
     loading = true;
@@ -37,8 +58,18 @@
         scene, stage, config: payload.widget.config, data,
         profile: ["obs", "tiktok_vertical", "landscape"].includes(profile) ? profile : "obs"
       });
+      const definition = payload.widget.definition;
+      lastConfirmedTimer = definition?.provider === "twitch" && definition.mode === "timer" &&
+        payload.data?.live?.status === "live" && payload.data.live.connected === true &&
+        payload.data.live.stale === false ? payload : null;
+      if (lastConfirmedTimer && !timerTickerStarted) {
+        timerTickerStarted = true;
+        setInterval(tickTimer, 1000);
+      }
       consecutiveFailures = 0;
     } catch (error) {
+      // Do not keep incrementing a supposedly live timer while the source is unreachable.
+      lastConfirmedTimer = null;
       console.error("Widget refresh failed", error);
       // Brief outages keep the last frame; prolonged outages must not show stale data indefinitely.
       if (!stopped && ++consecutiveFailures >= maxStaleFailures) stage.replaceChildren();
