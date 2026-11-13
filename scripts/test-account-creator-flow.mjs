@@ -93,6 +93,13 @@ try {
   assert.equal((await request('GET', '/api/admin/status', { cookie: created.cookie })).status, 403,
     'Normal creators must not receive admin access');
 
+  assert.equal((await request('GET', '/api/creator/widget-studio/packages')).status, 401,
+    'Package listing must not pretend authentication succeeded');
+  assert.equal((await request('POST', '/api/creator/widget-studio/packages', { body: {} })).status, 401,
+    'Anonymous package creation must return HTTP 401');
+  assert.equal((await request('POST', '/api/creator/widget-studio/packages', {
+    cookie: created.cookie, body: null
+  })).status, 400, 'Malformed package payloads must be rejected');
   const saved = await request('POST', '/api/creator/projects', {
     cookie: created.cookie,
     body: { kind: 'design', name: 'CI Design', data: { headline: 'Saved creator content' } }
@@ -466,6 +473,30 @@ try {
     cookie: login.cookie, body: { expected_version: ownerDraft.data.widget.version }
   });
   assert.equal(ownerPublished.status, 200);
+  const packageCreated = await request('POST', '/api/creator/widget-studio/packages', {
+    cookie: login.cookie, body: {
+      name: 'Quota conversion bundle', world: 'ci-unique', outputs: ['widgets']
+    }
+  });
+  assert.equal(packageCreated.status, 201, `Package creation failed: ${JSON.stringify(packageCreated.data)}`);
+  const packageId = packageCreated.data.package.id;
+  assert.equal((await request('POST', '/api/creator/shop/bundles/not-a-uuid/convert', {
+    cookie: login.cookie, body: {}
+  })).status, 404, 'Malformed bundle conversion IDs must not crash the server');
+  const firstConversion = await request('POST', '/api/creator/shop/bundles/' + packageId + '/convert', {
+    cookie: login.cookie, body: {}
+  });
+  assert.equal(firstConversion.status, 200, `Bundle conversion failed: ${JSON.stringify(firstConversion.data)}`);
+  assert.equal(firstConversion.data.created_widgets.length, 1);
+  const blockedConversion = await request('POST', '/api/creator/shop/bundles/' + packageId + '/convert', {
+    cookie: login.cookie, body: {}
+  });
+  assert.equal(blockedConversion.status, 402,
+    'Bundle conversion must honor the same widget quota as normal creation');
+  const widgetCount = (await request('GET', '/api/creator/widget-studio/widgets', {
+    cookie: login.cookie
+  })).data.widgets.length;
+  assert.equal(widgetCount, 3, 'A free creator must not exceed the three-widget limit through conversion');
   for (const method of ['GET', 'HEAD']) {
     const response = await fetch(base + asset.data.asset.url, { method });
     assert.equal(response.status, 200, 'Published OBS image must be accessible without a login');
