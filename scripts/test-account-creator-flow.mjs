@@ -176,6 +176,78 @@ try {
     cookie: created.cookie
   })).status, 200, 'Owner must still access their own widget');
 
+  // A published OBS/widget snapshot is immutable until explicitly republished.
+  assert.equal((await request('PUT', `/api/creator/widget-studio/widgets/not-a-uuid/draft`, {
+    cookie: created.cookie, body: {}
+  })).status, 404, 'Malformed widget IDs must fail closed');
+  assert.equal((await request('PUT', `/api/creator/widget-studio/widgets/${widgetId}/draft`, {
+    cookie: created.cookie, body: null
+  })).status, 400, 'Null widget edits must not crash the server');
+  assert.equal((await request('PUT', `/api/creator/widget-studio/widgets/${widgetId}/draft`, {
+    cookie: created.cookie, body: { config: { elements: [{ type: 'text', rotation: 361 }] } }
+  })).status, 400, 'Invalid element geometry must be rejected before database write');
+  const widgetPublishedConfig = {
+    widgetType: 'manual_counter', canvas: { width: 620, height: 132 },
+    elements: [{ id: 'published_text', type: 'text', data: { text: 'VISIBLE VERSION' },
+      style: { fontSize: 24, color: '#ffffff' } }],
+    settings: { manualValue: 7 }
+  };
+  const widgetDraftSave = await request('PUT', `/api/creator/widget-studio/widgets/${widgetId}/draft`, {
+    cookie: created.cookie, body: { expected_version: 1, config: widgetPublishedConfig }
+  });
+  assert.equal(widgetDraftSave.status, 200, 'Owner widget draft save must succeed');
+  assert.equal(widgetDraftSave.data.widget.version, 2);
+  assert.equal(widgetDraftSave.data.widget.published_config, null,
+    'Draft cannot be publicly available before explicit publish');
+  const firstWidgetPublish = await request('POST', `/api/creator/widget-studio/widgets/${widgetId}/publish`, {
+    cookie: created.cookie, body: { expected_version: 2 }
+  });
+  assert.equal(firstWidgetPublish.status, 200, 'Owner widget publish must succeed');
+  assert.equal(firstWidgetPublish.data.widget.status, 'live');
+  assert.equal(firstWidgetPublish.data.widget.published_config.elements[0].data.text, 'VISIBLE VERSION');
+  assert.equal(firstWidgetPublish.data.widget.has_unpublished_changes, false);
+  const privateDraftConfig = {
+    ...widgetPublishedConfig,
+    elements: [{ id: 'private_text', type: 'text', data: { text: 'PRIVATE DRAFT' } }]
+  };
+  const widgetPrivateEdit = await request('PUT', `/api/creator/widget-studio/widgets/${widgetId}/draft`, {
+    cookie: created.cookie, body: { expected_version: 3, config: privateDraftConfig }
+  });
+  assert.equal(widgetPrivateEdit.status, 200, 'Edit after publish must stay private');
+  assert.equal(widgetPrivateEdit.data.widget.version, 4);
+  assert.equal(widgetPrivateEdit.data.widget.status, 'live',
+    'Published version must remain live while its next draft is edited');
+  assert.equal(widgetPrivateEdit.data.widget.draft_config.elements[0].data.text, 'PRIVATE DRAFT');
+  assert.equal(widgetPrivateEdit.data.widget.published_config.elements[0].data.text, 'VISIBLE VERSION',
+    'Draft content must not alter previously published snapshot');
+  assert.equal(widgetPrivateEdit.data.widget.has_unpublished_changes, true);
+  const widgetAfterSave = await request('GET', `/api/creator/widget-studio/widgets/${widgetId}`, {
+    cookie: created.cookie
+  });
+  assert.equal(widgetAfterSave.data.widget.published_config.elements[0].data.text, 'VISIBLE VERSION');
+  assert.equal((await request('PUT', `/api/creator/widget-studio/widgets/${widgetId}/draft`, {
+    cookie: created.cookie, body: { expected_version: 3, name: 'Stale overwrite' }
+  })).status, 409, 'Old edit revision must not overwrite a newer draft');
+  const races = await Promise.all(['Race A', 'Race B'].map(name =>
+    request('PUT', `/api/creator/widget-studio/widgets/${widgetId}/draft`, {
+      cookie: created.cookie, body: { expected_version: 4, name }
+    })
+  ));
+  assert.deepEqual(races.map(result => result.status).sort((a, b) => a - b), [200, 409],
+    'Concurrent widget updates must serialize by row version');
+  const widgetAfterRace = await request('GET', `/api/creator/widget-studio/widgets/${widgetId}`, {
+    cookie: created.cookie
+  });
+  assert.equal(widgetAfterRace.data.widget.published_config.elements[0].data.text, 'VISIBLE VERSION',
+    'Concurrent draft updates cannot alter public snapshot');
+  const widgetRepublish = await request('POST', `/api/creator/widget-studio/widgets/${widgetId}/publish`, {
+    cookie: created.cookie, body: { expected_version: widgetAfterRace.data.widget.version }
+  });
+  assert.equal(widgetRepublish.status, 200);
+  assert.equal(widgetRepublish.data.widget.published_config.elements[0].data.text, 'PRIVATE DRAFT',
+    'Only explicit publish changes public widget snapshot');
+  assert.equal(widgetRepublish.data.widget.has_unpublished_changes, false);
+
   const secondProject = await request('POST', '/api/creator/projects', {
     cookie: otherCookie, body: { kind: 'design', name: 'Private B Design', data: { secret: 'B only' } }
   });
