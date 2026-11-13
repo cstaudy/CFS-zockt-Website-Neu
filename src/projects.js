@@ -36,7 +36,7 @@ export async function listProjects(req, url) {
   const values = [account.id];
   let filter = "";
   if (kind && !kinds.has(kind)) return { error: "INVALID_PROJECT_KIND", status: 400 };
-  if (kind) { values.push(kind); filter = ` and kind = ${values.length}`; }
+  if (kind) { values.push(kind); filter = ` and kind = $${values.length}`; }
   const result = await pool.query(`select id, kind, name, data, status, created_at, updated_at from creator_projects where account_id = $1${filter} and status <> 'archived' order by updated_at desc`, values);
   return { projects: result.rows };
 }
@@ -60,7 +60,7 @@ export async function updateProject(req, id, body) {
   const fields = [];
   const values = [id, account.id];
   if (body.name !== undefined) { const name = String(body.name).trim(); if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 }; values.push(name); fields.push(`name = $${values.length}`); }
-  if (body.data !== undefined) { const data = projectData(body.data); if (data === null) return { error: "INVALID_PROJECT_DATA", status: 400 }; values.push(data); fields.push(`data = ${values.length}::jsonb`); }
+  if (body.data !== undefined) { const data = projectData(body.data); if (data === null) return { error: "INVALID_PROJECT_DATA", status: 400 }; values.push(data); fields.push(`data = $${values.length}::jsonb`); }
   if (body.status !== undefined) { if (!statuses.has(String(body.status))) return { error: "INVALID_PROJECT_STATUS", status: 400 }; values.push(String(body.status)); fields.push(`status = $${values.length}`); }
   if (!fields.length) return { error: "NO_CHANGES", status: 400 };
   fields.push("updated_at = now()");
