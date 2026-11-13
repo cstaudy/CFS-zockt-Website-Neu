@@ -136,6 +136,8 @@ assert.equal(liveUI.get("liveStatusBadge").textContent, "LIVE");
 assert.equal(liveUI.get("twitchLiveIndicator").textContent, "LIVE");
 assert.equal(liveUI.get("tiktokLiveIndicator").textContent, "STATUS OFFEN",
   "An active Twitch stream cannot be misrepresented as a confirmed TikTok stream");
+assert.equal(liveUI.get("tiktokLastLive").textContent, "TikTok-LIVE-Status nicht verfügbar",
+  "Twitch data alone cannot establish whether TikTok is connected");
 assert.equal(liveUI.get("liveViewers").textContent, "26");
 assert.equal(liveUI.get("liveLikes").textContent, "—");
 assert.equal(liveUI.get("liveShares").textContent, "—");
@@ -152,6 +154,8 @@ assert.equal(offlineUI.get("tiktokLiveIndicator").textContent, "STATUS OFFEN");
 const unknownUI = await renderHomepageLive(unreachable.live);
 assert.equal(unknownUI.get("liveStatusBadge").textContent, "STATUS OFFEN");
 assert.equal(unknownUI.get("twitchLiveIndicator").textContent, "STATUS OFFEN");
+assert.equal(unknownUI.get("twitchLastLive").textContent, "Twitch-LIVE-Status nicht verfügbar",
+  "An API outage must not be presented as a disconnected Twitch integration");
 assert.equal(unknownUI.get("liveViewers").textContent, "—");
 assert.match(unknownUI.get("liveStatusText").textContent, /nicht eindeutig/);
 const failedUI = await renderHomepageLive(null, true);
