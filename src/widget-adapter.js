@@ -1,5 +1,7 @@
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
+import { widgetConfigs, nextWidgetData } from "./widget-publication.js";
+import { validateWidgetElementAttributes } from "./widget-element-validation.js";
 
 const registry = [
   { key: "follower_goal", label: "TikTok Follower Goal", short_label: "FOLLOWER GOAL", provider: "tiktok", mode: "goal", source_kind: "profile", metric: "followers", canvas: { width: 620, height: 132 } },
@@ -12,8 +14,10 @@ const registry = [
 
 function widget(row) {
   const data = row.data || {};
-  const config = data.config || { widgetType: data.widget_type || "follower_goal", canvas: { width: 620, height: 132 }, elements: [], settings: {}, data: {} };
-  return { id: row.id, name: row.name, widget_type: data.widget_type || config.widgetType || "follower_goal", status: row.status === "published" ? "live" : "draft", version: row.version || 1, draft_config: config, published_config: row.status === "published" ? config : null, has_unpublished_changes: false, source_url: row.status === "published" ? `/widgets/output.html?widget=${encodeURIComponent(row.id)}` : "", source_urls: row.status === "published" ? { obs: `/widgets/output.html?widget=${encodeURIComponent(row.id)}` } : {}, created_at: row.created_at, updated_at: row.updated_at };
+  const { draft, published, changed } = widgetConfigs(data, row.status);
+  const config = Object.keys(draft).length ? draft : { widgetType: data.widget_type || "follower_goal", canvas: { width: 620, height: 132 }, elements: [], settings: {}, data: {} };
+  const hasPublicSnapshot = row.status === "published" && published && typeof published === "object" && !Array.isArray(published);
+  return { id: row.id, name: row.name, widget_type: data.widget_type || config.widgetType || "follower_goal", status: hasPublicSnapshot ? "live" : "draft", version: row.version || 1, draft_config: config, published_config: published, has_unpublished_changes: changed, source_url: hasPublicSnapshot ? `/widgets/output.html?widget=${encodeURIComponent(row.id)}` : "", source_urls: hasPublicSnapshot ? { obs: `/widgets/output.html?widget=${encodeURIComponent(row.id)}` } : {}, created_at: row.created_at, updated_at: row.updated_at };
 }
 
 export async function listWidgets(req) {
@@ -27,16 +31,40 @@ export async function listWidgets(req) {
 export async function createWidget(req, body) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
-  const pool = getPool();
-  const countResult = await pool.query("select count(*)::int as count from creator_projects where account_id = $1 and kind = 'widget' and status <> 'archived'", [account.id]);
-  const maxWidgets = account.plan === "free" ? 3 : account.plan === "creator" ? 25 : 100;
-  if (Number(countResult.rows[0]?.count || 0) >= maxWidgets) return { error: "WIDGET_LIMIT_REACHED", message: `Dein ${account.plan || "free"} Plan erlaubt maximal ${maxWidgets} Widgets.`, status: 402, limits: { max_widgets: maxWidgets }, entitlements: { plan: account.plan || "free" } };
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { error: "INVALID_WIDGET_REQUEST", status: 400 };
+  if (body.widget_type !== undefined && !registry.some(item => item.key === body.widget_type)) return { error: "INVALID_WIDGET_TYPE", status: 400 };
   const type = registry.some(item => item.key === body.widget_type) ? body.widget_type : "follower_goal";
   const spec = registry.find(item => item.key === type);
+  if (body.name !== undefined && (typeof body.name !== "string" || !body.name.trim() || body.name.length > 160)) return { error: "INVALID_WIDGET_NAME", status: 400 };
+  if (body.template_key !== undefined && (typeof body.template_key !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(body.template_key))) return { error: "INVALID_WIDGET_TEMPLATE", status: 400 };
   const config = { widgetType: type, templateKey: body.template_key || "cfs-standard", canvas: spec.canvas, elements: [], settings: {}, data: {} };
-  const name = String(body.name || `${spec.label} · Entwurf`).trim().slice(0, 160);
-  const result = await pool.query("insert into creator_projects (account_id, kind, name, data) values ($1, 'widget', $2, $3::jsonb) returning id, name, data, status, version, created_at, updated_at", [account.id, name, JSON.stringify({ widget_type: type, config })]);
-  return { widget: widget(result.rows[0]), registry, tiktok: { connected: false }, live: { connected: false } };
+  const name = (body.name || `${spec.label} · Entwurf`).trim();
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // Serialize widget creation per account so parallel requests cannot exceed plan limits.
+    const locked = (await client.query("select plan from accounts where id=$1 for update", [account.id])).rows[0];
+    if (!locked) {
+      await client.query("ROLLBACK");
+      return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+    }
+    const plan = locked.plan || "free";
+    const maxWidgets = plan === "free" ? 3 : plan === "creator" ? 25 : 100;
+    const countResult = await client.query("select count(*)::int as count from creator_projects where account_id = $1 and kind = 'widget' and status <> 'archived'", [account.id]);
+    if (Number(countResult.rows[0]?.count || 0) >= maxWidgets) {
+      await client.query("ROLLBACK");
+      return { error: "WIDGET_LIMIT_REACHED", message: `Dein ${plan} Plan erlaubt maximal ${maxWidgets} Widgets.`, status: 402, limits: { max_widgets: maxWidgets }, entitlements: { plan } };
+    }
+    const result = await client.query("insert into creator_projects (account_id, kind, name, data) values ($1, 'widget', $2, $3::jsonb) returning id, name, data, status, version, created_at, updated_at", [account.id, name, JSON.stringify({ widget_type: type, config })]);
+    await client.query("COMMIT");
+    return { widget: widget(result.rows[0]), registry, tiktok: { connected: false }, live: { connected: false } };
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function getWidget(req, id) {
@@ -49,12 +77,35 @@ export async function getWidget(req, id) {
 export async function updateWidget(req, id, body, publish = false) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { error: "INVALID_WIDGET_REQUEST", status: 400 };
+  if (body.name !== undefined && (typeof body.name !== "string" || !body.name.trim() || body.name.length > 160)) return { error: "INVALID_WIDGET_NAME", status: 400 };
+  if (body.config !== undefined) {
+    if (!body.config || typeof body.config !== "object" || Array.isArray(body.config)) return { error: "INVALID_WIDGET_CONFIG", status: 400 };
+    if (body.config.widgetType !== undefined && !registry.some(item => item.key === body.config.widgetType)) return { error: "INVALID_WIDGET_TYPE", status: 400 };
+    if (body.config.elements !== undefined && (!Array.isArray(body.config.elements) || body.config.elements.length > 100)) return { error: "INVALID_WIDGET_ELEMENTS", status: 400 };
+    if (Array.isArray(body.config.elements) && body.config.elements.some(element => !element || typeof element !== "object" || Array.isArray(element) || typeof element.type !== "string" || !/^[a-z][a-z0-9_-]{0,63}$/i.test(element.type))) return { error: "INVALID_WIDGET_ELEMENT", status: 400 };
+    if (Array.isArray(body.config.elements) && body.config.elements.some(element => ["position", "size", "style", "data"].some(key => element[key] !== undefined && (!element[key] || typeof element[key] !== "object" || Array.isArray(element[key]))))) return { error: "INVALID_WIDGET_ELEMENT_PROPERTIES", status: 400 };
+    if (Array.isArray(body.config.elements) && body.config.elements.some(element => [["position", ["x", "y"]], ["size", ["width", "height"]]].some(([key, fields]) => element[key] && fields.some(field => element[key][field] !== undefined && (typeof element[key][field] !== "number" || !Number.isFinite(element[key][field])))))) return { error: "INVALID_WIDGET_ELEMENT_GEOMETRY", status: 400 };
+    if (Array.isArray(body.config.elements) && body.config.elements.some(element => [["position", "x", -4000, 4000], ["position", "y", -4000, 4000], ["size", "width", 1, 4000], ["size", "height", 1, 4000]].some(([key, field, min, max]) => element[key]?.[field] !== undefined && (element[key][field] < min || element[key][field] > max)))) return { error: "WIDGET_ELEMENT_GEOMETRY_OUT_OF_RANGE", status: 400 };
+    const elementAttributeError = validateWidgetElementAttributes(body.config.elements);
+    if (elementAttributeError) return { error: elementAttributeError, status: 400 };
+    if (body.config.canvas !== undefined && (!body.config.canvas || typeof body.config.canvas !== "object" || Array.isArray(body.config.canvas))) return { error: "INVALID_WIDGET_CANVAS", status: 400 };
+    if (body.config.canvas && [["width", 1, 4000], ["height", 1, 4000]].some(([field, min, max]) => body.config.canvas[field] !== undefined && (typeof body.config.canvas[field] !== "number" || !Number.isFinite(body.config.canvas[field]) || body.config.canvas[field] < min || body.config.canvas[field] > max))) return { error: "INVALID_WIDGET_CANVAS_DIMENSIONS", status: 400 };
+    if (body.config.settings !== undefined && (!body.config.settings || typeof body.config.settings !== "object" || Array.isArray(body.config.settings))) return { error: "INVALID_WIDGET_SETTINGS", status: 400 };
+    if (Buffer.byteLength(JSON.stringify(body.config), "utf8") > 512 * 1024) return { error: "WIDGET_CONFIG_TOO_LARGE", status: 413 };
+  }
+  if (body.expected_version !== undefined && (!Number.isSafeInteger(body.expected_version) || body.expected_version < 1)) return { error: "INVALID_WIDGET_VERSION", status: 400 };
   const pool = getPool();
   const found = await pool.query("select id, name, data, status, version, created_at, updated_at from creator_projects where id = $1 and account_id = $2 and kind = 'widget' and status <> 'archived'", [id, account.id]);
   const row = found.rows[0];
   if (!row) return { error: "WIDGET_NOT_FOUND", status: 404 };
   if (body.expected_version !== undefined && Number(body.expected_version) !== Number(row.version)) return { error: "WIDGET_VERSION_CONFLICT", status: 409 };
-  const data = { ...(row.data || {}), config: body.config || row.data?.config || {} };
-  const result = await pool.query("update creator_projects set name = coalesce($3, name), data = $4::jsonb, status = case when $5 then 'published' else status end, version = version + 1, updated_at = now() where id = $1 and account_id = $2 returning id, name, data, status, version, created_at, updated_at", [id, account.id, body.name ? String(body.name).trim().slice(0, 160) : null, JSON.stringify(data), publish]);
+  const data = nextWidgetData(row.data || {}, body, publish, row.status);
+  // The complete JSONB row contains both draft and published snapshots.
+  // Bound the final stored representation, not only the incoming draft.
+  const serialized = JSON.stringify(data);
+  if (Buffer.byteLength(serialized, "utf8") > 512 * 1024) return { error: "WIDGET_DATA_TOO_LARGE", status: 413 };
+  const result = await pool.query("update creator_projects set name = coalesce($3, name), data = $4::jsonb, status = case when $5 then 'published' else status end, version = version + 1, updated_at = now() where id = $1 and account_id = $2 and version = $6 returning id, name, data, status, version, created_at, updated_at", [id, account.id, body.name ? String(body.name).trim().slice(0, 160) : null, serialized, publish, row.version]);
+  if (!result.rows[0]) return { error: "WIDGET_VERSION_CONFLICT", status: 409 };
   return { widget: widget(result.rows[0]), registry, tiktok: { connected: false }, live: { connected: false } };
 }

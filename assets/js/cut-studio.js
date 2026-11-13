@@ -146,8 +146,8 @@ async function loadCreatorPresets(){try{const d=await CFS.json("/api/creator/pre
 $("#cutExportPreset").onchange=()=>{const option=$("#cutExportPreset").selectedOptions[0],data=JSON.parse(option?.dataset.preset||"{}");const preset=data.export_preset||data;if(!option?.value||!preset||typeof preset!=="object")return;for(const [key,value] of Object.entries(preset)){const node=$("#cut"+key.replace(/(^|_)(\w)/g,(_,a,b)=>b.toUpperCase()));if(node){node.value=String(value);node.dispatchEvent(new Event("change"))}}toast("Export-Preset übernommen.")};
 async function saveTimelineOrder(){
   if(!state.project||!state.clips.length)return;
-  const d=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}/clips/order`,{method:"PUT",body:JSON.stringify({clip_ids:state.clips.map(c=>c.id),base_updated_at:state.project.updated_at})});
-  state.clips=d.clips||state.clips;if(d.project_updated_at)state.project.updated_at=d.project_updated_at;renderClips();
+  const d=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}/clips/order`,{method:"PUT",body:JSON.stringify({clip_ids:state.clips.map(c=>c.id),base_updated_at:state.project.updated_at,expected_version:state.project.version})});
+  state.clips=d.clips||state.clips;if(d.project_updated_at)state.project.updated_at=d.project_updated_at;if(d.project_version)state.project.version=d.project_version;renderClips();
 }
 // Recording handoff metadata belongs to the project even when unrelated editor fields are saved.
 // Write labels as text, never HTML: game names originate from external/live activity.
@@ -234,7 +234,7 @@ function readVisibleClips(){
   });
 }
 async function saveProject({quiet=false}={}){
-  const d=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}`,{method:"PUT",body:JSON.stringify({...projectPayload(),base_updated_at:state.project.updated_at})});
+  const d=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}`,{method:"PUT",body:JSON.stringify({...projectPayload(),base_updated_at:state.project.updated_at,expected_version:state.project.version})});
   state.project=d.project;
   if(!quiet){await load();render();rememberCutSaved();toast("Cut-Projekt gespeichert.")}
   else rememberCutSaved({clips:false});
@@ -247,7 +247,7 @@ async function saveAllCutChanges({quiet=false}={}){
   cutSaving=true;updateCutSaveState();
   try{
     const clips=readVisibleClips();
-    const project={...projectPayload(),base_updated_at:state.project.updated_at};
+    const project={...projectPayload(),base_updated_at:state.project.updated_at,expected_version:state.project.version};
     const data=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}/save`,{
       method:"PUT",body:JSON.stringify({project,clips})
     });
@@ -309,10 +309,10 @@ $("#cutAuditionSetA").onclick=async()=>{$("#cutAuditionA").value=String(audition
 $("#cutAuditionSetB").onclick=async()=>{$("#cutAuditionB").value=String(auditionClamp(auditionPlayhead.value));clearZeroCrossInspection();renderAuditionLabels();try{await saveProject({quiet:true});toast(`B bei ${auditionTime($("#cutAuditionB").value)} gesetzt.`)}catch(e){toast(e.message,true)}};
 $("#cutAuditionPlayA").onclick=()=>requestCutAudition({mode:"mix",startMs:$("#cutAuditionA").value,durationMs:12000}).catch(e=>toast(e.message,true));
 $("#cutAuditionPlayB").onclick=()=>requestCutAudition({mode:"mix",startMs:$("#cutAuditionB").value,durationMs:12000}).catch(e=>toast(e.message,true));
-$("#deleteCutProject").onclick=async()=>{if(!state.project||!confirm("Cut-Projekt wirklich löschen?"))return;try{await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}`,{method:"DELETE",body:JSON.stringify({base_updated_at:state.project.updated_at})});state.project=null;state.clips=[];await load();render();toast("Projekt gelöscht.")}catch(e){toast(e.message,true)}};
+$("#deleteCutProject").onclick=async()=>{if(!state.project||!confirm("Cut-Projekt wirklich löschen?"))return;try{await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}`,{method:"DELETE",body:JSON.stringify({base_updated_at:state.project.updated_at,expected_version:state.project.version})});state.project=null;state.clips=[];await load();render();toast("Projekt gelöscht.")}catch(e){toast(e.message,true)}};
 $("#queueCutExport").onclick=async()=>{if(!state.project)return;const active=state.jobs.filter(job=>["queued","claimed","processing"].includes(job.status)).length;if(state.limits.max_pending_jobs&&active>=state.limits.max_pending_jobs){toast(`Maximal ${state.limits.max_pending_jobs} ausstehende Export-Jobs.`,true);return}try{window.CFSCutPreview?.preflightExport?.();await saveAllCutChanges({quiet:true});const d=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}/export-jobs`,{method:"POST",body:"{}"});state.jobs.unshift(d.job);renderJobs();toast("Export-Job für den Launcher erstellt.")}catch(e){toast(e.message,true)}};
 $("#cutJobList").onclick=async e=>{const b=e.target.closest("[data-cancel-job]");if(!b)return;try{const d=await CFS.json(`/api/creator/cut-studio/jobs/${encodeURIComponent(b.dataset.cancelJob)}/cancel`,{method:"POST",body:"{}"});state.jobs=state.jobs.map(j=>j.id===d.job.id?d.job:j);renderJobs();toast("Export-Job abgebrochen.")}catch(err){toast(err.message,true)}};
-$("#addCutClip").onclick=async()=>{if(!state.project)return;if(state.limits.max_clips_per_project&&state.clips.length>=state.limits.max_clips_per_project){toast(`Maximal ${state.limits.max_clips_per_project} Clips pro Projekt.`,true);return}try{await mutateCutClipStructure(async()=>{const d=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}/clips`,{method:"POST",body:JSON.stringify({base_updated_at:state.project.updated_at,label:`Clip ${state.clips.length+1}`,in_ms:0,out_ms:15000,caption:"",caption_enabled:false,caption_position:"bottom",caption_size:52,caption_style:"box",audio_gain_db:0,audio_fade_in_ms:0,audio_fade_out_ms:0,keyframe_enabled:false,keyframe_zoom_start:1,keyframe_zoom_end:1,keyframe_pan_x_start:0,keyframe_pan_x_end:0,keyframe_pan_y_start:0,keyframe_pan_y_end:0,keyframe_easing:"linear",visual_keyframes:[{at:0,zoom:1,pan_x:0,pan_y:0,rotation:0,opacity:1,easing:"linear",bezier_y1:.25,bezier_y2:.75},{at:1,zoom:1,pan_x:0,pan_y:0,rotation:0,opacity:1,easing:"linear",bezier_y1:.25,bezier_y2:.75}]})});state.clips.push(d.clip);if(d.project_updated_at)state.project.updated_at=d.project_updated_at;renderClips();});toast("Clip hinzugefügt.")}catch(e){toast(e.message,true)}};
+$("#addCutClip").onclick=async()=>{if(!state.project)return;if(state.limits.max_clips_per_project&&state.clips.length>=state.limits.max_clips_per_project){toast(`Maximal ${state.limits.max_clips_per_project} Clips pro Projekt.`,true);return}try{await mutateCutClipStructure(async()=>{const d=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}/clips`,{method:"POST",body:JSON.stringify({base_updated_at:state.project.updated_at,expected_version:state.project.version,label:`Clip ${state.clips.length+1}`,in_ms:0,out_ms:15000,caption:"",caption_enabled:false,caption_position:"bottom",caption_size:52,caption_style:"box",audio_gain_db:0,audio_fade_in_ms:0,audio_fade_out_ms:0,keyframe_enabled:false,keyframe_zoom_start:1,keyframe_zoom_end:1,keyframe_pan_x_start:0,keyframe_pan_x_end:0,keyframe_pan_y_start:0,keyframe_pan_y_end:0,keyframe_easing:"linear",visual_keyframes:[{at:0,zoom:1,pan_x:0,pan_y:0,rotation:0,opacity:1,easing:"linear",bezier_y1:.25,bezier_y2:.75},{at:1,zoom:1,pan_x:0,pan_y:0,rotation:0,opacity:1,easing:"linear",bezier_y1:.25,bezier_y2:.75}]})});state.clips.push(d.clip);if(d.project_updated_at)state.project.updated_at=d.project_updated_at;if(d.project_version)state.project.version=d.project_version;renderClips();});toast("Clip hinzugefügt.")}catch(e){toast(e.message,true)}};
 $("#cutClipList").onclick=async e=>{
   const row=e.target.closest("[data-clip]");if(!row)return;const id=row.dataset.clip;
   const addPoint=e.target.closest("[data-add-kf]"),removePoint=e.target.closest("[data-remove-kf]");
@@ -347,8 +347,8 @@ $("#cutClipList").onclick=async e=>{
     if(!window.confirm(`Clip „${clip?.label||"Clip"}“ wirklich löschen?`))return;
     try{
       await mutateCutClipStructure(async()=>{
-        const d=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}/clips/${encodeURIComponent(id)}`,{method:"DELETE",body:JSON.stringify({project_base_updated_at:state.project.updated_at,clip_base_updated_at:clip.updated_at})});
-        state.clips=state.clips.filter(c=>c.id!==id);if(d.project_updated_at)state.project.updated_at=d.project_updated_at;
+        const d=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}/clips/${encodeURIComponent(id)}`,{method:"DELETE",body:JSON.stringify({project_base_updated_at:state.project.updated_at,expected_version:state.project.version,clip_base_updated_at:clip.updated_at})});
+        state.clips=state.clips.filter(c=>c.id!==id);if(d.project_updated_at)state.project.updated_at=d.project_updated_at;if(d.project_version)state.project.version=d.project_version;
         try{await saveTimelineOrder()}
         catch(err){
           // Deletion already succeeded on the server; don't pretend it was rolled back.

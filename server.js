@@ -17,18 +17,28 @@ import { publicReviews } from "./src/reviews.js";
 import { createProject, deleteProject, listProjects, updateProject, requireAdmin, requireAccount } from "./src/projects.js";
 import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
+import { getPublicWidget } from "./src/widget-output.js";
+import { getPublicScene } from "./src/scene-output.js";
+import { listMakerBundles, saveMakerBundle, controlMakerBundle, rotateMakerToken, deleteMakerBundle, getPublicMakerBundle, makerAssetAllowed, listMakerShop, publishMakerShop, copyMakerShop } from "./src/stream-maker.js";
 import { listAssets, uploadAsset } from "./src/assets.js";
 import { createPackage, listPackages, listShopCatalog, convertBundle } from "./src/packages.js";
 import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnectTikTok, syncTikTok, publicTikTokVideos } from "./src/tiktok.js";
 import { startTwitch, finishTwitch, twitchConfigured, getTwitchStatus, disconnectTwitch, syncTwitch } from "./src/twitch.js";
 import { getPlayStationState, publicPlayStationState, syncPlayStationFromLauncher } from "./src/playstation.js";
+import { publicGamesFromPlayStation } from "./src/public-games.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
+import { saveCutProjectAndClips } from "./src/cut-project-save.js";
+import { createCutProject, saveCutProject, archiveCutProject } from "./src/cut-project-crud.js";
+import { getStreamStudioState, saveStreamStudioState } from "./src/stream-studio-state.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
 import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
 import { listPresets, savePreset, deletePreset } from "./src/creator-presets.js";
 import { publicTwitchState, publicTwitchCommunity } from "./src/public-twitch.js";
+import { handleTwitchEventSub, readEventSubBody } from "./src/twitch-eventsub.js";
+import { startTwitchFollowRetention } from "./src/twitch-follow-retention.js";
+import { getTwitchFollowStatus, enableTwitchFollowEvents, disableTwitchFollowEvents } from "./src/twitch-follow-subscriptions.js";
 import { paypalStatus, createPayPalOrder, capturePayPalOrder } from "./src/paypal.js";
 import { publicLiveControl } from "./src/public-live.js";
 import { creatorSettings } from "./src/creator-settings.js";
@@ -86,19 +96,31 @@ function securityHeaders(res) {
 }
 
 function requestId(req) {
-  return req.headers["x-request-id"] || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const supplied = req.headers["x-request-id"];
+  if (typeof supplied === "string" && /^[a-zA-Z0-9._:-]{1,96}$/.test(supplied)) return supplied;
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function requestOriginAllowed(req) {
+  // Browser Fetch Metadata is independent of Origin/Referer and blocks
+  // cross-site writes even when those optional headers are absent.
+  const fetchSite = req.headers["sec-fetch-site"];
+  if (typeof fetchSite === "string" && !["same-origin", "none"].includes(fetchSite)) return false;
   const origin = String(req.headers.origin || "").trim();
-  if (!origin) return true;
+  // Some clients omit Origin; validate Referer when it is available instead.
+  const referer = String(req.headers.referer || "").trim();
+  let candidate = origin;
+  if (!candidate && referer) {
+    try { candidate = new URL(referer).origin; } catch { return false; }
+  }
+  if (!candidate) return true;
   const configured = String(process.env.APP_BASE_URL || "").trim();
   if (configured) {
-    try { return origin === new URL(configured).origin; } catch { return false; }
+    try { return candidate === new URL(configured).origin; } catch { return false; }
   }
   const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
   const protocol = forwardedProto || (req.socket?.encrypted ? "https" : "http");
-  return origin === `${protocol}://${req.headers.host || ""}`;
+  return candidate === `${protocol}://${req.headers.host || ""}`;
 }
 
 async function readJson(req) {
@@ -156,14 +178,20 @@ async function serveStatic(req, res) {
           and project.status='published'
           and project.kind in ('widget','scene')
           and jsonb_path_exists(
-            project.data,
+            case when project.data ? 'published_config'
+              then coalesce(project.data->'published_config', '{}'::jsonb)
+              when not (project.data ? 'draft_config')
+              then coalesce(project.data->'config', '{}'::jsonb)
+              else '{}'::jsonb end,
             '$.** ? (@ == $url)'::jsonpath,
             jsonb_build_object('url', $2::text)
           )
       ) as allowed`,
       [storagePath, `/assets/uploads/${storagePath}`]
     ) : { rows: [{ allowed: false }] };
-    const publicWidgetAsset = published.rows[0]?.allowed === true;
+    const sourceToken = new URL(req.url, "http://localhost").searchParams.get("source_token");
+    const makerAsset = sourceToken && await makerAssetAllowed(sourceToken, storagePath);
+    const publicWidgetAsset = published.rows[0]?.allowed === true || makerAsset === true;
     if (!publicWidgetAsset) {
       const account = await currentAccount(req);
       if (!account) return json(res, 401, { error: "AUTHENTICATION_REQUIRED" });
@@ -181,9 +209,12 @@ async function serveStatic(req, res) {
   try {
     const info = await stat(filePath);
     if (!info.isFile()) return json(res, 404, { error: "NOT_FOUND" });
+    const isPrivateWorkspacePage = pathname.startsWith("/pages/") && /(?:dashboard|account|creator-suite|widget-studio|scene-studio|stream-studio|universal-builder|settings|integrations|launcher|cut-studio|audio-studio|stream-maker|editor)\.html$/.test(pathname);
+    const isWidgetOutputPage = ["/widgets/output.html", "/widgets/scene.html", "/widgets/stream-maker.html", "/widgets/follower-goal.html"].includes(pathname);
+    if (isPrivateWorkspacePage || isWidgetOutputPage) res.setHeader("referrer-policy", "no-referrer");
     res.writeHead(200, {
       "content-type": mimeTypes[extname(filePath).toLowerCase()] || "application/octet-stream",
-      "cache-control": isUpload ? "private, no-store" : extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
+      "cache-control": isUpload || isPrivateWorkspacePage || isWidgetOutputPage ? "private, no-store" : extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
     });
     if (req.method === "HEAD") return res.end();
     createReadStream(filePath).pipe(res);
@@ -203,8 +234,40 @@ async function handle(req, res) {
     res.writeHead(204, { "access-control-allow-methods": "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS", "access-control-allow-headers": "content-type,x-csrf-token" });
     return res.end();
   }
+  // Provider callbacks cannot carry same-origin browser headers. Authenticity
+  // comes exclusively from the Twitch HMAC over the original raw body.
+  if (url.pathname === "/api/webhooks/twitch/eventsub" && method === "POST") {
+    const result = await handleTwitchEventSub(req, await readEventSubBody(req));
+    if (result.error) return json(res, result.status, { error: result.error });
+    if (result.challenge !== undefined) {
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8",
+        "content-length": Buffer.byteLength(result.challenge, "utf8"),
+        "cache-control": "no-store", "x-content-type-options": "nosniff" });
+      return res.end(result.challenge);
+    }
+    res.writeHead(204, { "cache-control": "no-store" });
+    return res.end();
+  }
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && !requestOriginAllowed(req)) {
     return json(res, 403, { error: "ORIGIN_NOT_ALLOWED", message: "Die Anfrage stammt nicht von dieser Website." });
+  }
+
+  const publicMakerMatch = url.pathname.match(/^\/api\/public\/stream-maker\/([^/]+)$/);
+  if (publicMakerMatch && method === "GET") {
+    const result = await getPublicMakerBundle(publicMakerMatch[1]);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+
+  const publicSceneMatch = url.pathname.match(/^\/api\/public\/scenes\/([^/]+)$/);
+  if (publicSceneMatch && method === "GET") {
+    const result = await getPublicScene(publicSceneMatch[1]);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result.payload);
+  }
+
+  const publicWidgetMatch = url.pathname.match(/^\/api\/public\/widgets\/([^/]+)$/);
+  if (publicWidgetMatch && method === "GET") {
+    const result = await getPublicWidget(publicWidgetMatch[1]);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result.payload);
   }
 
   if (url.pathname === "/api/health" && ["GET", "HEAD"].includes(method)) {
@@ -234,6 +297,18 @@ async function handle(req, res) {
   if (url.pathname === "/api/creator/tiktok/status" && method === "GET") { const result=await getTikTokStatus(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
   if (url.pathname === "/api/creator/tiktok/disconnect" && method === "POST") { const result=await disconnectTikTok(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
   if (url.pathname === "/api/creator/tiktok/sync" && method === "POST") { const result=await syncTikTok(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
+  if (url.pathname === "/api/creator/twitch/follow-events/status" && method === "GET") {
+    const result = await getTwitchFollowStatus(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  if (url.pathname === "/api/creator/twitch/follow-events/enable" && method === "POST") {
+    const result = await enableTwitchFollowEvents(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  if (url.pathname === "/api/creator/twitch/follow-events/disable" && method === "POST") {
+    const result = await disableTwitchFollowEvents(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
   if (url.pathname === "/api/creator/twitch/status" && method === "GET") { const result=await getTwitchStatus(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
   if (url.pathname === "/api/creator/twitch/disconnect" && method === "POST") { const result=await disconnectTwitch(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
   if (url.pathname === "/api/creator/twitch/sync" && method === "POST") { const result=await syncTwitch(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
@@ -275,7 +350,9 @@ async function handle(req, res) {
   }
 
   if (["/api/public/games", "/api/public/recent-games"].includes(url.pathname) && ["GET", "HEAD"].includes(method)) {
-    return json(res, 200, { ok: true, games: [], recent_games: [], source: "fallback", message: "Noch keine Spieldaten verfügbar." });
+    // Same curated owner as /api/public/playstation; omit private account IDs.
+    const state = await publicPlayStationState();
+    return json(res, 200, publicGamesFromPlayStation(state));
   }
   if (url.pathname === "/api/public/playstation" && ["GET", "HEAD"].includes(method)) {
     return json(res, 200, await publicPlayStationState());
@@ -283,7 +360,7 @@ async function handle(req, res) {
 
   if (url.pathname === "/api/account/me" && ["GET", "HEAD"].includes(method)) {
     const account = await currentAccount(req);
-    const view = account ? { ...account, admin: isAdminEmail(account.email), role: isAdminEmail(account.email) ? "admin" : "creator", email_verified: Boolean(account.email_verified_at) } : null;
+    const view = account ? { ...account, admin: Boolean(account.email_verified_at) && isAdminEmail(account.email), role: Boolean(account.email_verified_at) && isAdminEmail(account.email) ? "admin" : "creator", email_verified: Boolean(account.email_verified_at) } : null;
     return json(res, 200, { authenticated: Boolean(view), account: view });
   }
   if(url.pathname==="/api/account/mail/status"&&method==="GET")return json(res,200,mailStatus());
@@ -335,7 +412,37 @@ async function handle(req, res) {
   if(url.pathname==="/api/creator/public-live-control"&&(method==="GET"||method==="POST")){const result=await publicLiveControl(req,method==="POST"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/stream-studio/runtime"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const devices=(await getPool().query("select machine_name,client_version,status,obs_connected,obs_version,last_seen_at from launcher_devices where account_id=$1 and status='active' order by updated_at desc",[account.id])).rows;const d=devices[0]||null;return json(res,200,{ok:true,runtime:{connected:Boolean(d),launcher:d?{machine_name:d.machine_name,client_version:d.client_version}:null,obs_connected:Boolean(d?.obs_connected),status:d?.obs_connected?"ready":d?"launcher_only":"offline"}});}
   if(url.pathname==="/api/creator/universal-builder/live-readiness"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,ready:false,providers:{tiktok:tiktokConfigured(),twitch:twitchConfigured()},message:"Live-Daten erscheinen nach Provider-Verbindung und Veröffentlichung des Widgets."});}
-  if(url.pathname==="/api/creator/stream-maker-shop"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,enabled:false,templates:[],message:"Noch keine veröffentlichten Maker-Vorlagen vorhanden."});}
+  if (url.pathname === "/api/creator/stream-maker" && method === "GET") {
+    const result = await listMakerBundles(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  if (url.pathname === "/api/creator/stream-maker" && method === "POST") {
+    const result = await saveMakerBundle(req, await readJson(req));
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 201, result);
+  }
+  const makerMatch = url.pathname.match(/^\/api\/creator\/stream-maker\/([^/]+)(?:\/(control|rotate-token|publish|unpublish))?$/);
+  if (makerMatch) {
+    const makerId = makerMatch[1];
+    const action = makerMatch[2];
+    const body = await readJson(req);
+    let result;
+    if (!action && method === "PUT") result = await saveMakerBundle(req, body, makerId);
+    else if (!action && method === "DELETE") result = await deleteMakerBundle(req, makerId, body);
+    else if (action === "control" && method === "POST") result = await controlMakerBundle(req, makerId, body);
+    else if (action === "rotate-token" && method === "POST") result = await rotateMakerToken(req, makerId, body);
+    else if (action === "publish" && method === "POST") result = await publishMakerShop(req, makerId, body, true);
+    else if (action === "unpublish" && method === "POST") result = await publishMakerShop(req, makerId, body, false);
+    if (result) return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  if (url.pathname === "/api/creator/stream-maker-shop" && method === "GET") {
+    const result = await listMakerShop(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  const makerCopyMatch = url.pathname.match(/^\/api\/creator\/stream-maker-shop\/([^/]+)\/copy$/);
+  if (makerCopyMatch && method === "POST") {
+    const result = await copyMakerShop(req, makerCopyMatch[1]);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
   if(url.pathname.startsWith("/api/creator/cfson/")&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});if(url.pathname.endsWith("/status"))return json(res,200,{ok:true,mode:"private_alpha",integration:"ui_preview_only",version:"Alpha",enabled:false,message:"CFSON ist nur als lokaler, lesender Diagnosetest vorbereitet."});return json(res,503,{ok:false,state:"disabled",error:"CFSON_NOT_CONNECTED",liveIngestDisabled:true,message:"Kein CFSON-Dienst verbunden. Es werden keine Konto-, Medien- oder Live-Daten freigegeben."});}
   if(url.pathname.startsWith("/api/creator/cfs-ai/")&&(method==="GET"||method==="POST")){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const enabled=Boolean(process.env.CFS_AI_ENABLED&&process.env.CFS_AI_BRIDGE_TOKEN);if(url.pathname.endsWith("/status"))return json(res,200,{ok:true,enabled,configured:enabled,provider:null,status:enabled?"configured":"disabled",message:enabled?"AI-Bridge konfiguriert.":"CFS-AI ist aktuell nicht konfiguriert."});if(url.pathname.endsWith("/bridge"))return json(res,200,{ok:true,enabled,connected:false,provider:null,message:"Keine AI-Bridge verbunden."});if(url.pathname.endsWith("/knowledge"))return json(res,200,{ok:true,enabled,items:[]});if(url.pathname.endsWith("/roadmap"))return json(res,200,{ok:true,enabled,items:[]});if(url.pathname.endsWith("/proposals"))return json(res,200,{ok:true,enabled,proposals:[]});return json(res,enabled?501:503,{error:enabled?"AI_BRIDGE_NOT_IMPLEMENTED":"AI_NOT_CONFIGURED",message:"Dieser optionale AI-Bereich ist derzeit deaktiviert."});}
   if(url.pathname==="/api/public/launcher/releases"&&method==="GET"){return json(res,200,{ok:true,channel:String(url.searchParams.get("channel")||"stable"),build_target_version:process.env.LAUNCHER_VERSION||null,release:null,message:"Noch kein öffentlicher Launcher-Download hinterlegt."});}
@@ -365,19 +472,30 @@ async function handle(req, res) {
   const paypalOrder=url.pathname.match(/^\/api\/creator\/shop\/paypal\/orders\/([^/]+)\/capture$/);
   if(paypalOrder&&method==="POST"){const result=await capturePayPalOrder(req,decodeURIComponent(paypalOrder[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
 
-  if(url.pathname==="/api/creator/stream-studio"&&method==="GET"){const result=await listToolProjects(req,"stream");return result.error?json(res,result.status,{error:result.error}):json(res,200,{...result,config:result.projects[0]?.data||{}});}
-  if(url.pathname==="/api/creator/stream-studio"&&method==="PUT"){const result=await saveToolProject(req,"stream",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,{...result,config:result.project.data});}
+  if(url.pathname==="/api/creator/stream-studio"&&method==="GET"){
+    const result=await getStreamStudioState(req);
+    return result.error?json(res,result.status,{error:result.error}):json(res,200,result);
+  }
+  if(url.pathname==="/api/creator/stream-studio"&&method==="PUT"){
+    const result=await saveStreamStudioState(req,await readJson(req));
+    return result.error?json(res,result.status,{error:result.error}):json(res,200,result);
+  }
   if(url.pathname==="/api/creator/cut-studio/projects"&&method==="GET"){const result=await listToolProjects(req,"cut");return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
-  if(url.pathname==="/api/creator/cut-studio/projects"&&method==="POST"){const result=await saveToolProject(req,"cut",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  if(url.pathname==="/api/creator/cut-studio/projects"&&method==="POST"){const result=await createCutProject(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  const cutSave=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/save$/);
+  if(cutSave&&method==="PUT"){
+    const result=await saveCutProjectAndClips(req,decodeURIComponent(cutSave[1]),await readJson(req));
+    return result.error?json(res,result.status,{error:result.error}):json(res,200,result);
+  }
   const clipList=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/clips$/);
   if(clipList&&method==="GET"){const result=await listClips(req,decodeURIComponent(clipList[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(clipList&&method==="POST"){const result=await createClip(req,decodeURIComponent(clipList[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
   const clipOrder=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/clips\/order$/);
   if(clipOrder&&method==="PUT"){const result=await orderClips(req,decodeURIComponent(clipOrder[1]),await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const clipItem=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/clips\/([^/]+)$/);
-  if(clipItem){const projectId=decodeURIComponent(clipItem[1]),clipId=decodeURIComponent(clipItem[2]);const result=method==="PUT"?await updateClip(req,projectId,clipId,await readJson(req)):method==="DELETE"?await deleteClip(req,projectId,clipId):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(clipItem){const projectId=decodeURIComponent(clipItem[1]),clipId=decodeURIComponent(clipItem[2]);const result=method==="PUT"?await updateClip(req,projectId,clipId,await readJson(req)):method==="DELETE"?await deleteClip(req,projectId,clipId,await readJson(req)):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const toolProject=url.pathname.match(/^\/api\/creator\/(stream-studio|cut-studio)\/projects\/([^/]+)$/);
-  if(toolProject){const kind=toolProject[1]==="stream-studio"?"stream":"cut",id=decodeURIComponent(toolProject[2]);const result=method==="GET"?await getToolProject(req,kind,id):method==="PUT"?await saveToolProject(req,kind,id,await readJson(req)):method==="DELETE"?await deleteToolProject(req,kind,id):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(toolProject){const kind=toolProject[1]==="stream-studio"?"stream":"cut",id=decodeURIComponent(toolProject[2]);const result=method==="GET"?await getToolProject(req,kind,id):method==="PUT"?(kind==="cut"?await saveCutProject(req,id,await readJson(req)):await saveToolProject(req,kind,id,await readJson(req))):method==="DELETE"?(kind==="cut"?await archiveCutProject(req,id,await readJson(req)):await deleteToolProject(req,kind,id)):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/cut-studio/jobs"&&method==="GET"){const result=await listJobs(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const mediaList=url.pathname.match(/^\/api\/creator\/media\/(videos|clips)$/);
   if(mediaList&&method==="GET"){const result=await listUserMedia(req,mediaList[1]);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
@@ -415,7 +533,7 @@ async function handle(req, res) {
     const account = await requireAdmin(req);
     if (account.error) return json(res, account.status, { error: account.error });
     const result = await getPool().query("select id, email, display_name, role, plan, email_verified_at, created_at, updated_at from accounts order by created_at desc");
-    return json(res, 200, { accounts: result.rows.map(row => ({ ...row, admin: isAdminEmail(row.email), email_verified: Boolean(row.email_verified_at) })), total: result.rowCount });
+    return json(res, 200, { accounts: result.rows.map(row => ({ ...row, admin: Boolean(row.email_verified_at) && isAdminEmail(row.email), email_verified: Boolean(row.email_verified_at) })), total: result.rowCount });
   }
 
   if (["/api/auth/register", "/api/account/register"].includes(url.pathname) && method === "POST") {
@@ -513,8 +631,14 @@ async function handle(req, res) {
     const result = await uploadAsset(req, await readRaw(req));
     return result.error ? json(res, result.status, { error: result.error }) : json(res, 201, result);
   }
-  if (url.pathname === "/api/creator/widget-studio/packages" && method === "GET") return json(res, 200, await listPackages(req));
-  if (url.pathname === "/api/creator/widget-studio/packages" && method === "POST") return json(res, 201, await createPackage(req, await readJson(req)));
+  if (url.pathname === "/api/creator/widget-studio/packages" && method === "GET") {
+    const result = await listPackages(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  if (url.pathname === "/api/creator/widget-studio/packages" && method === "POST") {
+    const result = await createPackage(req, await readJson(req));
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 201, result);
+  }
   if (url.pathname === "/api/creator/shop/catalog" && method === "GET") { const result = await listShopCatalog(req); return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result); }
   const shopBundleMatch = url.pathname.match(/^\/api\/creator\/shop\/bundles\/([^/]+)\/convert$/);
   if (shopBundleMatch && method === "POST") { const result = await convertBundle(req, decodeURIComponent(shopBundleMatch[1])); return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result); }
@@ -568,8 +692,10 @@ const server = createServer((req, res) => {
 });
 
 server.listen(port, host, () => console.log(`CFS Zockt server listening on ${host}:${port}`));
+const stopTwitchFollowRetention = startTwitchFollowRetention();
 
 function shutdown(signal) {
+  stopTwitchFollowRetention();
   console.log(`${signal}: shutting down`);
   server.close(async () => { await closeDatabase().catch(() => {}); process.exit(0); });
   setTimeout(() => process.exit(1), 10000).unref();

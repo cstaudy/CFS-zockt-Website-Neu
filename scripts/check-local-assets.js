@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const pages = [join(root, 'index.html'), ...readdirSync(join(root, 'pages')).filter(name => name.endsWith('.html')).map(name => join(root, 'pages', name))];
+const pages = [join(root, 'index.html'), ...['pages', 'widgets'].flatMap(dir => readdirSync(join(root, dir)).filter(name => name.endsWith('.html')).map(name => join(root, dir, name)))];
 const missing = [];
 for (const page of pages) {
   const html = readFileSync(page, 'utf8');

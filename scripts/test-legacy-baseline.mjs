@@ -10,7 +10,9 @@ assert.deepEqual(pendingLegacyUpgradeFiles, [
   "022_mfa_login_challenges.sql",
   "023_mfa_recovery_rotation.sql",
   "024_mfa_totp_replay.sql",
-  "025_mfa_challenge_issuance_limit.sql"
+  "025_mfa_challenge_issuance_limit.sql",
+  "026_launcher_job_claims.sql",
+  "027_twitch_follow_eventsub.sql"
 ]);
 assert.deepEqual([...legacyBaselineFiles, ...pendingLegacyUpgradeFiles], migrationFiles);
 

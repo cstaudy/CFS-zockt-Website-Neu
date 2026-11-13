@@ -131,7 +131,7 @@ try {
   await assertHistoryCount(clone, 21);
   assert.deepEqual(await legacyRows(clone, original), before, "Baseline must not mutate restored data");
   await applyMigrations(clone, migrationFiles, loadMigrationSql);
-  await assertHistoryCount(clone, 25);
+  await assertHistoryCount(clone, migrationFiles.length);
   assert.deepEqual(await legacyRows(clone, original), before, "Upgrade must preserve every preexisting table and column");
 
   const additions = (await clone.query(`
@@ -147,7 +147,7 @@ try {
   ]);
   assert((await clone.query("select to_regclass('public.mfa_login_challenges') as table_name")).rows[0].table_name);
   await applyMigrations(clone, migrationFiles, loadMigrationSql);
-  await assertHistoryCount(clone, 25);
+  await assertHistoryCount(clone, migrationFiles.length);
 
   // Confirm the original source still has its old schema and data: the
   // rehearsal's upgrade must only ever affect the fresh restore clone.

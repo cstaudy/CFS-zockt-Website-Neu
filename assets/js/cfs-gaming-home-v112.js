@@ -7,6 +7,8 @@
 
   const PLATFORM_LABELS = {
     playstation_5: "PS5",
+    ps5: "PS5",
+    ps4: "PS4",
     playstation_4: "PS4",
     pc: "PC",
     xbox_series: "XBOX SERIES",
@@ -20,10 +22,12 @@
     launcher_manual: "CFS Launcher",
     stream_capture: "Stream Capture",
     playstation_network: "PlayStation Network",
+    launcher_playstation: "PlayStation-Daten vom CFS Launcher",
     twitch_api: "Twitch"
   };
 
   const compactNumber = value => {
+    if (value === null || value === undefined || value === "") return "—";
     const n = Number(value);
     if (!Number.isFinite(n) || n < 0) return "—";
     if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} Mio.+`;
@@ -105,10 +109,14 @@
     const facts = element("div", "gaming-game-facts");
     facts.appendChild(element("span", "", platformLabel(game?.platform)));
     const lifetimePlaytime = game?.source === "playstation_network" || game?.playtime_scope === "lifetime";
-    facts.appendChild(element("span", "", lifetimePlaytime ? `GESAMT · ${formatMinutes(game?.minutes)}` : `${formatMinutes(game?.minutes)} · ${windowDays} TAGE`));
-    const sessions = Math.max(0, Math.round(Number(game?.sessions) || 0));
-    const sessionLabel = game?.source === "playstation_network" ? (sessions === 1 ? "Start" : "Starts") : (sessions === 1 ? "Session" : "Sessions");
-    facts.appendChild(element("span", "", `${sessions} ${sessionLabel}`));
+    if (game?.minutes !== undefined && game?.minutes !== null && Number.isFinite(Number(game.minutes)) && Number(game.minutes) >= 0) {
+      facts.appendChild(element("span", "", lifetimePlaytime ? `GESAMT · ${formatMinutes(game.minutes)}` : `${formatMinutes(game.minutes)} · ${windowDays} TAGE`));
+    }
+    if (game?.sessions !== undefined && game?.sessions !== null && Number.isSafeInteger(Number(game.sessions)) && Number(game.sessions) >= 0) {
+      const sessions = Number(game.sessions);
+      const sessionLabel = game?.source === "playstation_network" ? (sessions === 1 ? "Start" : "Starts") : (sessions === 1 ? "Session" : "Sessions");
+      facts.appendChild(element("span", "", `${sessions} ${sessionLabel}`));
+    }
     copy.appendChild(facts);
 
     const last = element("p", "gaming-game-last");
@@ -171,7 +179,7 @@
     description.append(element("strong", "", game.name));
     description.append(element("small", "", `${platformLabel(game.platform)} · Zuletzt ${formatLastPlayed(game.last_played_at)}`));
     row.append(cover, description);
-    if (Number.isFinite(Number(game.minutes))) row.append(element("span", "r107-other-time", formatMinutes(game.minutes)));
+    if (game?.minutes !== undefined && game?.minutes !== null && Number.isFinite(Number(game.minutes))) row.append(element("span", "r107-other-time", formatMinutes(game.minutes)));
     return row;
   }
 
@@ -187,7 +195,7 @@
 
     // recent = chronological provider history; games = other confirmed titles.
     // Some older APIs return three or fewer recent games but provide more in games.
-    const confirmed=r107SortGames([...(payload?.recent||[]), ...(payload?.games||[])]);
+    const confirmed=r107SortGames([...(payload?.recent||[]), ...(payload?.games||[])].filter(game => game?.last_played_at && Number.isFinite(Date.parse(game.last_played_at))));
     const recent=confirmed.slice(0,4);
     const other=confirmed.slice(4);
     const active=payload?.active?.game_name ? payload.active : null;
@@ -197,7 +205,7 @@
     if(grid){
       grid.replaceChildren();
       if(recent.length) recent.forEach((game,index)=>grid.append(renderRecentGameCard({...game,playtime_scope:playtimeScope},index,windowDays)));
-      else grid.append(element("p", "r107-games-empty", "Noch keine bestätigten Spiele. Verbinde PlayStation oder aktiviere die Spielaktivität im CFS Launcher."));
+      else grid.append(element("p", "r107-games-empty", "Noch keine bestätigte Spielaktivität. Verbinde den CFS Launcher und synchronisiere deine zuletzt gespielten Titel."));
       grid.setAttribute("aria-busy", "false");
     }
     if(more&&moreGrid){
@@ -211,14 +219,16 @@
     if(meta){
       if(active){meta.textContent=`JETZT AKTIV · ${active.game_name} · ${platformLabel(active.platform)} · ${formatElapsed(active.elapsed_seconds)}`; meta.classList.add("is-active");}
       else if(recent.length){
-        const source=payload?.source==="playstation_network"?"PlayStation Network":"CFS Launcher";
-        meta.textContent=`${source} · ${recent.length} zuletzt gespielt${payload?.stale?" · Daten möglicherweise veraltet":""}`;
+        const source=payload?.source==="playstation_network"?"PlayStation Network":"CFS Launcher · PlayStation-Historie";
+        meta.textContent=`${source} · ${recent.length} zuletzt gespielt${payload?.sync_state==="offline"?" · Launcher offline":payload?.stale?" · Daten veraltet":""}`;
         meta.classList.remove("is-active");
       } else {meta.textContent="Noch keine bestätigte Spielaktivität";meta.classList.remove("is-active");}
     }
-    if(note){note.textContent=payload?.source==="playstation_network"
+    if(note){note.textContent=payload?.source==="launcher_playstation"
+      ? "Historische PlayStation-Titel aus dem CFS Launcher. Keine bestätigte Live-Aktivität, Käufe oder Spielzeiten."
+      : payload?.source==="playstation_network"
       ? "PlayStation: verbundene Titel mit letzter Aktivität. Weitere Spiele erscheinen, soweit von der Schnittstelle geliefert."
-      : `CFS Launcher: erfasste Sessions der letzten ${windowDays} Tage. Nicht erkannte Spiele werden nicht erfunden.`;}
+      : "Nur bestätigte Spiele werden angezeigt; nicht erkannte Aktivitäten werden nicht erfunden.";}
   }
 
   function renderGamesError() {
@@ -255,7 +265,8 @@
   function renderLiveSession(payload) {
     latestLiveSession = payload && typeof payload === "object" ? payload : null;
     const session = latestLiveSession || {};
-    const liveStatus = session.live === true ? "live" : String(session.status || "unknown");
+    const liveStatus = session.live === true && session.status === "live" ? "live"
+      : session.live !== true && session.status === "offline" ? "offline" : "unknown";
     const isLive = liveStatus === "live";
     const isOffline = liveStatus === "offline";
     const provider = String(session.provider || "none").toLowerCase();
@@ -269,7 +280,9 @@
     const current = session?.current_game?.name ? session.current_game : null;
     const fallback = latestRecentGames[0] || null;
     const displayedGame = current?.name || fallback?.name || "Aktuell kein Game erkannt";
-    const platform = current?.platform ? platformLabel(current.platform) : (fallback?.platform ? platformLabel(fallback.platform) : "");
+    const platform = current
+      ? (current.platform && current.platform !== "unknown" ? platformLabel(current.platform) : "")
+      : (fallback?.platform && fallback.platform !== "unknown" ? platformLabel(fallback.platform) : "");
     const lastLiveAt = session.last_live_at || twitchChannel.last_live_at || tiktokChannel.last_live_at || null;
 
     const badge = document.getElementById("liveStatusBadge");
@@ -319,12 +332,20 @@
         return;
       }
       if (key === "tiktok") {
-        detail.textContent = channel?.tracking_ready
+        detail.textContent = channel?.tracking_ready === true
           ? "CFS TikTok-LIVE-Signal bereit"
-          : (channel?.connected ? "TikTok verbunden · LIVE-Signal wird geprüft" : "TikTok noch nicht verbunden");
+          : channel?.connected === true
+          ? "TikTok verbunden · LIVE-Signal wird geprüft"
+          : channel?.connected === false
+          ? "TikTok noch nicht verbunden"
+          : "TikTok-LIVE-Status nicht verfügbar";
         return;
       }
-      detail.textContent = channel?.connected ? `${label} verbunden · Status wird geprüft` : `${label} noch nicht verbunden`;
+      detail.textContent = channel?.connected === true
+        ? `${label} verbunden · Status wird geprüft`
+        : channel?.connected === false
+        ? `${label} noch nicht verbunden`
+        : `${label}-LIVE-Status nicht verfügbar`;
     };
     renderPlatformState("twitch", twitchChannel, "Twitch");
     renderPlatformState("tiktok", tiktokChannel, "TikTok");
@@ -341,17 +362,17 @@
       liveDot.classList.toggle("is-offline", isOffline);
       liveDot.classList.toggle("is-unknown", !isLive && !isOffline);
     }
-    if (game) game.textContent = isLive && current ? current.name : (isLive ? "LIVE · Game wird gerade erkannt" : displayedGame);
+    if (game) game.textContent = isLive && current ? current.name : (isLive ? "LIVE · Game wird gerade erkannt" : (fallback ? `Zuletzt gespielt: ${fallback.name}` : "Aktuell kein Game erkannt"));
     if (previewGame) {
       const service = isMulti ? "Twitch & TikTok" : (isTwitch ? "Twitch" : (isTikTok ? "TikTok" : "Stream"));
-      previewGame.textContent = isLive && current ? current.name : (isLive ? `LIVE auf ${service}` : displayedGame);
+      previewGame.textContent = isLive && current ? current.name : (isLive ? `LIVE auf ${service}` : (fallback ? `Zuletzt gespielt: ${fallback.name}` : "Aktuell kein Game erkannt"));
     }
 
     if (statusText) {
       if (isLive) {
         const service = isMulti ? "Twitch und TikTok" : (isTwitch ? "Twitch" : (isTikTok ? "TikTok" : "dem Stream"));
         statusText.textContent = current
-          ? `cfs_zockt ist gerade auf ${service} live und spielt ${current.name}${platform && !["TWITCH","TIKTOK"].includes(platform) ? ` auf ${platform}` : ""}.`
+          ? `cfs_zockt ist gerade auf ${service} live. Gemeldete Stream-Kategorie: ${current.name}.`
           : `cfs_zockt ist gerade auf ${service} live. Das aktuelle Game wird noch abgeglichen.`;
       } else if (isOffline) {
         statusText.textContent = lastLiveAt
@@ -374,7 +395,7 @@
       else if (isOffline) providerText = "LIVE · beendet";
       const left = element("span", "", providerText);
       const right = element("span", "", isLive
-        ? (current ? `${platform || "Game"} · ${formatElapsed(current.elapsed_seconds)}` : "Session aktiv")
+        ? (current ? `${platform || "Game"} · ${current.elapsed_seconds !== null && current.elapsed_seconds !== undefined && Number.isFinite(Number(current.elapsed_seconds)) ? formatElapsed(current.elapsed_seconds) : "Dauer offen"}` : "Session aktiv")
         : (lastLiveAt ? `Zuletzt live: ${formatLastPlayed(lastLiveAt)}` : (fallback?.last_played_at ? `Zuletzt aktiv: ${formatLastPlayed(fallback.last_played_at)}` : "Noch kein letzter LIVE-Zeitpunkt gespeichert")));
       meta.append(left, right);
     }
@@ -388,8 +409,8 @@
 
     if (previewImage) {
       const remoteCover = current ? liveCoverForGame(current.name) : "";
-      const fallbackCover = /^https:\/\//i.test(String(fallback?.image_url || "")) ? String(fallback.image_url) : "";
-      const nextSrc = remoteCover || (isLive ? fallbackCover : "");
+      // Historical covers cannot be used to represent a different live category.
+      const nextSrc = isLive ? remoteCover : "";
       if (nextSrc) {
         if (previewImage.getAttribute("src") !== nextSrc) previewImage.src = nextSrc;
         previewImage.alt = `${current?.name || fallback?.name || "Aktuelles Game"} Cover`;
@@ -425,20 +446,50 @@
     if (footerTikTok) footerTikTok.textContent = tiktokFollowers;
     if (footerDiscord) footerDiscord.textContent = discordMembers;
 
-    const games = Array.isArray(data?.recent_games?.games) ? data.recent_games.games : [];
-    const recent = r107SortGames([...(Array.isArray(data?.recent_games?.recent) ? data.recent_games.recent : []), ...games]).slice(0, 4);
-    latestRecentGames = recent;
-    const visibleRecentGames = recent.length;
-    if (footerRecentGames) footerRecentGames.textContent = visibleRecentGames ? String(visibleRecentGames) : "—";
-    const minutes = recent.reduce((sum, game) => sum + Math.max(0, Number(game?.minutes) || 0), 0);
-    const playStation = data?.recent_games?.source === "playstation_network";
-    if (gameTime) gameTime.textContent = recent.length ? formatMinutes(minutes) : "—";
-    if (latestGame) latestGame.textContent = data?.recent_games?.active?.game_name || recent[0]?.name || "—";
-    if (gameTimeLabel) gameTimeLabel.textContent = playStation ? "Gesamtspielzeit · letzte 4" : "Spielzeit · letzte 4";
-    if (latestGameLabel) latestGameLabel.textContent = data?.recent_games?.active?.game_name ? "gerade aktiv" : "zuletzt gespielt";
+  }
 
-    renderRecentGames(data?.recent_games || {});
+  function applyPublicGameStats(payload) {
+    const footerRecentGames = document.getElementById("footerRecentGames");
+    const gameTime = document.getElementById("statGameTime");
+    const latestGame = document.getElementById("statLatestGame");
+    const gameTimeLabel = document.getElementById("statGameTimeLabel");
+    const latestGameLabel = document.getElementById("statLatestGameLabel");
+    const games = Array.isArray(payload?.games) ? payload.games : [];
+    const recent = r107SortGames([...(Array.isArray(payload?.recent) ? payload.recent : []), ...games].filter(game => game?.last_played_at && Number.isFinite(Date.parse(game.last_played_at)))).slice(0, 4);
+    latestRecentGames = recent;
+    if (footerRecentGames) footerRecentGames.textContent = recent.length ? String(recent.length) : "—";
+    const timed = recent.filter(game => game.minutes !== undefined && game.minutes !== null && Number.isFinite(Number(game.minutes)));
+    const minutes = timed.reduce((sum, game) => sum + Math.max(0, Number(game.minutes)), 0);
+    if (gameTime) gameTime.textContent = timed.length ? formatMinutes(minutes) : "—";
+    if (latestGame) latestGame.textContent = recent[0]?.name || "—";
+    if (gameTimeLabel) gameTimeLabel.textContent = timed.length ? "Erfasste Spielzeit" : "Spielzeit nicht erfasst";
+    if (latestGameLabel) latestGameLabel.textContent = "zuletzt gespielt";
+    renderRecentGames(payload);
     if (latestLiveSession) renderLiveSession(latestLiveSession);
+  }
+
+  async function loadPublicGames() {
+    try {
+      const response = await fetch("/api/public/games", {
+        headers: { Accept: "application/json" }, cache: "no-store", credentials: "omit"
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      if (!payload || payload.ok !== true) throw new Error("Invalid games response");
+      applyPublicGameStats(payload);
+    } catch {
+      latestRecentGames = [];
+      renderGamesError();
+      for (const id of ["footerRecentGames", "statGameTime", "statLatestGame"]) {
+        const node = document.getElementById(id);
+        if (node) node.textContent = "—";
+      }
+      const label = document.getElementById("statGameTimeLabel");
+      if (label) label.textContent = "Spielzeit nicht verfügbar";
+      const gameLabel = document.getElementById("statLatestGameLabel");
+      if (gameLabel) gameLabel.textContent = "Status offen";
+      if (latestLiveSession) renderLiveSession(latestLiveSession);
+    }
   }
 
   function renderCommunityError() {
@@ -450,99 +501,79 @@
     if (footerTikTok) footerTikTok.textContent = "—";
     if (footerDiscord) footerDiscord.textContent = "—";
     if (discordOnline) discordOnline.textContent = "— online";
-    if (footerRecentGames) footerRecentGames.textContent = "—";
-    if (latestGame) latestGame.textContent = "—";
-    renderGamesError();
+    // Social API failure must not erase a separately confirmed games feed.
     if (!latestLiveSession) renderLiveSession({ live:false, status:"unknown" });
   }
 
-  async function loadLiveSession() {
-    try {
-      const response = await fetch("/api/public/live-session", { headers: { Accept: "application/json" }, cache: "no-store" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      renderLiveSession(await response.json());
-    } catch {
-      renderLiveSession({ live:false, status:"unknown" });
-    }
-  }
-
-  async function loadCommunityStats() {
-    try {
-      const response = await fetch("/api/public/community-stats", { headers: { Accept: "application/json" }, cache: "no-store" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      applyCommunityStats(await response.json());
-    } catch {
-      renderCommunityError();
-    }
-  }
-
-  function adaptCreatorState(state) {
-    const current = state?.game?.current || null;
+  // The real public live API reports Twitch directly. Never interpret a
+  // missing provider result as an offline signal or infer TikTok-LIVE status.
+  function adaptTwitchLive(data) {
+    const verified = data?.source === "twitch" && data?.ok === true;
+    const live = verified && data?.live === true && data?.status === "live";
+    const offline = verified && data?.live === false && data?.status === "offline";
+    const status = live ? "live" : offline ? "offline" : "unknown";
+    const channel = /^[a-z0-9_]{3,25}$/i.test(String(data?.channel || ""))
+      ? String(data.channel).toLowerCase() : "cfs_zockt";
+    const viewers = live && data.viewer_count !== null && data.viewer_count !== undefined
+      && Number.isSafeInteger(Number(data.viewer_count)) && Number(data.viewer_count) >= 0
+      ? Number(data.viewer_count) : null;
+    const startTime = live && data.started_at && Number.isFinite(Date.parse(data.started_at))
+      && Date.parse(data.started_at) <= Date.now() ? data.started_at : null;
+    const game = live && typeof data.game === "string" && data.game.trim()
+      ? { name: data.game.trim(), platform: "unknown",
+          elapsed_seconds: startTime ? Math.floor((Date.now() - Date.parse(startTime)) / 1000) : null }
+      : null;
     return {
-      liveSession:{
-        ok:state?.ok === true,
-        live:state?.live?.active === true,
-        status:state?.live?.status || "unknown",
-        live_source:state?.live?.source || "none",
-        provider:state?.live?.provider || "none",
-        title:state?.live?.title || "",
-        profile_name:state?.creator?.name || "cfs_zockt",
-        profile_url:state?.creator?.profile_url || "",
-        channels:state?.creator?.channels || {},
-        viewers:Number(state?.live?.viewers || 0),
-        likes:Number(state?.live?.likes || 0),
-        shares:Number(state?.live?.shares || 0),
-        followers_gained:Number(state?.live?.followers_gained || 0),
-        started_at:state?.live?.started_at || null,
-        updated_at:state?.live?.updated_at || null,
-        last_live_at:state?.live?.last_live_at || null,
-        last_live_started_at:state?.live?.last_live_started_at || null,
-        last_live_provider:state?.live?.last_live_provider || "",
-        signal:state?.live?.signal || {},
-        current_game:current ? {
-          name:current.name || "",
-          platform:current.platform || "unknown",
-          source:current.source || "",
-          started_at:current.started_at || null,
-          elapsed_seconds:Number(current.elapsed_seconds || 0)
-        } : null
-      },
-      community:{
-        ok:state?.ok === true,
-        generated_at:state?.generated_at || null,
-        refresh_seconds:Number(state?.refresh_seconds || 0),
-        tiktok:state?.social?.tiktok || { available:false, followers:null },
-        discord:state?.social?.discord || { available:false, members:null, online:null },
-        recent_games:{
-          available:Array.isArray(state?.game?.recent) && state.game.recent.length > 0,
-          source:state?.game?.source || "",
-          playtime_scope:state?.game?.playtime_scope || "",
-          window_days:state?.game?.window_days ?? null,
-          updated_at:state?.game?.updated_at || null,
-          active:current ? {
-            game_name:current.name || "",
-            platform:current.platform || "unknown",
-            source:current.source || "",
-            started_at:current.started_at || null,
-            elapsed_seconds:Number(current.elapsed_seconds || 0)
-          } : null,
-          recent:Array.isArray(state?.game?.recent) ? state.game.recent : [],
-          games:Array.isArray(state?.game?.games) ? state.game.games : []
-        }
+      ok: data?.ok === true, live, status, provider: "twitch", source: verified ? "twitch" : "fallback",
+      title: live && typeof data.title === "string" ? data.title : "",
+      started_at: startTime, viewers, likes: null, shares: null,
+      current_game: game,
+      channels: {
+        twitch: { status, connected: verified ? true : null, url: `https://www.twitch.tv/${channel}` },
+        // Twitch observations say nothing about TikTok connection state.
+        tiktok: { status: "unknown", connected: null }
       }
     };
   }
 
-  async function loadCreatorState() {
+  let liveRequestInFlight = false;
+  async function loadLiveSession() {
+    if (liveRequestInFlight) return;
+    liveRequestInFlight = true;
     try {
-      const response = await fetch("/api/public/creator-state", { headers: { Accept: "application/json" }, cache: "no-store" });
+      const response = await fetch("/api/public/live-session", {
+        headers: { Accept: "application/json" }, cache: "no-store", credentials: "omit",
+        signal: AbortSignal.timeout(20000)
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const adapted = adaptCreatorState(await response.json());
-      applyCommunityStats(adapted.community);
-      renderLiveSession(adapted.liveSession);
+      renderLiveSession(adaptTwitchLive(await response.json()));
     } catch {
-      await Promise.allSettled([loadCommunityStats(), loadLiveSession()]);
+      renderLiveSession(adaptTwitchLive(null));
+    } finally {
+      liveRequestInFlight = false;
     }
+  }
+
+  let communityRequestInFlight = false;
+  async function loadCommunityStats() {
+    if (communityRequestInFlight) return;
+    communityRequestInFlight = true;
+    try {
+      const response = await fetch("/api/public/community-stats", {
+        headers: { Accept: "application/json" }, cache: "no-store", credentials: "omit",
+        signal: AbortSignal.timeout(20000)
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      applyCommunityStats(await response.json());
+    } catch {
+      renderCommunityError();
+    } finally {
+      communityRequestInFlight = false;
+    }
+  }
+
+  async function loadPublicFeeds() {
+    await Promise.allSettled([loadCommunityStats(), loadLiveSession()]);
   }
 
   function initSectionNavigation() {
@@ -566,8 +597,10 @@
   }
 
   function init() {
-    loadCreatorState();
-    window.setInterval(loadCreatorState, 15000);
+    loadPublicFeeds();
+    loadPublicGames();
+    window.setInterval(loadPublicFeeds, 30000);
+    window.setInterval(loadPublicGames, 60000);
     initSectionNavigation();
   }
 

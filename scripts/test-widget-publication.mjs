@@ -1,0 +1,27 @@
+import assert from "node:assert/strict";
+import { widgetConfigs, nextWidgetData } from "../src/widget-publication.js";
+
+const initial = { config: { elements: [{ id: "a", text: "LIVE" }] } };
+const draftEdit = nextWidgetData(initial, { config: { elements: [{ id: "a", text: "ENTWURF" }] } }, false, "published");
+assert.equal(draftEdit.published_config.elements[0].text, "LIVE");
+assert.equal(widgetConfigs(draftEdit, "published").draft.elements[0].text, "ENTWURF");
+assert.equal(widgetConfigs(draftEdit, "published").published.elements[0].text, "LIVE");
+assert.equal(widgetConfigs(draftEdit, "published").changed, true);
+
+const republished = nextWidgetData(draftEdit, {}, true, "published");
+assert.equal(republished.published_config.elements[0].text, "ENTWURF");
+assert.equal(widgetConfigs(republished, "published").changed, false);
+republished.draft_config.elements[0].text = "LOCAL CHANGE";
+assert.equal(republished.published_config.elements[0].text, "ENTWURF");
+
+const incomplete = { config: { elements: [{ text: "PRIVATE" }] }, draft_config: { elements: [{ text: "PRIVATE" }] } };
+const savedIncomplete = nextWidgetData(incomplete, { config: { elements: [{ text: "NEW PRIVATE" }] } }, false, "published");
+assert.equal(Object.hasOwn(savedIncomplete, "published_config"), false);
+assert.equal(widgetConfigs(savedIncomplete, "published").published, null);
+const repaired = nextWidgetData(savedIncomplete, {}, true, "published");
+assert.equal(repaired.published_config.elements[0].text, "NEW PRIVATE");
+assert.equal(widgetConfigs(repaired, "published").changed, false);
+
+assert.equal(widgetConfigs(initial, "draft").published, null);
+assert.equal(widgetConfigs(initial, "published").published.elements[0].text, "LIVE");
+console.log("Widget publication tests passed: legacy compatibility, draft isolation, republish.");

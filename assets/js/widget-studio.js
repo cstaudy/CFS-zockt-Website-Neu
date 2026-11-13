@@ -649,7 +649,16 @@ function ensureOutputs(){
 }
 function outputLabel(key){return {obs:"Widget Original",tiktok_vertical:"TikTok LIVE · 9:16",landscape:"OBS Streaming · 16:9"}[key]||key}
 function outputUrl(key){
-  return state.widget?.source_urls?.[key] || (key==="obs" ? state.widget?.source_url : "");
+  const source=state.widget?.source_urls?.[key] || state.widget?.source_url || "";
+  if(!source)return "";
+  try{
+    const url=new URL(source,window.location.origin);
+    if(url.origin!==window.location.origin)return "";
+    if(!["obs","tiktok_vertical","landscape"].includes(key))return "";
+    if(key==="obs")url.searchParams.delete("profile");
+    else url.searchParams.set("profile",key);
+    return url.href;
+  }catch{return ""}
 }
 function renderOutputInspector(){
   if(!state.config)return;

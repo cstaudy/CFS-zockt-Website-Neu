@@ -88,5 +88,5 @@ await assert.rejects(
 );
 const productionBaseline = baselineClient();
 await baselineMigrations(productionBaseline, migrationFiles, loadMigrationSql, async () => 'unchanged');
-assert.equal(productionBaseline.inserted.length, 25, 'all production migrations must be baseline-safe');
+assert.equal(productionBaseline.inserted.length, migrationFiles.length, 'all production migrations must be baseline-safe');
 console.log('Migration baseline: unchanged-schema guard, rollback and unsafe-SQL guard passed.');

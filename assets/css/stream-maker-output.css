@@ -1,0 +1,5 @@
+html,body{height:100%;width:100%;margin:0;overflow:hidden;background:transparent}
+body{display:flex;align-items:flex-start;justify-content:flex-start;font-family:Inter,system-ui,sans-serif}
+#output{display:block;max-width:100%;max-height:100%;object-fit:contain;background:transparent}
+#error{position:absolute;top:12px;left:12px;max-width:min(450px,90vw);margin:0;padding:10px 14px;border:1px solid #ba6975;border-radius:8px;background:rgba(45,6,15,.95);color:#ffe3e7;font:600 14px/1.4 system-ui,sans-serif}
+[hidden]{display:none!important}

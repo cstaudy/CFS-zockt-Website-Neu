@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHmac } from 'node:crypto';
 import pg from 'pg';
 import { totpCode } from '../src/totp.js';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
+import { access } from 'node:fs/promises';
+import { join, basename } from 'node:path';
+import { uploadRoot } from '../src/upload-storage.js';
+import { pruneExpiredTwitchFollows } from '../src/twitch-follow-retention.js';
 
 // Never run destructive acceptance tests on a production or staging DB.
 const databaseUrl = process.env.DATABASE_URL || '';
@@ -24,6 +28,8 @@ const port = await new Promise((resolve, reject) => {
   });
 });
 const base = `http://127.0.0.1:${port}`;
+const ciLauncherSecret = 'ci-bridge-secret-local-disposable-test-2026';
+const ciTwitchEventSubSecret = 'ci-twitch-eventsub-local-only-secret-2026-11-13';
 const server = spawn(process.execPath, ['scripts/start.js'], {
   cwd: root,
   env: {
@@ -31,7 +37,9 @@ const server = spawn(process.execPath, ['scripts/start.js'], {
     HOST: '127.0.0.1',
     PORT: String(port),
     MIGRATION_BASELINE_ON_START: 'no',
-    CFS_LOGIN_THROTTLE_SOCKET_MODE: 'enabled'
+    CFS_LOGIN_THROTTLE_SOCKET_MODE: 'enabled',
+    LAUNCHER_BRIDGE_SECRET: ciLauncherSecret,
+    TWITCH_EVENTSUB_SECRET: ciTwitchEventSubSecret
   },
   stdio: ['ignore', 'pipe', 'pipe']
 });
@@ -40,8 +48,8 @@ for (const pipe of [server.stdout, server.stderr]) {
   pipe.on('data', chunk => { output = (output + chunk.toString()).slice(-6000); });
 }
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-async function request(method, path, { body, cookie } = {}) {
-  const headers = { origin: base };
+async function request(method, path, { body, cookie, headers: extraHeaders } = {}) {
+  const headers = { origin: base, ...(extraHeaders || {}) };
   if (cookie) headers.cookie = cookie;
   if (body !== undefined) headers['content-type'] = 'application/json';
   const response = await fetch(base + path, {
@@ -93,9 +101,16 @@ try {
   assert.equal((await request('GET', '/api/admin/status', { cookie: created.cookie })).status, 403,
     'Normal creators must not receive admin access');
 
+  assert.equal((await request('GET', '/api/creator/widget-studio/packages')).status, 401,
+    'Package listing must not pretend authentication succeeded');
+  assert.equal((await request('POST', '/api/creator/widget-studio/packages', { body: {} })).status, 401,
+    'Anonymous package creation must return HTTP 401');
+  assert.equal((await request('POST', '/api/creator/widget-studio/packages', {
+    cookie: created.cookie, body: null
+  })).status, 400, 'Malformed package payloads must be rejected');
   const saved = await request('POST', '/api/creator/projects', {
     cookie: created.cookie,
-    body: { kind: 'widget', name: 'CI Widget', data: { headline: 'Saved creator content' } }
+    body: { kind: 'design', name: 'CI Design', data: { headline: 'Saved creator content' } }
   });
   assert.equal(saved.status, 201, `Creator save failed: ${JSON.stringify(saved.data)}`);
   const projectId = saved.data.project?.id;
@@ -120,6 +135,58 @@ try {
   });
   assert.equal(second.status, 201, 'Second creator registration must succeed');
   const otherCookie = second.cookie;
+
+  // Creator presets are private, bounded and protect against stale editing.
+  assert.equal((await request('GET','/api/creator/presets/caption')).status,401,
+    'Anonymous visitors cannot list private Creator presets');
+  assert.equal((await request('POST','/api/creator/presets',{
+    cookie:created.cookie,body:null
+  })).status,400,'Null preset requests must be rejected');
+  assert.equal((await request('POST','/api/creator/presets',{
+    cookie:created.cookie,body:{kind:'caption',name:'Bad data',data:[]}
+  })).status,400,'Preset data cannot be an array');
+  assert.equal((await request('POST','/api/creator/presets',{
+    cookie:created.cookie,body:{kind:'caption',name:'Oversized preset',
+      data:{text:'a'.repeat(70000)}}
+  })).status,413,'Preset JSONB data must respect the size limit');
+  const presetCreated = await request('POST','/api/creator/presets',{
+    cookie:created.cookie,body:{kind:'caption',name:'CI Caption',data:{text:'First version'}}
+  });
+  assert.equal(presetCreated.status,201,`Preset creation failed: ${JSON.stringify(presetCreated.data)}`);
+  const presetId = presetCreated.data.preset.id;
+  assert.equal((await request('POST','/api/creator/presets',{
+    cookie:created.cookie,body:{kind:'caption',name:'CI Caption',data:{}}
+  })).status,409,'Creator duplicate preset names must be rejected');
+  assert.equal((await request('GET','/api/creator/presets/caption',{
+    cookie:otherCookie
+  })).data.presets.some(item=>item.id===presetId),false,
+  'Another creator cannot view private caption presets');
+  assert.equal((await request('PUT','/api/creator/presets/' + presetId,{
+    cookie:otherCookie,
+    body:{kind:'caption',name:'Foreign change',data:{},expected_updated_at:presetCreated.data.preset.updated_at}
+  })).status,404,'Another creator cannot update private presets');
+  const presetUpdated = await request('PUT','/api/creator/presets/' + presetId,{
+    cookie:created.cookie,
+    body:{kind:'caption',name:'CI Caption',data:{text:'Second version'},
+      expected_updated_at:presetCreated.data.preset.updated_at}
+  });
+  assert.equal(presetUpdated.status,200,`Preset update failed: ${JSON.stringify(presetUpdated.data)}`);
+  assert.equal((await request('PUT','/api/creator/presets/' + presetId,{
+    cookie:created.cookie,
+    body:{kind:'caption',name:'CI Caption',data:{text:'Stale'},
+      expected_updated_at:presetCreated.data.preset.updated_at}
+  })).status,409,'Stale preset revisions cannot overwrite later edits');
+  assert.equal((await request('DELETE','/api/creator/presets/' + presetId,{
+    cookie:otherCookie
+  })).status,404,'Other creators cannot delete private presets');
+  assert.equal((await request('DELETE','/api/creator/presets/' + presetId,{
+    cookie:created.cookie
+  })).status,200,'Owner can delete their own caption preset');
+  assert.equal((await request('GET','/api/creator/presets/caption',{
+    cookie:created.cookie
+  })).data.presets.some(item=>item.id===presetId),false,
+  'Deleted presets must disappear from the library');
+
   const foreignList = await request('GET', '/api/creator/projects', { cookie: otherCookie });
   assert.equal(foreignList.status, 200);
   assert(!foreignList.data.projects?.some(p => p.id === projectId),
@@ -174,6 +241,422 @@ try {
     cookie: created.cookie
   })).status, 200, 'Owner must still access their own widget');
 
+  // Public Twitch timers are explicitly owner-linked. Unlinked creators
+  // must receive an unknown provider state, never the site's global channel.
+  const otherTimerCreated = await request('POST', '/api/creator/widget-studio/widgets', {
+    cookie: otherCookie, body: { name: 'Unlinked Twitch Timer', widget_type: 'twitch_live_timer' }
+  });
+  assert.equal(otherTimerCreated.status, 201);
+  const otherTimerId = otherTimerCreated.data.widget.id;
+  const otherTimerPublished = await request('POST',
+    '/api/creator/widget-studio/widgets/' + otherTimerId + '/publish', {
+      cookie: otherCookie,
+      body: { expected_version: otherTimerCreated.data.widget.version }
+    });
+  assert.equal(otherTimerPublished.status, 200);
+  const otherTimerPublic = await request('GET', '/api/public/widgets/' + otherTimerId);
+  assert.equal(otherTimerPublic.status, 200);
+  assert.equal(otherTimerPublic.data.widget.definition.mode, 'timer');
+  assert.equal(otherTimerPublic.data.widget.definition.source_kind, 'live_provider');
+  assert.equal(otherTimerPublic.data.widget.definition.provider, 'twitch');
+  assert.equal(otherTimerPublic.data.data.live.status, 'unknown',
+    'A timer with no linked Twitch account must not use the global Twitch channel');
+  assert.equal(otherTimerPublic.data.data.live.connected, false);
+  assert.equal(otherTimerPublic.data.data.live.started_at, null);
+  assert.equal(JSON.stringify(otherTimerPublic.data).includes('access_token'), false,
+    'Public OBS output cannot disclose provider credentials');
+
+  // The webhook is authenticated by Twitch's HMAC, not by browser cookies.
+  // These direct DB fixtures exist ONLY in the disposable local PostgreSQL CI DB.
+  const followPool = new pg.Pool({ connectionString: databaseUrl, ssl: false });
+  try {
+    const broadcasterId = '2026001';
+    const subscriptionId = randomUUID();
+    const before = await request('GET', '/api/creator/twitch/follow-events/status', {
+      cookie: otherCookie
+    });
+    assert.equal(before.status, 200);
+    assert.equal(before.data.connected, false);
+    assert.equal((await request('GET', '/api/creator/twitch/follow-events/status')).status, 401);
+    const noFollow = await request('POST', '/api/creator/twitch/follow-events/enable', {
+      cookie: otherCookie, body: {}
+    });
+    assert.equal(noFollow.status, 503,
+      'Follow-event subscriptions cannot be enabled without an HTTPS callback and provider credentials');
+    await followPool.query(
+      `insert into twitch_connections(account_id,twitch_user_id,login,display_name,access_token,scope)
+       values($1,$2,'ci_follow_creator','CI Follow Creator','ci-not-a-real-token','user:read:email moderator:read:followers')`,
+      [second.data.account.id, broadcasterId]
+    );
+    const subscription = { id:subscriptionId, type:'channel.follow',version:'2',
+      condition:{broadcaster_user_id:broadcasterId,moderator_user_id:broadcasterId} };
+    let messageSeq = 0;
+    async function deliverEventSub(type, body, { id = null, tamper = false, timestamp = null } = {}) {
+      const bytes = JSON.stringify(body);
+      const messageId = id || 'ci-eventsub-' + (++messageSeq);
+      const sentAt = timestamp || new Date().toISOString();
+      const signature = 'sha256=' + createHmac('sha256',ciTwitchEventSubSecret)
+        .update(messageId).update(sentAt).update(Buffer.from(bytes)).digest('hex');
+      return fetch(base + '/api/webhooks/twitch/eventsub', {
+        method:'POST',headers:{
+          'content-type':'application/json',
+          'origin':'https://external-twitch-webhook.example',
+          'twitch-eventsub-message-id':messageId,
+          'twitch-eventsub-message-timestamp':sentAt,
+          'twitch-eventsub-message-signature':tamper ? 'sha256='+'0'.repeat(64):signature,
+          'twitch-eventsub-message-type':type,
+          'twitch-eventsub-subscription-type':'channel.follow',
+          'twitch-eventsub-subscription-version':'2'
+        },body:bytes,signal:AbortSignal.timeout(8000)
+      });
+    }
+    const challenge = await deliverEventSub('webhook_callback_verification',{
+      subscription,challenge:'ci-eventsub-challenge-123'
+    });
+    assert.equal(challenge.status,200,'Authentic Twitch callback challenges bypass browser origin checks');
+    assert.equal(challenge.headers.get('content-length'),
+      String(Buffer.byteLength('ci-eventsub-challenge-123')),
+      'EventSub verification must send Twitch the explicit challenge byte length');
+    assert.equal(await challenge.text(),'ci-eventsub-challenge-123');
+    await followPool.query(
+      `insert into twitch_follow_subscriptions
+       (account_id,subscription_id,broadcaster_user_id,status)
+       values($1,$2,$3,'pending')`,
+      [second.data.account.id,subscriptionId,broadcasterId]
+    );
+    const followPayload = {
+      subscription, event:{
+        user_id:'123456',user_name:'CI-Follower',
+        broadcaster_user_id:broadcasterId,
+        followed_at:new Date(Date.now()-5000).toISOString()
+      }
+    };
+    assert.equal((await deliverEventSub('notification',followPayload,{tamper:true})).status,403,
+      'Tampered Twitch events must never be persisted');
+    const unknownSubscription = { ...subscription,id:randomUUID() };
+    assert.equal((await deliverEventSub('notification',{
+      ...followPayload,subscription:unknownSubscription
+    })).status,403,'Signed callbacks for an unknown EventSub subscription cannot inject follows');
+    assert.equal((await deliverEventSub('notification',followPayload)).status,403,
+      'A pending subscription cannot ingest follows until Twitch confirms its callback');
+    assert.equal((await followPool.query(
+      'select status from twitch_follow_subscriptions where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].status,'pending',
+      'Unverified follows must never upgrade a subscription to enabled');
+    const confirmedChallenge=await deliverEventSub('webhook_callback_verification',{
+      subscription,challenge:'ci-eventsub-confirmed-456'
+    });
+    assert.equal(confirmedChallenge.status,200,
+      'A repeat authenticated verification must activate the registered subscription');
+    assert.equal(await confirmedChallenge.text(),'ci-eventsub-confirmed-456');
+    assert.equal((await followPool.query(
+      'select status from twitch_follow_subscriptions where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].status,'enabled');
+    const validMessageId='ci-valid-twitch-follow-' + randomUUID();
+    const firstFollow=await deliverEventSub('notification',followPayload,{id:validMessageId});
+    assert.equal(firstFollow.status,204,'Authenticated follow notification accepted');
+    const replayFollow=await deliverEventSub('notification',followPayload,{id:validMessageId});
+    assert.equal(replayFollow.status,204,'Repeated Twitch delivery is idempotent');
+    const count=await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    );
+    assert.equal(count.rows[0].n,1,
+      'Replayed webhook messages cannot duplicate the follow alert');
+    const expiredFollowerId=randomUUID();
+    await followPool.query(
+      `insert into twitch_follow_events
+       (account_id,message_id,broadcaster_user_id,follower_user_id,follower_name,followed_at,received_at)
+       values($1,$2,$3,'9999','Expired-Name',now()-interval '35 days',now()-interval '35 days')`,
+      [second.data.account.id,'ci-old-follow-'+expiredFollowerId,broadcasterId]
+    );
+    const pruned=await pruneExpiredTwitchFollows(followPool);
+    assert(pruned.deleted>=1,'Expired Twitch follower names must be pruned without new follows');
+    assert.equal((await followPool.query(
+      `select count(*)::int as n from twitch_follow_events
+       where account_id=$1 and follower_name='Expired-Name'`,
+      [second.data.account.id]
+    )).rows[0].n,0,'Old follower identities cannot survive scheduled retention pruning');
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,1,'Cleanup must preserve currently valid follow events');
+    const oldTimestamp=new Date(Date.now()-11*60*1000).toISOString();
+    assert.equal((await deliverEventSub('notification',followPayload,{
+      timestamp:oldTimestamp
+    })).status,403,'Authentic but old webhook messages must be rejected');
+    const followStatus=await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:otherCookie
+    });
+    assert.equal(followStatus.data.enabled,true);
+    assert.equal(followStatus.data.permissions_granted,true);
+    await followPool.query("update twitch_connections set scope='user:read:email' where account_id=$1",
+      [second.data.account.id]);
+    const noScopeStatus=await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:otherCookie
+    });
+    assert.equal(noScopeStatus.data.permissions_granted,false);
+    assert.equal(noScopeStatus.data.enabled,false,
+      'A revoked Twitch permission must not be reported as enabled');
+    assert.equal((await deliverEventSub('notification',followPayload)).status,403,
+      'Signed follow notifications must be rejected when Twitch permission is absent');
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,1,'Events without the required scope must not enter PostgreSQL');
+    await followPool.query(
+      "update twitch_connections set scope='user:read:email moderator:read:followers' where account_id=$1",
+      [second.data.account.id]
+    );
+    assert.equal((await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:otherCookie
+    })).data.enabled,true,'A valid permission can restore a verified subscription');
+    assert.equal((await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:created.cookie
+    })).data.connected,false,
+    'One creator must never inherit another creator\'s follow-event subscription');
+
+    for (const [kind,expectedMode] of [
+      ['twitch_latest_follower','latest'],['twitch_follow_alert','alert']
+    ]) {
+      const createdWidget=await request('POST','/api/creator/widget-studio/widgets',{
+        cookie:otherCookie,body:{widget_type:kind,name:'CI '+kind}
+      });
+      assert.equal(createdWidget.status,201,`CI follow widget failed: ${JSON.stringify(createdWidget.data)}`);
+      const widgetId=createdWidget.data.widget.id;
+      const config={widgetType:kind,canvas:{width:620,height:132},
+        elements:[{id:'ci-follower',type:'text',data:{text:'Follower: {{actor}}'}}],
+        settings:{offlineBehavior:'zero'}};
+      const draft=await request('PUT','/api/creator/widget-studio/widgets/'+widgetId+'/draft',{
+        cookie:otherCookie,body:{expected_version:createdWidget.data.widget.version,config}
+      });
+      assert.equal(draft.status,200,`Follow draft failed: ${JSON.stringify(draft.data)}`);
+      const published=await request('POST','/api/creator/widget-studio/widgets/'+widgetId+'/publish',{
+        cookie:otherCookie,body:{expected_version:draft.data.widget.version}
+      });
+      assert.equal(published.status,200);
+      const publicWidget=await request('GET','/api/public/widgets/'+widgetId);
+      assert.equal(publicWidget.status,200);
+      assert.equal(publicWidget.data.widget.definition.provider,'twitch_follow');
+      assert.equal(publicWidget.data.widget.definition.mode,expectedMode);
+      assert.equal(publicWidget.data.events.length,1);
+      assert.equal(publicWidget.data.events[0].actor_name,'CI-Follower');
+      assert.equal(publicWidget.data.data.live.connected,false,
+        'A confirmed follow is not proof of a live stream');
+      assert(!JSON.stringify(publicWidget.data).includes('ci-not-a-real-token'),
+        'OBS output must never expose OAuth credentials');
+      assert.equal((await request('GET','/api/creator/widget-studio/widgets/'+widgetId,{
+        cookie:created.cookie
+      })).status,404,
+      'Follow widget ownership is isolated');
+    }
+    const revoked=await deliverEventSub('revocation',{
+      subscription,subscription_status:'authorization_revoked'
+    });
+    assert.equal(revoked.status,204);
+    assert.equal((await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:otherCookie
+    })).data.enabled,false);
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,0,
+      'Twitch revocation itself must purge previously saved follower names');
+    const savedWidgets=(await request('GET','/api/creator/widget-studio/widgets',{
+      cookie:otherCookie
+    })).data.widgets;
+    const followerWidget=savedWidgets.find(w=>w.widget_type==='twitch_latest_follower');
+    const afterRevoke=await request('GET','/api/public/widgets/'+followerWidget.id);
+    assert.deepEqual(afterRevoke.data.events,[],
+      'Revoked EventSub subscriptions cannot continue exposing follower events');
+    const disabled=await request('POST','/api/creator/twitch/follow-events/disable',{
+      cookie:otherCookie,body:{}
+    });
+    assert.equal(disabled.status,200);
+    assert.equal(disabled.data.disabled,true);
+    assert.equal(disabled.data.provider_deleted,false,
+      'Without Twitch credentials no remote deletion may be claimed');
+    assert.equal(disabled.data.cleanup_pending,true,
+      'Remote cleanup must remain retryable after local consent revocation');
+    assert.equal((await followPool.query(
+      'select status from twitch_follow_subscriptions where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].status,'revoked',
+    'A remotely unresolved subscription must remain locally revoked');
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,0,'Disable must immediately delete saved follower names');
+    assert.equal((await deliverEventSub('notification',followPayload)).status,403,
+      'Late signed Twitch events must not reactivate a revoked subscription');
+    assert.equal((await request('GET','/api/public/widgets/'+followerWidget.id)).data.events.length,0,
+      'Disabled follow widget must never reveal saved followers');
+    const retry=await request('POST','/api/creator/twitch/follow-events/disable',{
+      cookie:otherCookie,body:{}
+    });
+    assert.equal(retry.status,200);
+    assert.equal(retry.data.cleanup_pending,true,
+      'A provider outage must not erase the pending cleanup ID on retries');
+    const disconnect=await request('POST','/api/creator/twitch/disconnect',{
+      cookie:otherCookie,body:{}
+    });
+    assert.equal(disconnect.status,200);
+    assert.equal(disconnect.data.disconnected,true);
+    assert.equal(disconnect.data.follow_events_disabled,true);
+    assert.equal(disconnect.data.provider_cleanup_pending,true,
+      'Account disconnect must not claim a failed Twitch cleanup succeeded');
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,0,'Disconnect removes saved follower names');
+    const pendingCleanup=(await followPool.query(
+      'select status,subscription_id from twitch_follow_subscriptions where account_id=$1',
+      [second.data.account.id]
+    )).rows[0];
+    assert.equal(pendingCleanup.status,'revoked');
+    assert.equal(pendingCleanup.subscription_id,subscriptionId,
+      'Remote cleanup can be retried without accepting new events');
+    const statusAfterDisconnect=await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:otherCookie
+    });
+    assert.equal(statusAfterDisconnect.data.connected,false);
+    assert.equal(statusAfterDisconnect.data.cleanup_pending,true);
+    assert.equal(statusAfterDisconnect.data.enabled,false);
+    assert.equal((await request('POST','/api/creator/twitch/follow-events/disable')).status,401,
+      'Anonymous visitors cannot disable another account\'s Twitch subscription');
+    assert.equal((await request('POST','/api/creator/twitch/follow-events/disable',{
+      cookie:created.cookie,body:{}
+    })).status,200,
+      'Another creator may disable their own account without touching the foreign subscription');
+    assert.equal((await followPool.query(
+      'select subscription_id from twitch_follow_subscriptions where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].subscription_id,subscriptionId,
+      'Other account actions cannot clear foreign pending provider subscriptions');
+  } finally { await followPool.end(); }
+
+  // Scene Studio must own its creation, publication and optimistic revisions.
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie: created.cookie, body: { kind: 'scene', name: 'Shortcut Scene', data: {} }
+  })).status, 409, 'Generic projects cannot create Scenes outside the quota');
+  assert.equal((await request('PATCH', '/api/creator/projects/' + sceneId, {
+    cookie: created.cookie, body: { name: 'Changed outside Scene Studio' }
+  })).status, 409, 'Generic project changes must not bypass Scene Studio versioning');
+  assert.equal((await request('POST', '/api/creator/widget-studio/scenes', {
+    cookie: created.cookie, body: { config: null }
+  })).status, 400, 'Malformed scene configurations must be rejected');
+  assert.equal((await request('POST', '/api/creator/widget-studio/scenes/' + sceneId + '/publish', {
+    cookie: created.cookie, body: { expected_version: sceneCreated.data.scene.version }
+  })).status, 400, 'Incomplete scene drafts cannot be advertised as OBS-ready');
+  const firstSceneConfig = { profile: 'landscape', canvas: {
+    width: 1920, height: 1080, background: 'transparent'
+  }, items: [{ id: 'ci_board_widget', widget_id: widgetId, visible: true,
+    x: 30, y: 70, scale: 1, opacity: 1, rotation: 0, z_index: 0 }] };
+  const sceneDraft = await request('PUT', '/api/creator/widget-studio/scenes/' + sceneId, {
+    cookie: created.cookie, body: { expected_version: sceneCreated.data.scene.version, config: firstSceneConfig }
+  });
+  assert.equal(sceneDraft.status, 200, `Scene draft save failed: ${JSON.stringify(sceneDraft.data)}`);
+  assert.equal((await request('GET', '/api/public/scenes/' + sceneId)).status, 404,
+    'Unpublished scene layouts must remain private');
+  assert.equal((await request('POST', '/api/creator/widget-studio/scenes/' + sceneId + '/publish', {
+    cookie: created.cookie, body: { expected_version: sceneDraft.data.scene.version }
+  })).status, 409, 'Scene publication must reject draft or foreign widgets');
+  const widgetPublished = await request('POST', '/api/creator/widget-studio/widgets/' + widgetId + '/publish', {
+    cookie: created.cookie, body: { expected_version: widgetCreated.data.widget.version }
+  });
+  assert.equal(widgetPublished.status, 200, `Widget publication failed: ${JSON.stringify(widgetPublished.data)}`);
+  const scenePublished = await request('POST', '/api/creator/widget-studio/scenes/' + sceneId + '/publish', {
+    cookie: created.cookie, body: { expected_version: sceneDraft.data.scene.version }
+  });
+  assert.equal(scenePublished.status, 200, `Scene publication failed: ${JSON.stringify(scenePublished.data)}`);
+  assert.equal(scenePublished.data.scene.status, 'live');
+  assert.match(scenePublished.data.scene.source_url, /\/widgets\/scene\.html\?scene=/);
+  const publicScene = await request('GET', '/api/public/scenes/' + sceneId);
+  assert.equal(publicScene.status, 200);
+  assert.equal(publicScene.data.scene.items[0].widget_id, widgetId);
+  assert.equal(publicScene.data.scene.items[0].x, 30);
+  const changedScene = await request('PUT', '/api/creator/widget-studio/scenes/' + sceneId, {
+    cookie: created.cookie,
+    body: { expected_version: scenePublished.data.scene.version,
+      config: { ...firstSceneConfig, items: [{ ...firstSceneConfig.items[0], x: 88 }] } }
+  });
+  assert.equal(changedScene.status, 200);
+  assert.equal(changedScene.data.scene.has_unpublished_changes, true);
+  assert.equal((await request('GET', '/api/public/scenes/' + sceneId)).data.scene.items[0].x, 30,
+    'Later scene draft changes must not leak into its published OBS output');
+  assert.equal((await request('PUT', '/api/creator/widget-studio/scenes/' + sceneId, {
+    cookie: created.cookie, body: { expected_version: sceneDraft.data.scene.version, name: 'Stale' }
+  })).status, 409, 'Scene concurrent edits must reject stale revisions');
+
+  // Stream Maker: authenticated storage, owner isolation, bearer-source rotation and deletion.
+  assert.equal((await request('GET', '/api/creator/stream-maker')).status, 401,
+    'Anonymous visitors cannot enumerate private maker bundles');
+  const makerCreated = await request('POST', '/api/creator/stream-maker', {
+    cookie: created.cookie,
+    body: { config: { name: 'CI Stream Maker', elements: [
+      { id: 'ci_counter', template: 'counter', value: 0 }
+    ] } }
+  });
+  assert.equal(makerCreated.status, 201, `Stream Maker create failed: ${JSON.stringify(makerCreated.data)}`);
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie: created.cookie,
+    body: { kind: 'stream', name: 'Reserved maker type', data: { type: 'stream_maker' } }
+  })).status, 409, 'Reserved maker projects require the dedicated endpoint');
+  const makerId = makerCreated.data.bundle.id;
+  assert.equal((await request('PATCH', '/api/creator/projects/' + makerId, {
+    cookie: created.cookie, body: { data: { type: 'stream_maker', config: {} } }
+  })).status, 409, 'Maker changes require its own API');
+  assert.equal((await request('DELETE', '/api/creator/projects/' + makerId, {
+    cookie: created.cookie
+  })).status, 409, 'Maker deletion follows dedicated revision checks');
+  for (const method of ['GET', 'PUT', 'DELETE']) {
+    const guarded = await request(method, '/api/creator/stream-studio/projects/' + makerId, {
+      cookie: created.cookie, ...(method === 'PUT' ? { body: { title:'Tampered', config:{} } } : {})
+    });
+    assert.equal(guarded.status, 404, 'Generic stream project API must not mutate a Maker bundle');
+  }
+  const makerToken = makerCreated.data.bundle.public_token;
+  assert.match(makerToken, /^[0-9a-f-]{36}[A-Za-z0-9_-]{43}$/i);
+  const makerPublic = await request('GET', '/api/public/stream-maker/' + makerToken);
+  assert.equal(makerPublic.status, 200, `Maker output failed: ${JSON.stringify(makerPublic.data)}`);
+  assert.equal(makerPublic.data.config.elements[0].id, 'ci_counter');
+  assert.equal(makerPublic.data.public_token, undefined, 'Public Maker output must not reveal its signed token');
+  assert.equal((await request('GET', '/api/creator/stream-maker', { cookie: otherCookie }))
+    .data.bundles.some(bundle => bundle.id === makerId), false, 'Other creators cannot list private Maker bundles');
+  assert.equal((await request('PUT', '/api/creator/stream-maker/' + makerId, {
+    cookie: otherCookie, body: { version: makerCreated.data.bundle.version, config: { elements: [{ template: 'counter' }] } }
+  })).status, 404, 'Other creators cannot edit private Maker bundles');
+  assert.equal((await request('PUT', '/api/creator/stream-maker/' + makerId, {
+    cookie: created.cookie, body: { version: 9999, config: { elements: [{ template: 'counter' }] } }
+  })).status, 409, 'Maker saves must reject stale versions');
+  const controlledMaker = await request('POST', '/api/creator/stream-maker/' + makerId + '/control', {
+    cookie: created.cookie, body: { element: 'ci_counter', action: 'plus' }
+  });
+  assert.equal(controlledMaker.status, 200, `Maker control failed: ${JSON.stringify(controlledMaker.data)}`);
+  assert.equal(controlledMaker.data.bundle.config.elements[0].value, 1);
+  assert.equal((await request('GET', '/api/public/stream-maker/' + makerToken))
+    .data.config.elements[0].value, 1, 'OBS source reflects the stored counter');
+  const rotatedMaker = await request('POST', '/api/creator/stream-maker/' + makerId + '/rotate-token', {
+    cookie: created.cookie, body: { version: controlledMaker.data.bundle.version }
+  });
+  assert.equal(rotatedMaker.status, 200);
+  const newMakerToken = rotatedMaker.data.bundle.public_token;
+  assert.notEqual(newMakerToken, makerToken);
+  assert.equal((await request('GET', '/api/public/stream-maker/' + makerToken)).status, 404,
+    'Old OBS tokens must be revoked immediately');
+  assert.equal((await request('GET', '/api/public/stream-maker/' + newMakerToken)).status, 200);
+  assert.equal((await request('POST', '/api/creator/stream-maker/' + makerId + '/publish', {
+    cookie: created.cookie, body: { rights_confirmed: true }
+  })).status, 403, 'Creator cannot publish Shop templates without admin rights');
+  const makerDeleted = await request('DELETE', '/api/creator/stream-maker/' + makerId, {
+    cookie: created.cookie, body: { version: rotatedMaker.data.bundle.version }
+  });
+  assert.equal(makerDeleted.status, 200);
+  assert.equal((await request('GET', '/api/public/stream-maker/' + newMakerToken)).status, 404,
+    'Deleted Maker output must stop working');
+
   const secondProject = await request('POST', '/api/creator/projects', {
     cookie: otherCookie, body: { kind: 'design', name: 'Private B Design', data: { secret: 'B only' } }
   });
@@ -181,6 +664,634 @@ try {
   assert(!(await request('GET', '/api/creator/projects', { cookie: created.cookie }))
     .data.projects?.some(project => project.id === secondProject.data.project.id),
     'Creator A must also be unable to see creator B private data');
+
+  // Universal Builder: only its own records and atomic revisions may be changed.
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie: created.cookie, body: { kind: 'design', name: 'Wrong path', data: { type: 'universal_bundle' } }
+  })).status, 409, 'Universal Builder records require their dedicated API');
+  assert.equal((await request('POST', '/api/creator/universal-builder/bundles', {
+    cookie: created.cookie, body: { name: 'Invalid config', config: [] }
+  })).status, 400, 'Universal Builder must reject malformed configurations');
+  const builderCreated = await request('POST', '/api/creator/universal-builder/bundles', {
+    cookie: created.cookie,
+    body: { name: 'Builder CI', config: { design_key: 'blitze', platforms: ['obs'],
+      elements: [{ type: 'text', id: 'main' }], settings: {} } }
+  });
+  assert.equal(builderCreated.status, 201, `Builder save failed: ${JSON.stringify(builderCreated.data)}`);
+  const builderId = builderCreated.data.bundle.id;
+  const builderVersion = builderCreated.data.bundle.version;
+  assert.equal((await request('PUT', '/api/creator/universal-builder/bundles/' + builderId, {
+    cookie: otherCookie, body: { name: 'Foreign change', version: builderVersion, config: {} }
+  })).status, 404, 'Builder updates must isolate owners');
+  assert.equal((await request('PATCH', '/api/creator/projects/' + builderId, {
+    cookie: created.cookie, body: { name: 'Outside builder' }
+  })).status, 409, 'Generic project edits must not bypass Builder version checks');
+  assert.equal((await request('DELETE', '/api/creator/projects/' + builderId, {
+    cookie: created.cookie
+  })).status, 409, 'Generic project removal must not bypass Builder version checks');
+  assert.equal((await request('PUT', '/api/creator/universal-builder/bundles/' + projectId, {
+    cookie: created.cookie, body: { name: 'Cross-type', version: builderVersion, config: {} }
+  })).status, 404, 'Builder cannot overwrite an ordinary design belonging to the same creator');
+  const racePayload = { version: builderVersion, config: { design_key: 'nacht',
+    platforms: ['obs'], elements: [{ type: 'shape' }], settings: {} } };
+  const builderRace = await Promise.all([
+    request('PUT', '/api/creator/universal-builder/bundles/' + builderId, {
+      cookie: created.cookie, body: { ...racePayload, name: 'Race A' }
+    }),
+    request('PUT', '/api/creator/universal-builder/bundles/' + builderId, {
+      cookie: created.cookie, body: { ...racePayload, name: 'Race B' }
+    })
+  ]);
+  assert.deepEqual(builderRace.map(item => item.status).sort((a, b) => a - b), [200, 409],
+    'Only one concurrent Builder save with an old version may succeed');
+  const builderNewVersion = builderRace.find(item => item.status === 200).data.bundle.version;
+  assert.equal((await request('PATCH', '/api/creator/universal-builder/bundles/' + builderId + '/name', {
+    cookie: created.cookie, body: { name: 'Stale rename', version: builderVersion }
+  })).status, 409, 'Builder rename rejects stale revisions');
+  const builderRenamed = await request('PATCH', '/api/creator/universal-builder/bundles/' + builderId + '/name', {
+    cookie: created.cookie, body: { name: 'Safe rename', version: builderNewVersion }
+  });
+  assert.equal(builderRenamed.status, 200);
+  assert.equal((await request('DELETE', '/api/creator/universal-builder/bundles/' + builderId, {
+    cookie: created.cookie, body: { version: builderNewVersion }
+  })).status, 409, 'Builder deletion rejects stale revisions');
+  assert.equal((await request('DELETE', '/api/creator/universal-builder/bundles/' + builderId, {
+    cookie: created.cookie, body: { version: builderRenamed.data.bundle.version }
+  })).status, 200, 'Owner may archive current Builder revision');
+  assert(!(await request('GET', '/api/creator/universal-builder', { cookie: created.cookie }))
+    .data.bundles?.some(row => row.id === builderId), 'Archived Builder bundles must not appear in active lists');
+
+  // Cut Studio: detail response includes timeline clips and the combined save is atomic.
+  const cutCreated = await request('POST', '/api/creator/cut-studio/projects', {
+    cookie: created.cookie, body: { title: 'CI Cut Timeline', format: 'landscape' }
+  });
+  assert.equal(cutCreated.status, 201, `Cut project failed: ${JSON.stringify(cutCreated.data)}`);
+  const cutId = cutCreated.data.project.id;
+  const cutOpened = await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie: created.cookie
+  });
+  assert.equal(cutOpened.status, 200);
+  assert.equal(cutOpened.data.project.title, 'CI Cut Timeline');
+  assert.deepEqual(cutOpened.data.clips, []);
+  assert.equal((await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie: otherCookie
+  })).status, 404, 'Foreign account cannot read a Cut timeline');
+  const newClip = await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/clips', {
+    cookie: created.cookie, body: { base_updated_at:cutOpened.data.project.updated_at,expected_version:cutOpened.data.project.version, label: 'First Clip', in_ms: 0, out_ms: 15000, id: 'attacker-defined-id', updated_at: '2000-01-01T00:00:00.000Z' }
+  });
+  assert.equal(newClip.status, 201, `Cut clip create failed: ${JSON.stringify(newClip.data)}`);
+  assert.match(newClip.data.clip.id, /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i, "Cut clip IDs must be server-generated");
+  assert.notEqual(newClip.data.clip.updated_at, "2000-01-01T00:00:00.000Z", "Client timestamps cannot replace server clip revisions");
+  assert.equal((await request("POST", "/api/creator/cut-studio/projects/" + cutId + "/clips", {
+    cookie: created.cookie, body: { base_updated_at:newClip.data.project_updated_at,expected_version:newClip.data.project_version,label:"Bad negative clip", in_ms:-1, out_ms:5000 }
+  })).status, 400, "Clip bounds must be checked server-side");
+  const cutAfterClip = await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie: created.cookie
+  });
+  assert.equal(cutAfterClip.data.clips.length, 1);
+  assert.equal(cutAfterClip.data.clips[0].id, newClip.data.clip.id);
+  assert.equal((await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/clips', {
+    cookie: created.cookie,
+    body: { base_updated_at:cutOpened.data.project.updated_at,expected_version:cutOpened.data.project.version,
+      label:'Concurrent stale create',in_ms:0,out_ms:2000 }
+  })).status, 409, 'Outdated clip additions must not overwrite another edit');
+  assert.equal((await request('PUT', '/api/creator/cut-studio/projects/' + cutId + '/clips/order', {
+    cookie: created.cookie, body: { base_updated_at:cutAfterClip.data.project.updated_at,
+      expected_version:cutAfterClip.data.project.version, clip_ids:[newClip.data.clip.id,newClip.data.clip.id] }
+  })).status, 400, 'Duplicate clip IDs must be rejected when sorting');
+  assert.equal((await request('DELETE', '/api/creator/cut-studio/projects/' + cutId + '/clips/' + newClip.data.clip.id, {
+    cookie:otherCookie, body: { project_base_updated_at:cutAfterClip.data.project.updated_at,
+      clip_base_updated_at:newClip.data.clip.updated_at }
+  })).status, 404, 'Foreign clips cannot be deleted');
+
+  const combined = await request('PUT', '/api/creator/cut-studio/projects/' + cutId + '/save', {
+    cookie: created.cookie,
+    body: { project: { title: 'Cut Timeline Saved', format: 'vertical',
+      expected_version: cutAfterClip.data.project.version },
+      clips: [{ ...cutAfterClip.data.clips[0], base_updated_at: cutAfterClip.data.clips[0].updated_at,
+        caption: 'Safe updated caption' }] }
+  });
+  assert.equal(combined.status, 200, `Atomic Cut save failed: ${JSON.stringify(combined.data)}`);
+  assert.equal(combined.data.project.title, 'Cut Timeline Saved');
+  assert.equal(combined.data.clips[0].caption, 'Safe updated caption');
+  assert.equal((await request('PUT', '/api/creator/cut-studio/projects/' + cutId + '/save', {
+    cookie: created.cookie,
+    body: { project: { title: 'Stale', expected_version: cutAfterClip.data.project.version },
+      clips: [{ ...cutAfterClip.data.clips[0], base_updated_at: cutAfterClip.data.clips[0].updated_at }] }
+  })).status, 409, 'Stale Cut Studio revisions cannot overwrite a committed timeline');
+  const cutStillSaved = await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie: created.cookie
+  });
+  assert.equal(cutStillSaved.data.project.title, 'Cut Timeline Saved');
+  assert.equal(cutStillSaved.data.clips[0].caption, 'Safe updated caption');
+  assert.equal((await request('PUT', '/api/creator/cut-studio/projects/' + cutId + '/save', {
+    cookie: otherCookie, body: { project: { title: 'Foreign', expected_version: combined.data.project.version }, clips: [] }
+  })).status, 404, 'Foreign accounts cannot alter Cut project and clips together');
+
+  // Settings-only Cut writes must preserve clips; generic projects cannot bypass revision checks.
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie:created.cookie,body:{kind:'cut',name:'Generic cut shortcut',data:{}}
+  })).status, 409, 'Cut projects must be created through their dedicated API');
+  assert.equal((await request('PATCH', '/api/creator/projects/' + cutId, {
+    cookie:created.cookie,body:{name:'Outside Cut Studio'}
+  })).status, 409, 'Generic project edits may not overwrite Cut revisions');
+  const cutSettings = await request('PUT', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie:created.cookie,body:{title:'Cut Settings Edited',notes:'Keep the clip',
+      expected_version:cutStillSaved.data.project.version,
+      base_updated_at:cutStillSaved.data.project.updated_at}
+  });
+  assert.equal(cutSettings.status, 200, `Cut settings save failed: ${JSON.stringify(cutSettings.data)}`);
+  const cutAfterSettings = await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie:created.cookie
+  });
+  assert.equal(cutAfterSettings.data.project.title, 'Cut Settings Edited');
+  assert.equal(cutAfterSettings.data.clips.length, 1, 'Settings-only save cannot remove clips');
+  assert.equal(cutAfterSettings.data.clips[0].caption, 'Safe updated caption');
+  assert.equal((await request('PUT', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie:created.cookie,body:{title:'Stale title',
+      base_updated_at:cutStillSaved.data.project.updated_at,
+      expected_version:cutStillSaved.data.project.version}
+  })).status, 409, 'Settings-only save rejects stale project revisions');
+  assert.equal((await request('PUT', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie:created.cookie,body:{title:'Cannot remove clips', clips:[],
+      base_updated_at:cutAfterSettings.data.project.updated_at,
+      expected_version:cutAfterSettings.data.project.version}
+  })).status, 409, 'Settings-only endpoint cannot replace the timeline');
+
+  const concurrentCreate = await Promise.all(['Concurrent A','Concurrent B'].map(label =>
+    request('POST', '/api/creator/cut-studio/projects/' + cutId + '/clips', {
+      cookie:created.cookie,body:{base_updated_at:cutAfterSettings.data.project.updated_at,
+        expected_version:cutAfterSettings.data.project.version,label,in_ms:2000,out_ms:6000}
+    })));
+  assert.deepEqual(concurrentCreate.map(r => r.status).sort((a,b) => a-b), [201,409],
+    'Only one concurrent Cut clip write may use the same revision');
+  const cutTwoClips = await request('GET','/api/creator/cut-studio/projects/' + cutId,{
+    cookie:created.cookie
+  });
+  assert.equal(cutTwoClips.data.clips.length, 2, 'Concurrent clip creation must preserve existing clips');
+  const reverseIds = cutTwoClips.data.clips.map(clip => clip.id).reverse();
+  assert.equal((await request('PUT','/api/creator/cut-studio/projects/' + cutId + '/clips/order',{
+    cookie:created.cookie,body:{clip_ids:[reverseIds[0],reverseIds[0]],
+      base_updated_at:cutTwoClips.data.project.updated_at,
+      expected_version:cutTwoClips.data.project.version}
+  })).status,400,'Duplicate clip order must be rejected');
+  const reordered = await request('PUT','/api/creator/cut-studio/projects/' + cutId + '/clips/order',{
+    cookie:created.cookie,body:{clip_ids:reverseIds,
+      base_updated_at:cutTwoClips.data.project.updated_at,
+      expected_version:cutTwoClips.data.project.version}
+  });
+  assert.equal(reordered.status,200, `Cut clip sort failed: ${JSON.stringify(reordered.data)}`);
+  assert.deepEqual(reordered.data.clips.map(clip=>clip.id),reverseIds);
+  assert.equal((await request('PUT','/api/creator/cut-studio/projects/' + cutId + '/clips/order',{
+    cookie:created.cookie,body:{clip_ids:reverseIds,
+      base_updated_at:cutTwoClips.data.project.updated_at,
+      expected_version:cutTwoClips.data.project.version}
+  })).status,409,'Clip order rejects stale concurrent changes');
+  const latestClip = reordered.data.clips[0];
+  const updatedClip = await request('PUT','/api/creator/cut-studio/projects/' + cutId + '/clips/' + latestClip.id,{
+    cookie:created.cookie,body:{
+      project_base_updated_at:reordered.data.project_updated_at,
+      expected_version:reordered.data.project_version,
+      clip_base_updated_at:latestClip.updated_at,
+      caption:'Edited clip caption',id:'replacement-not-allowed',
+      updated_at:'1999-01-01T00:00:00.000Z'}
+  });
+  assert.equal(updatedClip.status,200, `Cut clip update failed: ${JSON.stringify(updatedClip.data)}`);
+  assert.equal(updatedClip.data.clip.id,latestClip.id,'Clip IDs cannot be replaced by client payloads');
+  assert.equal(updatedClip.data.clip.caption,'Edited clip caption');
+  assert.notEqual(updatedClip.data.clip.updated_at,'1999-01-01T00:00:00.000Z');
+  assert.equal((await request('PUT','/api/creator/cut-studio/projects/' + cutId + '/clips/' + latestClip.id,{
+    cookie:created.cookie,body:{project_base_updated_at:reordered.data.project_updated_at,
+      expected_version:reordered.data.project_version,clip_base_updated_at:latestClip.updated_at,
+      caption:'Stale clip caption'}
+  })).status,409,'Stale Cut clip updates cannot silently overwrite newer data');
+  assert.equal((await request('DELETE','/api/creator/cut-studio/projects/' + cutId + '/clips/' + latestClip.id,{
+    cookie:created.cookie,body:{project_base_updated_at:updatedClip.data.project_updated_at,
+      expected_version:updatedClip.data.project_version,
+      clip_base_updated_at:latestClip.updated_at}
+  })).status,409,'Deletion rejects stale clip revisions');
+  const cutDeletedClip = await request('DELETE','/api/creator/cut-studio/projects/' + cutId + '/clips/' + latestClip.id,{
+    cookie:created.cookie,body:{project_base_updated_at:updatedClip.data.project_updated_at,
+      expected_version:updatedClip.data.project_version,
+      clip_base_updated_at:updatedClip.data.clip.updated_at}
+  });
+  assert.equal(cutDeletedClip.status,200);
+  // Export queue is quota-bound under contention, private to the creator and
+  // only writable by a launcher paired with that same creator account.
+  const bridgeHeaders = deviceId => ({
+    'x-cfs-launcher-secret': ciLauncherSecret,
+    'x-cfs-device-id': deviceId
+  });
+  assert.equal((await request('POST', '/api/launcher/devices/register', {
+    body: { machine_name: 'Unauthenticated' }
+  })).status, 401, 'Launcher device registration requires the shared bridge secret');
+  assert.equal((await request('POST', '/api/launcher/devices/register', {
+    headers: bridgeHeaders('00000000-0000-4000-8000-000000000000'), body: null
+  })).status, 400, 'Malformed launcher registration must not throw');
+  assert.equal((await request('POST', '/api/launcher/heartbeat', {
+    headers: bridgeHeaders('invalid-device-id'), body: {}
+  })).status, 400, 'Malformed heartbeat device IDs must not reach PostgreSQL');
+  assert.equal((await request('POST', '/api/creator/launcher/device-link/confirm', {
+    cookie: created.cookie, body: null
+  })).status, 400, 'Malformed pairing requests must not throw');
+  async function pairTestLauncher(cookie, name) {
+    const registered = await request('POST', '/api/launcher/devices/register', {
+      headers: bridgeHeaders('00000000-0000-4000-8000-000000000000'),
+      body: { machine_name: name, client_version: 'ci-1.0' }
+    });
+    assert.equal(registered.status, 201, `Test launcher registration failed: ${JSON.stringify(registered.data)}`);
+    const code = registered.data.device.user_code;
+    assert.equal((await request('GET', '/api/creator/launcher/device-link/' + code)).status, 401,
+      'Pairing code metadata must not be readable anonymously');
+    const pending = await request('GET', '/api/creator/launcher/device-link/' + code, { cookie });
+    assert.equal(pending.status, 200, 'An authenticated creator may preview an unused pairing code');
+    assert.equal(pending.data.device_link.status, 'pending');
+    const linked = await request('POST', '/api/creator/launcher/device-link/confirm', {
+      cookie, body: { user_code: code }
+    });
+    assert.equal(linked.status, 200, `Device linking failed: ${JSON.stringify(linked.data)}`);
+    assert.equal((await request('GET', '/api/creator/launcher/device-link/' + code, {
+      cookie
+    })).status, 404, 'A consumed pairing code cannot expose a paired device');
+    assert.equal((await request('POST', '/api/creator/launcher/device-link/confirm', {
+      cookie, body: { user_code: code }
+    })).status, 400, 'A consumed pairing code cannot link a second account');
+    return registered.data.device.id;
+  }
+  const deviceA = await pairTestLauncher(created.cookie, 'Creator A test launcher');
+  const deviceB = await pairTestLauncher(otherCookie, 'Creator B test launcher');
+  const deviceA2 = await pairTestLauncher(created.cookie, 'Creator A second launcher');
+  // PlayStation imports are only accepted from an active paired launcher,
+  // and retries must preserve video IDs without creating duplicate rows.
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    body: { games: [] }
+  })).status, 401, 'PlayStation sync must require the launcher bridge credential');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders('not-a-valid-device-id'), body: { games: [] }
+  })).status, 400, 'PlayStation sync must reject invalid device IDs');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: { games: [{
+      title: 'Not stored', last_played_at: '2026-02-30T12:00:00Z'
+    }] }
+  })).status, 400, 'PlayStation sync rejects invalid calendar dates');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: { videos: [{
+      title: 'Unsafe', url: 'http://127.0.0.1/private'
+    }] }
+  })).status, 400, 'PlayStation sync rejects private and insecure video URLs');
+  const psBefore = await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  });
+  assert.equal(psBefore.status, 200);
+  assert.equal(psBefore.data.connected, false,
+    'Invalid launcher messages cannot mark PlayStation as connected');
+  const psVideoUrl = 'https://videos.example.com/watch?v=1';
+  const psSecondVideoUrl = 'https://videos.example.com/watch?v=2';
+  const psPayload = {
+    profile: { platform: 'PS5', display_name: 'CI Test Player' },
+    games: [{ title: 'Racing', platform: 'PS5',
+      cover_url: 'https://cdn.example.com/game.jpg',
+      last_played_at: '2026-11-12T19:00:00Z', in_catalog: true }],
+    videos: [{ title: 'First Highlight', url: psVideoUrl,
+      thumbnail_url: 'https://cdn.example.com/thumb.jpg',
+      published_at: '2026-11-12T20:00:00Z' }]
+  };
+  const psFirst = await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: psPayload
+  });
+  assert.equal(psFirst.status, 200, `PlayStation first import failed: ${JSON.stringify(psFirst.data)}`);
+  assert.equal(psFirst.data.games_synced, 1);
+  assert.equal(psFirst.data.videos_synced, 1);
+  const psOwner = await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  });
+  assert.equal(psOwner.data.connected, true);
+  assert.equal(psOwner.data.online, true,
+    'A recently synchronizing active launcher should report current data');
+  assert.equal(psOwner.data.sync_state, 'current');
+  assert.equal(psOwner.data.launcher_online, true);
+  assert.equal(psOwner.data.active_game, null,
+    'Historical game activity must not fabricate a currently active game');
+  assert.match(psOwner.data.last_synced_at, /^\d{4}-\d{2}-\d{2}T/);
+
+  assert.equal(psOwner.data.profile.platform, 'PS5');
+  assert.equal(psOwner.data.game_catalog.length, 1);
+  assert.equal(psOwner.data.videos.length, 1);
+  const publicGames = await request('GET', '/api/public/games');
+  const publicRecentGames = await request('GET', '/api/public/recent-games');
+  assert.equal(publicGames.status, 200);
+  assert.equal(publicRecentGames.status, 200);
+  assert.equal(publicGames.data.ok, true);
+  assert.equal(publicGames.data.active, null,
+    'A public game history feed must never invent current gameplay');
+  assert.deepEqual(publicGames.data.games, publicRecentGames.data.games,
+    'Both public gaming routes must expose the same curated historical data');
+  assert.deepEqual(publicGames.data.recent, publicRecentGames.data.recent);
+  assert.equal(JSON.stringify(publicGames.data).includes(email), false,
+    'The public games API must not disclose the signed-in Creator email');
+  assert.equal(JSON.stringify(publicGames.data).includes(psOwner.data.videos[0].id), false,
+    'The public games API must not expose private video record IDs');
+  assert.equal(publicGames.data.games.every(game =>
+    game.minutes === undefined && game.sessions === undefined), true,
+    'Historical PlayStation game entries must not invent session or playtime numbers');
+  const psFirstId = psOwner.data.videos[0].id;
+  const psOther = await request('GET', '/api/creator/playstation', {
+    cookie: otherCookie
+  });
+  assert.equal(psOther.data.connected, false,
+    'Launcher sync must never connect an unrelated Creator account');
+  assert.equal(psOther.data.online, false);
+  assert.equal(psOther.data.sync_state, 'unavailable',
+    'Unsynced accounts must not show someone else\'s live status');
+
+  assert.equal(psOther.data.videos.length, 0);
+  assert.equal(psOther.data.game_catalog.length, 0);
+  const psRepeated = await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: psPayload
+  });
+  assert.equal(psRepeated.status, 200);
+  const psAfterRepeat = (await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data;
+  assert.equal(psAfterRepeat.game_catalog.length, 1,
+    'Replayed game imports cannot create duplicate catalog rows');
+  assert.equal(psAfterRepeat.videos.length, 1,
+    'Replayed video imports cannot duplicate the same URL');
+  assert.equal(psAfterRepeat.videos[0].id, psFirstId,
+    'A repeated video sync must preserve the existing video identifier');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: {
+      games: [{ title: 'Uncommitted Game', platform: 'PS5' }],
+      videos: [{ title: 'Unsafe Video', url: 'javascript:alert(1)' }]
+    }
+  })).status, 400, 'Invalid videos must reject the entire game/video batch');
+  assert.equal((await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data.game_catalog.length, 1, 'Rejected batches cannot store partial game changes');
+  const psNewSnapshot = await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: {
+      videos: [
+        { title: 'Updated Highlight', url: psVideoUrl },
+        { title: 'Another Highlight', url: psSecondVideoUrl }
+      ]
+    }
+  });
+  assert.equal(psNewSnapshot.status, 200);
+  const psAfterSnapshot = (await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data;
+  assert.equal(psAfterSnapshot.profile.display_name, 'CI Test Player',
+    'Video-only sync must preserve stored player details');
+  assert.equal(psAfterSnapshot.videos.length, 2);
+  assert.equal(psAfterSnapshot.videos.find(item => item.url === psVideoUrl).id, psFirstId);
+  assert.equal(psAfterSnapshot.videos.find(item => item.url === psVideoUrl).title, 'Updated Highlight');
+  const psConcurrent = await Promise.all([deviceA, deviceA2].map(deviceId =>
+    request('POST', '/api/launcher/playstation/sync', {
+      headers: bridgeHeaders(deviceId),
+      body: { videos: [
+        { title: 'Updated Highlight', url: psVideoUrl },
+        { title: 'Another Highlight', url: psSecondVideoUrl }
+      ] }
+    })));
+  assert.deepEqual(psConcurrent.map(result => result.status), [200, 200],
+    'Two paired launcher devices may sync concurrently without database errors');
+  const psAfterConcurrent = (await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data;
+  assert.equal(psAfterConcurrent.videos.length, 2,
+    'Concurrent same-account imports must not duplicate video URLs');
+  assert.equal(psAfterConcurrent.videos.find(item => item.url === psVideoUrl).id, psFirstId,
+    'Concurrent imports must retain the original video identifier');
+  const psPruned = await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA),
+    body: { videos: [{ title: 'Another Highlight', url: psSecondVideoUrl }] }
+  });
+  assert.equal(psPruned.status, 200);
+  const psCurrent = (await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data;
+  assert.equal(psCurrent.videos.length, 1,
+    'A complete video snapshot removes obsolete launcher-provided video links');
+  assert.equal(psCurrent.videos[0].url, psSecondVideoUrl);
+  assert.equal(psCurrent.game_catalog.length, 1,
+    'Video-only sync must never remove saved game catalog entries');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: { profile: { display_name: 'Updated Player' } }
+  })).status, 200);
+  assert.equal((await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data.videos.length, 1,
+  'A partial profile-only sync must preserve the existing videos');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: { videos: [] }
+  })).status, 200);
+  assert.equal((await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data.videos.length, 0, 'An explicit empty video snapshot clears launcher-provided links');
+  const heartbeat = await request('POST', '/api/launcher/heartbeat', {
+    headers: bridgeHeaders(deviceA), body: { obs: { connected: true, version: '30.0' } }
+  });
+  assert.equal(heartbeat.status, 200);
+  assert.equal(heartbeat.data.device.obs_connected, true);
+  assert.equal((await request('POST', '/api/launcher/heartbeat', {
+    headers: bridgeHeaders(deviceA), body: {}
+  })).data.device.obs_connected, true, 'Heartbeat without OBS status must not erase last known state');
+  assert.equal((await request('POST', '/api/launcher/heartbeat', {
+    headers: bridgeHeaders(deviceA), body: { obs: { connected: 'true' } }
+  })).status, 400, 'Heartbeat OBS state must be a boolean');
+  assert.equal((await request('DELETE', '/api/creator/launcher/devices/' + deviceA, {
+    cookie: otherCookie
+  })).status, 404, 'Another creator cannot revoke a paired launcher');
+
+  assert.equal((await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
+    body: {}
+  })).status, 401, 'Anonymous visitors cannot queue exports');
+  assert.equal((await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
+    cookie: otherCookie, body: {}
+  })).status, 404, 'Foreign creators cannot queue another account\'s export');
+  assert.equal((await request('POST', '/api/creator/cut-studio/projects/not-a-uuid/export-jobs', {
+    cookie: created.cookie, body: {}
+  })).status, 404, 'Bad project IDs cannot crash export queue');
+  assert.equal((await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
+    cookie: created.cookie, body: []
+  })).status, 400, 'Malformed export payloads must be rejected');
+  const queued = await Promise.all(Array.from({ length: 4 }, () =>
+    request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
+      cookie: created.cookie, body: {}
+    })));
+  assert.deepEqual(queued.map(job => job.status).sort((a,b)=>a-b), [202,202,202,429],
+    'Concurrent exports cannot exceed three pending jobs');
+  const jobIds = queued.filter(job => job.status === 202).map(job => job.data.job.id);
+  assert.equal((await request('GET', '/api/creator/cut-studio/jobs', {
+    cookie: otherCookie
+  })).data.jobs.some(job => jobIds.includes(job.id)), false,
+  'Export jobs must stay private to their owner');
+  assert.equal((await request('POST', '/api/creator/cut-studio/jobs/' + jobIds[0] + '/cancel', {
+    cookie: otherCookie, body: {}
+  })).status, 409, 'Foreign creators cannot cancel another account\'s export');
+  const foreignClaim = await request('GET', '/api/launcher/jobs', {
+    headers: bridgeHeaders(deviceB)
+  });
+  assert.equal(foreignClaim.status, 200);
+  assert.deepEqual(foreignClaim.data.jobs, [], 'An unrelated launcher cannot claim another creator\'s job');
+  const claimed = await request('GET', '/api/launcher/jobs', {
+    headers: bridgeHeaders(deviceA)
+  });
+  assert.equal(claimed.status, 200, `Claim failed: ${JSON.stringify(claimed.data)}`);
+  assert.equal(claimed.data.jobs.length, 1);
+  const claimedId = claimed.data.jobs[0].id;
+  assert(jobIds.includes(claimedId));
+  assert.equal((await request('PUT', '/api/launcher/jobs/' + claimedId, {
+    headers: bridgeHeaders(deviceB),
+    body: { status: 'completed', result: { output: 'foreign.mp4' } }
+  })).status, 409, 'Foreign launcher devices must not modify claimed jobs');
+  assert.equal((await request('PUT', '/api/launcher/jobs/' + claimedId, {
+    headers: bridgeHeaders(deviceA2),
+    body: { status: 'completed', result: { output: 'same-account-other-device.mp4' } }
+  })).status, 409, 'A different device on the same account must not complete a job it did not claim');
+
+  assert.equal((await request('PUT', '/api/launcher/jobs/' + claimedId, {
+    headers: bridgeHeaders(deviceA), body: { status: 'unrecognized' }
+  })).status, 400, 'Invalid launcher transitions must be rejected');
+  const completed = await request('PUT', '/api/launcher/jobs/' + claimedId, {
+    headers: bridgeHeaders(deviceA), body: { status: 'completed', result: { output: 'ci.mp4' } }
+  });
+  assert.equal(completed.status, 200, `Owner launcher completion failed: ${JSON.stringify(completed.data)}`);
+  assert.equal(completed.data.job.status, 'completed');
+  assert.equal((await request('PUT', '/api/launcher/jobs/' + claimedId, {
+    headers: bridgeHeaders(deviceA), body: { status: 'failed', error: 'Changed after completion' }
+  })).status, 409, 'Finished jobs cannot be rewritten');
+  assert.equal((await request('POST', '/api/creator/cut-studio/jobs/' + claimedId + '/cancel', {
+    cookie: created.cookie, body: {}
+  })).status, 409, 'Completed exports must not be canceled');
+  for (const id of jobIds.filter(id => id !== claimedId)) {
+    assert.equal((await request('POST', '/api/creator/cut-studio/jobs/' + id + '/cancel', {
+      cookie: created.cookie, body: {}
+    })).status, 200);
+  }
+  const queueAfterCancel = await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
+    cookie: created.cookie, body: {}
+  });
+  assert.equal(queueAfterCancel.status, 202);
+  const pendingClaim = await request('GET', '/api/launcher/jobs', { headers: bridgeHeaders(deviceA) });
+  assert.equal(pendingClaim.status, 200);
+  assert.equal(pendingClaim.data.jobs.length, 1);
+  assert.equal(pendingClaim.data.jobs[0].id, queueAfterCancel.data.job.id);
+  assert.equal((await request('DELETE', '/api/creator/launcher/devices/' + deviceA, {
+    cookie: created.cookie
+  })).status, 200, 'Owner can revoke an active launcher');
+  assert.equal((await request('POST', '/api/launcher/heartbeat', {
+    headers: bridgeHeaders(deviceA), body: {}
+  })).status, 403, 'Revoked launchers cannot send successful heartbeats');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA),
+    body: { videos: [{ title: 'Unauthorized', url: 'https://videos.example.com/unauthorized' }] }
+  })).status, 403, 'Revoked launchers must not submit PlayStation changes');
+
+  assert.equal((await request('GET', '/api/launcher/jobs', {
+    headers: bridgeHeaders(deviceA)
+  })).status, 403, 'Revoked launchers cannot claim new jobs');
+  assert.equal((await request('PUT', '/api/launcher/jobs/' + queueAfterCancel.data.job.id, {
+    headers: bridgeHeaders(deviceA), body: { status: 'completed', result: {} }
+  })).status, 403, 'Revoked launchers cannot finish formerly claimed jobs');
+  const reassigned = await request('GET', '/api/launcher/jobs', { headers: bridgeHeaders(deviceA2) });
+  assert.equal(reassigned.status, 200);
+  assert.equal(reassigned.data.jobs.length, 1);
+  assert.equal(reassigned.data.jobs[0].id, queueAfterCancel.data.job.id,
+    'Unstarted work from a revoked launcher may be claimed by another paired device');
+  const processing = await request('PUT', '/api/launcher/jobs/' + reassigned.data.jobs[0].id, {
+    headers: bridgeHeaders(deviceA2), body: { status: 'processing' }
+  });
+  assert.equal(processing.status, 200);
+  assert.equal((await request('DELETE', '/api/creator/launcher/devices/' + deviceA2, {
+    cookie: created.cookie
+  })).status, 200);
+  const psOffline = await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  });
+  assert.equal(psOffline.status, 200);
+  assert.equal(psOffline.data.connected, true,
+    'The last synchronized profile remains available as historical data');
+  assert.equal(psOffline.data.launcher_online, false,
+    'Revoked devices must not keep PlayStation appearing online');
+  assert.equal(psOffline.data.online, false);
+  assert.equal(psOffline.data.sync_state, 'offline');
+  assert.equal(psOffline.data.active_game, null);
+  assert.equal(psOffline.data.game_catalog.length, 1,
+    'Offline mode must preserve the last known historical game catalog');
+
+  const failedAfterRevoke = (await request('GET', '/api/creator/cut-studio/jobs', {
+    cookie: created.cookie
+  })).data.jobs.find(job => job.id === queueAfterCancel.data.job.id);
+  assert.equal(failedAfterRevoke.status, 'failed',
+    'A revoked launcher must not leave processing exports permanently pending or duplicate them');
+
+
+  const cutBeforeArchive = await request('GET','/api/creator/cut-studio/projects/' + cutId,{
+    cookie:created.cookie
+  });
+  assert.equal(cutBeforeArchive.data.clips.length,1);
+  assert.equal((await request('DELETE','/api/creator/cut-studio/projects/' + cutId,{
+    cookie:created.cookie,body:{base_updated_at:cutBeforeArchive.data.project.updated_at,
+      expected_version:cutBeforeArchive.data.project.version-1}
+  })).status,409,'Archiving Cut projects requires the current project version');
+  assert.equal((await request('DELETE','/api/creator/cut-studio/projects/' + cutId,{
+    cookie:created.cookie,body:{base_updated_at:cutBeforeArchive.data.project.updated_at,
+      expected_version:cutBeforeArchive.data.project.version}
+  })).status,200);
+  assert.equal((await request('GET','/api/creator/cut-studio/projects/' + cutId,{
+    cookie:created.cookie
+  })).status,404,'Archived Cut projects must not remain accessible');
+
+  // Stream Studio uses one account-scoped record and rejects concurrent stale saves.
+  assert.equal((await request('GET', '/api/creator/stream-studio')).status, 401,
+    'Stream Studio state requires authentication');
+  const streamInitial = await request('GET', '/api/creator/stream-studio', { cookie: created.cookie });
+  assert.equal(streamInitial.status, 200);
+  assert.equal(streamInitial.data.version, null);
+  assert.equal(streamInitial.data.scenes.some(item => item.id === sceneId), true,
+    'Stream Studio must receive the creator\'s actual scenes');
+  assert.equal(streamInitial.data.widgets.some(item => item.id === widgetId), true,
+    'Stream Studio must receive the creator\'s actual widgets');
+  const firstStream = await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie,
+    body: { expected_version: null, config: { program_scene_id:sceneId, scene_order:[sceneId] } }
+  });
+  assert.equal(firstStream.status, 200, `Stream Studio first save failed: ${JSON.stringify(firstStream.data)}`);
+  const secondStream = await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie,
+    body: { expected_version:firstStream.data.version, config: { program_scene_id:sceneId, scene_order:[sceneId], preview_scene_id:sceneId } }
+  });
+  assert.equal(secondStream.status, 200);
+  assert.equal((await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie,
+    body: { expected_version:firstStream.data.version, config: { program_scene_id:'stale' } }
+  })).status, 409, 'Stream Studio must reject an outdated edit');
+  const streamState = await request('GET', '/api/creator/stream-studio', { cookie:created.cookie });
+  assert.equal(streamState.data.version, secondStream.data.version);
+  assert.equal(streamState.data.config.preview_scene_id, sceneId);
+  assert.equal((await request('GET', '/api/creator/stream-studio', { cookie:otherCookie }))
+    .data.config.program_scene_id, undefined, 'Second creator must not see the first Stream Studio workspace');
+  const streamRows = (await request('GET', '/api/creator/projects?kind=stream', { cookie:created.cookie }))
+    .data.projects.filter(item => item.data?.type === 'stream_studio');
+  assert.equal(streamRows.length, 1, 'Repeated Stream Studio saves must not create duplicate projects');
+  assert.equal((await request('POST','/api/creator/projects',{
+    cookie:created.cookie,body:{kind:'stream',name:'Extra Stream Studio',data:{type:'stream_studio'}}
+  })).status,409,'Generic projects cannot create a second protected Stream Studio state');
+  assert.equal((await request('PATCH','/api/creator/projects/' + streamRows[0].id,{
+    cookie:created.cookie,body:{name:'Replaced outside Stream Studio'}
+  })).status,409,'Generic updates cannot change Stream Studio state');
+  assert.equal((await request('DELETE','/api/creator/projects/' + streamRows[0].id,{
+    cookie:created.cookie
+  })).status,409,'Generic deletion cannot archive versioned Stream Studio state');
+
+  for (const method of ['GET', 'PUT', 'DELETE']) {
+    const guarded = await request(method, '/api/creator/stream-studio/projects/' + streamRows[0].id, {
+      cookie: created.cookie, ...(method === 'PUT' ? { body: { title:'Tampered', config:{} } } : {})
+    });
+    assert.equal(guarded.status, 404, 'Generic stream project API must not mutate the Stream Studio state');
+  }
+
 
   const archived = await request('DELETE', `/api/creator/projects/${encodeURIComponent(projectId)}`, { cookie: created.cookie });
   assert.equal(archived.status, 200, 'Owner must be able to archive their project');
@@ -264,33 +1375,153 @@ try {
     }
   }
 
+  const extraMedia = await upload('/api/creator/media/clips', 'video/webm', 'delete-me-ci.webm',
+    Buffer.from('removable-private-video-ci'));
+  assert.equal(extraMedia.status, 201, `Media cleanup upload failed: ${JSON.stringify(extraMedia.data)}`);
+  const extraMediaUrl = extraMedia.data.media.url;
+  const extraMediaId = extraMedia.data.media.id;
+  assert.equal((await request('DELETE','/api/creator/media/clips/' + extraMediaId, {
+    cookie:mediaOtherCookie
+  })).status,404,'Foreign creator cannot remove another account\'s media');
+  assert.equal((await fetch(base + extraMediaUrl,{headers:{cookie:login.cookie}})).status,200,
+    'Foreign deletion attempts cannot remove the owner\'s media bytes');
+  assert.equal((await request('DELETE','/api/creator/media/clips/not-a-uuid',{
+    cookie:login.cookie
+  })).status,404,'Invalid media ID must return 404 rather than a database error');
+  assert.equal((await request('DELETE','/api/creator/media/clips/' + extraMediaId,{
+    cookie:login.cookie
+  })).status,200,'Creator can delete their own uploaded clip');
+  assert.equal((await fetch(base + extraMediaUrl,{headers:{cookie:login.cookie}})).status,404,
+    'Deleted media cannot be served even to its former owner');
+  await assert.rejects(
+    access(join(uploadRoot,basename(extraMediaUrl))),
+    {code:'ENOENT'},'Deleting media must also erase its stored file'
+  );
+  assert.equal((await request('GET','/api/creator/media/clips',{
+    cookie:login.cookie
+  })).data.media.some(item=>item.id===extraMediaId),false,
+  'Deleted media must disappear from the creator library');
+  const badDurationMedia = await fetch(base + '/api/creator/media/clips',{
+    method:'POST',headers:{
+      origin:base,cookie:login.cookie,'content-type':'video/mp4',
+      'x-cfs-file-name':encodeURIComponent('negative-duration.mp4'),
+      'x-cfs-duration-ms':'-400'
+    },body:Buffer.from('bad-duration-ci'),signal:AbortSignal.timeout(8000)
+  });
+  assert.equal(badDurationMedia.status,400,'Negative media durations must not be persisted');
+
+  // OBS images use a source-specific capability instead of exposing private uploads globally.
+  const makerWithImage = await request('POST', '/api/creator/stream-maker', {
+    cookie: login.cookie, body: { config: {
+      name: 'Private image OBS source', source: asset.data.asset.url,
+      elements: [{ id: 'ci_image', template: 'camera' }]
+    } }
+  });
+  assert.equal(makerWithImage.status, 201, `Maker image setup failed: ${JSON.stringify(makerWithImage.data)}`);
+  const imageToken = makerWithImage.data.bundle.public_token;
+  const scopedImageUrl = base + asset.data.asset.url + '?source_token=' + imageToken;
+  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
+    'Private image remains inaccessible without a valid source capability');
+  const scopedImage = await fetch(scopedImageUrl);
+  assert.equal(scopedImage.status, 200, 'A valid OBS source can load its own referenced image');
+  assert.deepEqual(Buffer.from(await scopedImage.arrayBuffer()), privateImage);
+  const otherMakerWithImage = await request('POST', '/api/creator/stream-maker', {
+    cookie: mediaOtherCookie, body: { config: {
+      name: 'Foreign private image', source: asset.data.asset.url,
+      elements: [{ id: 'foreign_image', template: 'camera' }]
+    } }
+  });
+  assert.equal(otherMakerWithImage.status, 201);
+  assert.equal((await fetch(base + asset.data.asset.url +
+    '?source_token=' + otherMakerWithImage.data.bundle.public_token)).status, 401,
+    'A second account cannot authorize someone else\'s image through its own OBS source');
+  const imageRotated = await request('POST', '/api/creator/stream-maker/' + makerWithImage.data.bundle.id + '/rotate-token', {
+    cookie: login.cookie, body: { version: makerWithImage.data.bundle.version }
+  });
+  assert.equal(imageRotated.status, 200);
+  assert.equal((await fetch(scopedImageUrl)).status, 401,
+    'Rotated OBS source tokens cannot continue accessing a private image');
+  assert.equal((await fetch(base + asset.data.asset.url + '?source_token=' + imageRotated.data.bundle.public_token)).status, 200);
+  assert.equal((await request('DELETE', '/api/creator/stream-maker/' + makerWithImage.data.bundle.id, {
+    cookie: login.cookie, body: { version: imageRotated.data.bundle.version }
+  })).status, 200);
+  assert.equal((await fetch(base + asset.data.asset.url + '?source_token=' + imageRotated.data.bundle.public_token)).status, 401,
+    'Deleted OBS sources cannot continue accessing private images');
+
   // A public project's image reference allows OBS to fetch JUST that image.
   // A different creator cannot publish someone else's asset by referencing its URL.
-  const attackerProject = await request('POST', '/api/creator/projects', {
-    cookie: mediaOtherCookie,
-    body: { kind: 'widget', name: 'Foreign URL reference', data: { image: asset.data.asset.url } }
-  });
-  assert.equal(attackerProject.status, 201);
-  assert.equal((await request('PATCH', `/api/creator/projects/${attackerProject.data.project.id}`, {
-    cookie: mediaOtherCookie, body: { status: 'published' }
-  })).status, 200);
+  // Widget publication must use its dedicated, versioned API. Generic writes cannot bypass it.
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie: login.cookie, body: { kind: 'widget', name: 'Forbidden generic widget', data: {} }
+  })).status, 409, 'Generic project creation must not bypass widget quotas');
+  async function publishedImageWidget(cookie, name, imageUrl) {
+    const createdWidget = await request('POST', '/api/creator/widget-studio/widgets', {
+      cookie, body: { name, widget_type: 'obs_overlay' }
+    });
+    assert.equal(createdWidget.status, 201, JSON.stringify(createdWidget.data));
+    const id = createdWidget.data.widget.id;
+    const draft = await request('PUT', `/api/creator/widget-studio/widgets/${id}/draft`, {
+      cookie,
+      body: { expected_version: createdWidget.data.widget.version, config: {
+        widgetType: 'obs_overlay', canvas: { width: 1920, height: 1080 },
+        elements: [{ id: 'media-image', type: 'image', position: { x: 0, y: 0 },
+          size: { width: 300, height: 300 }, data: { src: imageUrl } }], settings: {}
+      } }
+    });
+    assert.equal(draft.status, 200, JSON.stringify(draft.data));
+    const published = await request('POST', `/api/creator/widget-studio/widgets/${id}/publish`, {
+      cookie, body: { expected_version: draft.data.widget.version }
+    });
+    assert.equal(published.status, 200, JSON.stringify(published.data));
+    return { id, version: published.data.widget.version };
+  }
+  await publishedImageWidget(mediaOtherCookie, 'Foreign reference attempt', asset.data.asset.url);
   assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
     'A published reference from a foreign creator must not expose the private image');
 
-  const ownerProject = await request('POST', '/api/creator/projects', {
-    cookie: login.cookie,
-    body: {
-      kind: 'widget',
-      name: 'Owner OBS overlay',
-      data: { config: { elements: [{ type: 'image', data: { src: asset.data.asset.url } }] } }
-    }
+  const ownerWidget = await request('POST', '/api/creator/widget-studio/widgets', {
+    cookie: login.cookie, body: { name: 'Owner OBS overlay', widget_type: 'obs_overlay' }
   });
-  assert.equal(ownerProject.status, 201);
+  assert.equal(ownerWidget.status, 201);
+  const ownerId = ownerWidget.data.widget.id;
+  const ownerDraft = await request('PUT', `/api/creator/widget-studio/widgets/${ownerId}/draft`, {
+    cookie: login.cookie,
+    body: { expected_version: ownerWidget.data.widget.version, config: {
+      widgetType: 'obs_overlay', canvas: { width: 1920, height: 1080 },
+      elements: [{ id: 'image', type: 'image', data: { src: asset.data.asset.url } }]
+    } }
+  });
+  assert.equal(ownerDraft.status, 200);
   assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
     'A draft image reference must not grant public access');
-  assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
-    cookie: login.cookie, body: { status: 'published' }
-  })).status, 200);
+  const ownerPublished = await request('POST', `/api/creator/widget-studio/widgets/${ownerId}/publish`, {
+    cookie: login.cookie, body: { expected_version: ownerDraft.data.widget.version }
+  });
+  assert.equal(ownerPublished.status, 200);
+  const packageCreated = await request('POST', '/api/creator/widget-studio/packages', {
+    cookie: login.cookie, body: {
+      name: 'Quota conversion bundle', world: 'ci-unique', outputs: ['widgets']
+    }
+  });
+  assert.equal(packageCreated.status, 201, `Package creation failed: ${JSON.stringify(packageCreated.data)}`);
+  const packageId = packageCreated.data.package.id;
+  assert.equal((await request('POST', '/api/creator/shop/bundles/not-a-uuid/convert', {
+    cookie: login.cookie, body: {}
+  })).status, 404, 'Malformed bundle conversion IDs must not crash the server');
+  const firstConversion = await request('POST', '/api/creator/shop/bundles/' + packageId + '/convert', {
+    cookie: login.cookie, body: {}
+  });
+  assert.equal(firstConversion.status, 200, `Bundle conversion failed: ${JSON.stringify(firstConversion.data)}`);
+  assert.equal(firstConversion.data.created_widgets.length, 1);
+  const blockedConversion = await request('POST', '/api/creator/shop/bundles/' + packageId + '/convert', {
+    cookie: login.cookie, body: {}
+  });
+  assert.equal(blockedConversion.status, 402,
+    'Bundle conversion must honor the same widget quota as normal creation');
+  const widgetCount = (await request('GET', '/api/creator/widget-studio/widgets', {
+    cookie: login.cookie
+  })).data.widgets.length;
+  assert.equal(widgetCount, 3, 'A free creator must not exceed the three-widget limit through conversion');
   for (const method of ['GET', 'HEAD']) {
     const response = await fetch(base + asset.data.asset.url, { method });
     assert.equal(response.status, 200, 'Published OBS image must be accessible without a login');
@@ -300,11 +1531,11 @@ try {
   }
   assert.equal((await fetch(base + media.data.media.url)).status, 401,
     'Public overlay reference must not expose private videos');
-  assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
-    cookie: login.cookie, body: { status: 'private' }
-  })).status, 200);
+  assert.equal((await request('DELETE', `/api/creator/projects/${ownerId}`, {
+    cookie: login.cookie
+  })).status, 200, 'Archiving a published widget must revoke its public assets');
   assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
-    'Unpublishing the owner widget must immediately revoke anonymous access');
+    'Archiving the owner widget must immediately revoke anonymous access');
   const deleted = await request('DELETE', `/api/creator/media/videos/${media.data.media.id}`, {
     cookie: login.cookie
   });
