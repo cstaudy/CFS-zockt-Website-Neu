@@ -336,6 +336,23 @@ try {
     assert.equal((await deliverEventSub('notification',{
       ...followPayload,subscription:unknownSubscription
     })).status,403,'Signed callbacks for an unknown EventSub subscription cannot inject follows');
+    assert.equal((await deliverEventSub('notification',followPayload)).status,403,
+      'A pending subscription cannot ingest follows until Twitch confirms its callback');
+    assert.equal((await followPool.query(
+      'select status from twitch_follow_subscriptions where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].status,'pending',
+      'Unverified follows must never upgrade a subscription to enabled');
+    const confirmedChallenge=await deliverEventSub('webhook_callback_verification',{
+      subscription,challenge:'ci-eventsub-confirmed-456'
+    });
+    assert.equal(confirmedChallenge.status,200,
+      'A repeat authenticated verification must activate the registered subscription');
+    assert.equal(await confirmedChallenge.text(),'ci-eventsub-confirmed-456');
+    assert.equal((await followPool.query(
+      'select status from twitch_follow_subscriptions where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].status,'enabled');
     const validMessageId='ci-valid-twitch-follow-' + randomUUID();
     const firstFollow=await deliverEventSub('notification',followPayload,{id:validMessageId});
     assert.equal(firstFollow.status,204,'Authenticated follow notification accepted');
