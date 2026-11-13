@@ -51,6 +51,7 @@ export async function createProject(req, body) {
   if (!kinds.has(kind)) return { error: "INVALID_PROJECT_KIND", status: 400 };
   // Widgets require the dedicated API, which enforces plan quotas and initializes their schema.
   if (kind === "widget") return { error: "USE_WIDGET_STUDIO_API", status: 409 };
+  if (kind === "stream" && body.data?.type === "stream_maker") return { error: "USE_STREAM_MAKER_API", status: 409 };
   if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 };
   const data = projectData(body.data ?? {});
   if (data === null) return { error: "INVALID_PROJECT_DATA", status: 400 };
@@ -71,13 +72,12 @@ export async function updateProject(req, id, body) {
   fields.push("updated_at = now()");
   // Enforce the widget restriction in the UPDATE itself to prevent a check/write race.
   const widgetRestricted = body.data !== undefined || (body.status !== undefined && body.status !== "archived");
-  const restriction = widgetRestricted ? " and kind <> 'widget'" : "";
+  const restriction = (widgetRestricted ? " and kind <> 'widget'" : "") + " and not (kind = 'stream' and data->>'type' = 'stream_maker')";
   const result = await getPool().query(`update creator_projects set ${fields.join(", ")} where id = $1 and account_id = $2${restriction} returning id, kind, name, data, status, created_at, updated_at`, values);
   if (result.rows[0]) return { project: result.rows[0] };
-  if (widgetRestricted) {
-    const existing = (await getPool().query("select kind from creator_projects where id=$1 and account_id=$2", [id, account.id])).rows[0];
-    if (existing?.kind === "widget") return { error: "USE_WIDGET_STUDIO_API", status: 409 };
-  }
+  const existing = (await getPool().query("select kind, data->>'type' as project_type from creator_projects where id=$1 and account_id=$2", [id, account.id])).rows[0];
+  if (existing?.kind === "stream" && existing.project_type === "stream_maker") return { error: "USE_STREAM_MAKER_API", status: 409 };
+  if (widgetRestricted && existing?.kind === "widget") return { error: "USE_WIDGET_STUDIO_API", status: 409 };
   return { error: "PROJECT_NOT_FOUND", status: 404 };
 }
 
