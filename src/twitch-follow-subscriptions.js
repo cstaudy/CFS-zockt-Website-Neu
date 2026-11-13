@@ -140,7 +140,7 @@ export async function enableTwitchFollowEvents(req) {
     // Changing the account or subscription invalidates previously received follows.
     await client.query("delete from twitch_follow_events where account_id=$1", [account.id]);
     await client.query("COMMIT");
-    const current = await pool.query(
+    const current = await getPool().query(
       "select status from twitch_follow_subscriptions where account_id=$1 and subscription_id=$2",
       [account.id, subscription.id]
     );
