@@ -229,7 +229,23 @@ export async function changePassword(req, body) {
   }
 }
 export async function listSessions(req){const account=await currentAccount(req);if(!account)return{error:"AUTHENTICATION_REQUIRED",status:401};const current=tokenHash(sessionFromRequest(req)),rows=(await getPool().query("select id,token_hash,created_at,expires_at,last_seen_at from sessions where account_id=$1 and expires_at>now() order by last_seen_at desc",[account.id])).rows;return{ok:true,sessions:rows.map(row=>({id:row.id,current:row.token_hash===current,created_at:row.created_at,expires_at:row.expires_at,last_seen_at:row.last_seen_at,auth_method:"password"}))};}
-export async function logoutAll(req){const account=await currentAccount(req);if(!account)return{error:"AUTHENTICATION_REQUIRED",status:401};await getPool().query("delete from sessions where account_id=$1",[account.id]);await getPool().query("delete from mfa_login_challenges where account_id=$1",[account.id]);return{ok:true};}
+export async function logoutAll(req) {
+  const account = await currentAccount(req);
+  if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("delete from sessions where account_id=$1", [account.id]);
+    await client.query("delete from mfa_login_challenges where account_id=$1", [account.id]);
+    await client.query("COMMIT");
+    return { ok: true };
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 export async function exportAccount(req,password){const account=await verifyAccountPassword(req,password);if(!account)return{error:"INVALID_CURRENT_PASSWORD",status:401};const pool=getPool(),id=account.id;const projects=(await pool.query("select id,kind,name,data,status,created_at,updated_at from creator_projects where account_id=$1",[id])).rows,devices=(await pool.query("select id,machine_name,client_version,status,last_seen_at,created_at,updated_at from launcher_devices where account_id=$1",[id])).rows,media=(await pool.query("select id,folder,name,mime_type,size_bytes,duration_ms,metadata,created_at,updated_at from user_media where account_id=$1",[id])).rows;return{ok:true,export:{account:{id:account.id,email:account.email,display_name:account.display_name,plan:account.plan,created_at:account.created_at},projects,launcher_devices:devices,user_media:media,exported_at:new Date().toISOString()}};}
 export async function deleteAccount(req,body){const account=await verifyAccountPassword(req,body.password);if(!account)return{error:"INVALID_CURRENT_PASSWORD",status:401};if(String(body.confirmation||"").trim().toUpperCase()!=="LÖSCHEN")return{error:"DELETE_CONFIRMATION_REQUIRED",status:400};await getPool().query("delete from accounts where id=$1",[account.id]);return{ok:true};}
 
