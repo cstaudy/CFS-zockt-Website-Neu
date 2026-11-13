@@ -1,10 +1,11 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
 import "../assets/js/stream-maker-core.js";
 
 const maker = globalThis.StreamMaker;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TOKEN = /^([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})([A-Za-z0-9_-]{43})$/i;
 const MAX_BYTES = 512 * 1024;
 const MAX_BUNDLES = 24;
 const object = value => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -166,4 +167,34 @@ export async function deleteMakerBundle(req, id, body) {
     [id, account.id, body.version]
   );
   return done.rows[0] ? { deleted: true } : { error: "STREAM_MAKER_VERSION_CONFLICT", status: 409 };
+}
+
+// The signed capability URL is the only public access grant. Merely knowing
+// an internal project ID or another account's session is not sufficient.
+async function publicMakerRow(token) {
+  if (typeof token !== "string" || !TOKEN.test(token)) return null;
+  if (typeof process.env.SESSION_SECRET !== "string" ||
+      process.env.SESSION_SECRET.length < 16) return null;
+  const pool = getPool();
+  if (!pool) return null;
+  const match = TOKEN.exec(token);
+  const result = await pool.query(
+    "select id,data from creator_projects where id=$1 and kind='stream' and data->>'type'='stream_maker' and status <> 'archived'",
+    [match[1]]
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  const expected = sourceToken(row);
+  if (!expected) return null;
+  const left = Buffer.from(expected, "utf8"), right = Buffer.from(token, "utf8");
+  if (left.length !== right.length || !timingSafeEqual(left, right)) return null;
+  return row;
+}
+
+export async function getPublicMakerBundle(token) {
+  const row = await publicMakerRow(token);
+  const config = row ? validateMakerConfig(row.data?.config) : null;
+  // A publication is deliberately just the sanitized visual bundle.
+  // Never expose account IDs, project records, signing secrets or raw metadata.
+  return config ? { config } : { error: "STREAM_MAKER_NOT_FOUND", status: 404 };
 }

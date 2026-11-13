@@ -147,6 +147,23 @@ try {
   assert.match(makerOriginal, /^[0-9a-f-]{36}[A-Za-z0-9_-]{43}$/i);
   assert.equal(makerCreated.data.bundle.config.source, '',
     'Untrusted external image URLs may not enter saved Stream Maker bundles');
+  const signedPublicMaker = await request('GET', '/api/public/stream-maker/' + makerOriginal);
+  assert.equal(signedPublicMaker.status, 200,
+    'Signed source must be usable as an OBS Browser Source without cookies');
+  assert.equal(signedPublicMaker.data.config.elements[0].id, 'ci_counter');
+  assert.equal(signedPublicMaker.data.config.elements[0].value, 0);
+  assert.equal(signedPublicMaker.data.config.source, '');
+  assert.equal(signedPublicMaker.data.public_token, undefined);
+  assert.equal(JSON.stringify(signedPublicMaker.data).includes(email), false,
+    'Public Maker projection must not contain Creator emails');
+  assert.equal(JSON.stringify(signedPublicMaker.data).includes(makerOriginal), false,
+    'Public Maker projection must not echo the capability token');
+  assert.equal((await request('GET', '/api/public/stream-maker/' + makerId)).status, 404,
+    'Knowledge of a project UUID alone does not grant public output access');
+  const tamperedMakerToken = makerOriginal.slice(0, -1) +
+    (makerOriginal.endsWith('a') ? 'b' : 'a');
+  assert.equal((await request('GET', '/api/public/stream-maker/' + tamperedMakerToken)).status, 404,
+    'A token with a modified signature may not expose any data');
   assert.equal((await request('POST', '/api/creator/projects', {
     cookie: created.cookie,
     body: { kind: 'stream', name: 'Bypass', data: { type: 'stream_maker' } }
@@ -185,6 +202,9 @@ try {
   });
   assert.equal(counterChanged.status, 200);
   assert.equal(counterChanged.data.bundle.config.elements[0].value, 1);
+  assert.equal((await request('GET', '/api/public/stream-maker/' + makerOriginal))
+    .data.config.elements[0].value, 1,
+    'Public Maker counter must reflect the owner-approved control state');
   assert.equal((await request('POST', '/api/creator/stream-maker/' + makerId + '/control', {
     cookie: otherCookie, body: { element: 'ci_counter', action: 'plus' }
   })).status, 404, 'Foreign accounts cannot change control state');
@@ -194,6 +214,11 @@ try {
   assert.equal(rotate.status, 200);
   assert.notEqual(rotate.data.bundle.public_token, makerOriginal,
     'Explicit token rotation must invalidate the previous capability');
+  assert.equal((await request('GET', '/api/public/stream-maker/' + makerOriginal)).status, 404,
+    'Rotating the OBS source token must revoke the old URL immediately');
+  assert.equal((await request('GET', '/api/public/stream-maker/' +
+    rotate.data.bundle.public_token)).status, 200,
+    'New signed OBS URL must work after rotation');
   assert.equal((await request('POST', '/api/creator/stream-maker/' + makerId + '/rotate-token', {
     cookie: created.cookie, body: { version: counterChanged.data.bundle.version }
   })).status, 409, 'Old token revisions must not rotate again');
@@ -220,9 +245,9 @@ try {
       { id: 'ci_counter', template: 'counter' }
     ] } }
   })).status, 404, 'Archived Maker bundles cannot be edited');
-  assert.notEqual((await request('GET', '/api/public/stream-maker/' +
-    encodeURIComponent(rotate.data.bundle.public_token))).status, 200,
-    'Anonymous Stream Maker output must remain disabled until independent publication review');
+  assert.equal((await request('GET', '/api/public/stream-maker/' +
+    encodeURIComponent(rotate.data.bundle.public_token))).status, 404,
+    'Archiving Maker source must immediately revoke the previously valid OBS URL');
 
   // Creator presets are private, bounded and protect against stale editing.
   assert.equal((await request('GET','/api/creator/presets/caption')).status,401,
