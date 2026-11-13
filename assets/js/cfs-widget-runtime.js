@@ -5,7 +5,7 @@
   const renderer = globalThis.CFSWidgetRenderer;
   const id = new URLSearchParams(location.search).get("widget");
   const profile = new URLSearchParams(location.search).get("profile") || "obs";
-  if (!scene || !stage || !renderer || !id || !/^[a-f0-9-]{36}$/i.test(id)) {
+  if (!scene || !stage || !renderer || !id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
     console.error("Invalid widget output configuration");
     return;
   }
@@ -29,6 +29,9 @@
         throw new Error("Widget unavailable: " + response.status);
       }
       const payload = await response.json();
+      if (!payload || !payload.widget || payload.widget.id !== id || !payload.widget.config || typeof payload.widget.config !== "object" || Array.isArray(payload.widget.config)) {
+        throw new Error("Invalid widget response");
+      }
       const data = renderer.runtimeData(payload);
       renderer.mountScene({
         scene, stage, config: payload.widget.config, data,
