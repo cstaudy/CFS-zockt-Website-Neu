@@ -122,6 +122,67 @@ try {
   });
   assert.equal(second.status, 201, 'Second creator registration must succeed');
   const otherCookie = second.cookie;
+  // Creator presets are private, bounded and protect against stale editing.
+  assert.equal((await request('GET','/api/creator/presets/caption')).status,401,
+    'Anonymous visitors cannot list private Creator presets');
+  assert.equal((await request('POST','/api/creator/presets',{
+    cookie:created.cookie,body:null
+  })).status,400,'Null preset requests must be rejected');
+  assert.equal((await request('POST','/api/creator/presets',{
+    cookie:created.cookie,body:{kind:'caption',name:'Bad data',data:[]}
+  })).status,400,'Preset data cannot be an array');
+  assert.equal((await request('POST','/api/creator/presets',{
+    cookie:created.cookie,body:{kind:'caption',name:'Oversized preset',
+      data:{text:'a'.repeat(70000)}}
+  })).status,413,'Preset JSONB data must respect the size limit');
+  const presetCreated = await request('POST','/api/creator/presets',{
+    cookie:created.cookie,body:{kind:'caption',name:'CI Caption',data:{text:'First version'}}
+  });
+  assert.equal(presetCreated.status,201,`Preset creation failed: ${JSON.stringify(presetCreated.data)}`);
+  const presetId = presetCreated.data.preset.id;
+  assert.equal((await request('POST','/api/creator/presets',{
+    cookie:created.cookie,body:{kind:'caption',name:'CI Caption',data:{}}
+  })).status,409,'Creator duplicate preset names must be rejected');
+  assert.equal((await request('GET','/api/creator/presets/caption',{
+    cookie:otherCookie
+  })).data.presets.some(item=>item.id===presetId),false,
+  'Another creator cannot view private caption presets');
+  assert.equal((await request('PUT','/api/creator/presets/' + presetId,{
+    cookie:otherCookie,
+    body:{kind:'caption',name:'Foreign change',data:{},expected_updated_at:presetCreated.data.preset.updated_at}
+  })).status,404,'Another creator cannot update private presets');
+  const presetUpdated = await request('PUT','/api/creator/presets/' + presetId,{
+    cookie:created.cookie,
+    body:{kind:'caption',name:'CI Caption',data:{text:'Second version'},
+      expected_updated_at:presetCreated.data.preset.updated_at}
+  });
+  assert.equal(presetUpdated.status,200,`Preset update failed: ${JSON.stringify(presetUpdated.data)}`);
+  assert.equal((await request('PUT','/api/creator/presets/' + presetId,{
+    cookie:created.cookie,
+    body:{kind:'caption',name:'CI Caption',data:{text:'Stale'},
+      expected_updated_at:presetCreated.data.preset.updated_at}
+  })).status,409,'Stale preset revisions cannot overwrite later edits');
+  const presetRace = await Promise.all(['Concurrent A', 'Concurrent B'].map(name =>
+    request('PUT', '/api/creator/presets/' + presetId, {
+      cookie: created.cookie, body: {
+        kind: 'caption', name, data: { text: name },
+        expected_updated_at: presetUpdated.data.preset.updated_at
+      }
+    })
+  ));
+  assert.deepEqual(presetRace.map(result => result.status).sort((a, b) => a - b), [200, 409],
+    'Two writers must never overwrite one another with the same preset revision');
+  assert.equal((await request('DELETE','/api/creator/presets/' + presetId,{
+    cookie:otherCookie
+  })).status,404,'Other creators cannot delete private presets');
+  assert.equal((await request('DELETE','/api/creator/presets/' + presetId,{
+    cookie:created.cookie
+  })).status,200,'Owner can delete their own caption preset');
+  assert.equal((await request('GET','/api/creator/presets/caption',{
+    cookie:created.cookie
+  })).data.presets.some(item=>item.id===presetId),false,
+  'Deleted presets must disappear from the library');
+
   const foreignList = await request('GET', '/api/creator/projects', { cookie: otherCookie });
   assert.equal(foreignList.status, 200);
   assert(!foreignList.data.projects?.some(p => p.id === projectId),
