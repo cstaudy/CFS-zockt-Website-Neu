@@ -667,6 +667,14 @@ try {
     cookie: created.cookie
   });
   assert.equal(psOwner.data.connected, true);
+  assert.equal(psOwner.data.online, true,
+    'A recently synchronizing active launcher should report current data');
+  assert.equal(psOwner.data.sync_state, 'current');
+  assert.equal(psOwner.data.launcher_online, true);
+  assert.equal(psOwner.data.active_game, null,
+    'Historical game activity must not fabricate a currently active game');
+  assert.match(psOwner.data.last_synced_at, /^\\d{4}-\\d{2}-\\d{2}T/);
+
   assert.equal(psOwner.data.profile.platform, 'PS5');
   assert.equal(psOwner.data.game_catalog.length, 1);
   assert.equal(psOwner.data.videos.length, 1);
@@ -676,6 +684,10 @@ try {
   });
   assert.equal(psOther.data.connected, false,
     'Launcher sync must never connect an unrelated Creator account');
+  assert.equal(psOther.data.online, false);
+  assert.equal(psOther.data.sync_state, 'unavailable',
+    'Unsynced accounts must not show someone else\'s live status');
+
   assert.equal(psOther.data.videos.length, 0);
   assert.equal(psOther.data.game_catalog.length, 0);
   const psRepeated = await request('POST', '/api/launcher/playstation/sync', {
@@ -878,6 +890,20 @@ try {
   assert.equal((await request('DELETE', '/api/creator/launcher/devices/' + deviceA2, {
     cookie: created.cookie
   })).status, 200);
+  const psOffline = await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  });
+  assert.equal(psOffline.status, 200);
+  assert.equal(psOffline.data.connected, true,
+    'The last synchronized profile remains available as historical data');
+  assert.equal(psOffline.data.launcher_online, false,
+    'Revoked devices must not keep PlayStation appearing online');
+  assert.equal(psOffline.data.online, false);
+  assert.equal(psOffline.data.sync_state, 'offline');
+  assert.equal(psOffline.data.active_game, null);
+  assert.equal(psOffline.data.game_catalog.length, 1,
+    'Offline mode must preserve the last known historical game catalog');
+
   const failedAfterRevoke = (await request('GET', '/api/creator/cut-studio/jobs', {
     cookie: created.cookie
   })).data.jobs.find(job => job.id === queueAfterCancel.data.job.id);
