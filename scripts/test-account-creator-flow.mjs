@@ -122,6 +122,108 @@ try {
   });
   assert.equal(second.status, 201, 'Second creator registration must succeed');
   const otherCookie = second.cookie;
+  // Stream Maker private API: model validation, owner isolation, optimistic
+  // versions and source-token rotation without enabling anonymous output.
+  assert.equal((await request('GET', '/api/creator/stream-maker')).status, 401,
+    'Anonymous visitors cannot enumerate private Stream Maker bundles');
+  assert.equal((await request('POST', '/api/creator/stream-maker', {
+    cookie: created.cookie, body: null
+  })).status, 400, 'A null Stream Maker payload must be rejected');
+  assert.equal((await request('POST', '/api/creator/stream-maker', {
+    cookie: created.cookie,
+    body: { config: { name: 'Bad element', elements: [
+      { id: '<script>', template: 'counter' }
+    ] } }
+  })).status, 400, 'Malformed Stream Maker element IDs must be rejected');
+  const makerCreated = await request('POST', '/api/creator/stream-maker', {
+    cookie: created.cookie,
+    body: { config: { name: 'Private CI Maker', elements: [
+      { id: 'ci_counter', template: 'counter', value: 0 }
+    ], source: 'https://evil.example/secret.png' } }
+  });
+  assert.equal(makerCreated.status, 201, 'Private Maker create failed: ' + JSON.stringify(makerCreated.data));
+  const makerId = makerCreated.data.bundle.id;
+  const makerOriginal = makerCreated.data.bundle.public_token;
+  assert.match(makerOriginal, /^[0-9a-f-]{36}[A-Za-z0-9_-]{43}$/i);
+  assert.equal(makerCreated.data.bundle.config.source, '',
+    'Untrusted external image URLs may not enter saved Stream Maker bundles');
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie: created.cookie,
+    body: { kind: 'stream', name: 'Bypass', data: { type: 'stream_maker' } }
+  })).status, 409, 'Generic project create cannot bypass Stream Maker validation');
+  assert.equal((await request('PATCH', '/api/creator/projects/' + makerId, {
+    cookie: created.cookie, body: { data: { elements: [] } }
+  })).status, 409, 'Generic project updates cannot replace protected Maker data');
+  assert.equal((await request('DELETE', '/api/creator/projects/' + makerId, {
+    cookie: created.cookie
+  })).status, 409, 'Generic project archive cannot bypass Maker revisions');
+  for (const method of ['GET', 'PUT', 'DELETE']) {
+    const query = await request(method, '/api/creator/stream-studio/projects/' + makerId, {
+      cookie: created.cookie,
+      ...(method === 'PUT' ? { body: { title: 'Foreign API override', data: {} } } : {})
+    });
+    assert.equal(query.status, 404, 'Stream Studio API cannot modify Stream Maker private bundles');
+  }
+  assert.equal((await request('GET', '/api/creator/stream-maker', {
+    cookie: otherCookie
+  })).data.bundles.some(b => b.id === makerId), false,
+  'Second Creator cannot see Maker private records');
+  assert.equal((await request('PUT', '/api/creator/stream-maker/' + makerId, {
+    cookie: otherCookie,
+    body: { version: makerCreated.data.bundle.version,
+      config: { elements: [{ id: 'other', template: 'counter' }] } }
+  })).status, 404, 'Second Creator cannot edit another Maker bundle');
+  assert.equal((await request('PUT', '/api/creator/stream-maker/' + makerId, {
+    cookie: created.cookie,
+    body: { version: 9999, config: { elements: [{ id: 'ci_counter', template: 'counter' }] } }
+  })).status, 409, 'Stale Maker versions cannot overwrite current configuration');
+  assert.equal((await request('POST', '/api/creator/stream-maker/' + makerId + '/control', {
+    cookie: created.cookie, body: { element: 'ci_counter', action: 'not-a-control' }
+  })).status, 400, 'Unknown Maker control actions must be rejected');
+  const counterChanged = await request('POST', '/api/creator/stream-maker/' + makerId + '/control', {
+    cookie: created.cookie, body: { element: 'ci_counter', action: 'plus' }
+  });
+  assert.equal(counterChanged.status, 200);
+  assert.equal(counterChanged.data.bundle.config.elements[0].value, 1);
+  assert.equal((await request('POST', '/api/creator/stream-maker/' + makerId + '/control', {
+    cookie: otherCookie, body: { element: 'ci_counter', action: 'plus' }
+  })).status, 404, 'Foreign accounts cannot change control state');
+  const rotate = await request('POST', '/api/creator/stream-maker/' + makerId + '/rotate-token', {
+    cookie: created.cookie, body: { version: counterChanged.data.bundle.version }
+  });
+  assert.equal(rotate.status, 200);
+  assert.notEqual(rotate.data.bundle.public_token, makerOriginal,
+    'Explicit token rotation must invalidate the previous capability');
+  assert.equal((await request('POST', '/api/creator/stream-maker/' + makerId + '/rotate-token', {
+    cookie: created.cookie, body: { version: counterChanged.data.bundle.version }
+  })).status, 409, 'Old token revisions must not rotate again');
+  const makerSaved = await request('PUT', '/api/creator/stream-maker/' + makerId, {
+    cookie: created.cookie,
+    body: { version: rotate.data.bundle.version,
+      config: { name: 'Saved CI Maker', elements: [
+        { id: 'ci_counter', template: 'counter', value: 7 }
+      ] } }
+  });
+  assert.equal(makerSaved.status, 200);
+  assert.equal(makerSaved.data.bundle.config.elements[0].value, 7);
+  const makerDeleted = await request('DELETE', '/api/creator/stream-maker/' + makerId, {
+    cookie: created.cookie, body: { version: makerSaved.data.bundle.version }
+  });
+  assert.equal(makerDeleted.status, 200);
+  assert.equal((await request('GET', '/api/creator/stream-maker', {
+    cookie: created.cookie
+  })).data.bundles.some(x => x.id === makerId), false,
+  'Archived Creator Maker bundles must not appear in private list');
+  assert.equal((await request('PUT', '/api/creator/stream-maker/' + makerId, {
+    cookie: created.cookie,
+    body: { version: makerSaved.data.bundle.version, config: { elements: [
+      { id: 'ci_counter', template: 'counter' }
+    ] } }
+  })).status, 404, 'Archived Maker bundles cannot be edited');
+  assert.notEqual((await request('GET', '/api/public/stream-maker/' +
+    encodeURIComponent(rotate.data.bundle.public_token))).status, 200,
+    'Anonymous Stream Maker output must remain disabled until independent publication review');
+
   // Creator presets are private, bounded and protect against stale editing.
   assert.equal((await request('GET','/api/creator/presets/caption')).status,401,
     'Anonymous visitors cannot list private Creator presets');
