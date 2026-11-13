@@ -79,9 +79,9 @@ export async function updateProject(req, id, body) {
   const sceneRestricted = body.name !== undefined || body.data !== undefined || (body.status !== undefined && body.status !== "archived");
   const restriction = (widgetRestricted ? " and kind <> 'widget'" : "") +
     (sceneRestricted ? " and kind <> 'scene'" : "") +
-    " and not (kind = 'stream' and data->>'type' = 'stream_maker')" +
-    " and not (kind = 'design' and data->>'type' = 'universal_bundle')" +
-    (widgetRestricted ? " and not (kind = 'design' and data->>'type' = 'widget_package')" : "");
+    " and not (kind = 'stream' and coalesce(data->>'type','') = 'stream_maker')" +
+    " and not (kind = 'design' and coalesce(data->>'type','') = 'universal_bundle')" +
+    (widgetRestricted ? " and not (kind = 'design' and coalesce(data->>'type','') = 'widget_package')" : "");
   const result = await getPool().query(`update creator_projects set ${fields.join(", ")} where id = $1 and account_id = $2${restriction} returning id, kind, name, data, status, created_at, updated_at`, values);
   if (result.rows[0]) return { project: result.rows[0] };
   const existing = (await getPool().query("select kind, data->>'type' as project_type from creator_projects where id=$1 and account_id=$2", [id, account.id])).rows[0];
