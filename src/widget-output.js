@@ -1,5 +1,6 @@
 import { getPool } from "./db.js";
 import { widgetConfigs } from "./widget-publication.js";
+import { twitchStreamForUserId } from "./public-twitch.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 // Conservative public renderer subset: remote media and chat require separate URL/data policies.
@@ -39,15 +40,50 @@ export function publicWidgetPayload(row) {
     outputs: {}, // placement settings require a separate validated schema
     settings: Object.fromEntries(Object.entries(published.settings && typeof published.settings === "object" && !Array.isArray(published.settings) ? published.settings : {}).filter(([key]) => ALLOWED_SETTINGS.has(key)).map(([key, value]) => [key, key === "offlineBehavior" ? (value === "zero" ? "zero" : "hold") : safeNumber(value, 0, 0, 1000000000)]))
   };
-  return { widget: { id: row.id, config, definition: { source_kind: published.widgetType === "manual_counter" ? "manual" : "static", mode: published.widgetType === "manual_counter" ? "manual_counter" : "static" } }, data: { profile: {}, live: {}, bridge: {} } };
+  // A timer may use live data only if Twitch is linked to THIS widget's
+  // account. Alerts and follower counters have no verified event feed yet.
+  const isTimer = published.widgetType === "twitch_live_timer";
+  const isManual = published.widgetType === "manual_counter";
+  return { widget: { id: row.id, config, definition: {
+    source_kind: isTimer ? "live_provider" : isManual ? "manual" : "static",
+    mode: isTimer ? "timer" : isManual ? "manual_counter" : "static",
+    ...(isTimer ? { provider: "twitch" } : {})
+  } }, data: { profile: {}, live: {}, bridge: {} } };
+}
+
+export function applyTwitchWidgetState(payload, source) {
+  if (payload?.widget?.definition?.provider !== "twitch" ||
+      payload.widget.definition.mode !== "timer") return payload;
+  const validStart = typeof source?.started_at === "string" &&
+    Number.isFinite(Date.parse(source.started_at)) &&
+    Date.parse(source.started_at) <= Date.now();
+  const confirmed = source?.status === "live" && validStart;
+  const status = confirmed ? "live" : source?.status === "offline" ? "offline" : "unknown";
+  return {
+    ...payload,
+    data: {
+      ...payload.data,
+      live: {
+        provider: "twitch", status,
+        connected: confirmed, stale: !confirmed,
+        started_at: confirmed ? new Date(source.started_at).toISOString() : null,
+        updated_at: confirmed ? new Date().toISOString() : null
+      }
+    }
+  };
 }
 
 export async function getPublicWidget(id) {
   if (!UUID.test(String(id))) return { error: "WIDGET_NOT_FOUND", status: 404 };
   const result = await getPool().query(
-    "select id, data, status from creator_projects where id=$1 and kind='widget' and status='published' limit 1",
+    "select p.id, p.data, p.status, t.twitch_user_id from creator_projects p left join twitch_connections t on t.account_id=p.account_id where p.id=$1 and p.kind='widget' and p.status='published' limit 1",
     [id]
   );
-  const payload = publicWidgetPayload(result.rows[0]);
-  return payload ? { payload } : { error: "WIDGET_NOT_FOUND", status: 404 };
+  const row = result.rows[0];
+  const payload = publicWidgetPayload(row);
+  if (!payload) return { error: "WIDGET_NOT_FOUND", status: 404 };
+  if (payload.widget.definition.provider !== "twitch") return { payload };
+  // Never fall back to the global channel or to a simulated provider.
+  const signal = await twitchStreamForUserId(row?.twitch_user_id);
+  return { payload: applyTwitchWidgetState(payload, signal) };
 }
