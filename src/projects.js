@@ -13,7 +13,8 @@ function projectData(value) {
 
 function accountView(account) {
   if (!account) return null;
-  return { ...account, admin: isAdminEmail(account.email), email_verified: Boolean(account.email_verified_at) };
+  const email_verified = Boolean(account.email_verified_at);
+  return { ...account, admin: email_verified && isAdminEmail(account.email), email_verified };
 }
 
 export async function requireAccount(req) {
