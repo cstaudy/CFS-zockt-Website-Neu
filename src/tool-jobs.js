@@ -1,5 +1,6 @@
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
+import { activeLauncherDevice } from "./launcher-auth.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_PENDING = 3;
@@ -11,22 +12,6 @@ function view(row) {
     payload: row.payload || {}, result: row.result || null, error: row.error || null,
     created_at: row.created_at, updated_at: row.updated_at };
 }
-function launcherAuthorized(req) {
-  return Boolean(process.env.LAUNCHER_BRIDGE_SECRET) &&
-    String(req.headers["x-cfs-launcher-secret"] || "") === String(process.env.LAUNCHER_BRIDGE_SECRET);
-}
-async function activeDevice(req) {
-  if (!launcherAuthorized(req)) return { error: "LAUNCHER_UNAUTHORIZED", status: 401 };
-  const id = String(req.headers["x-cfs-device-id"] || "");
-  if (!UUID.test(id)) return { error: "DEVICE_ID_REQUIRED", status: 400 };
-  const pool = getPool();
-  const found = await pool.query(
-    "update launcher_devices set last_seen_at=now(),updated_at=now() where id=$1 and status='active' and account_id is not null returning account_id",
-    [id]
-  );
-  return found.rows[0] || { error: "DEVICE_NOT_ACTIVE", status: 403 };
-}
-
 export async function listJobs(req) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
@@ -95,17 +80,17 @@ export async function cancelJob(req, id) {
 }
 
 export async function claimJobs(req) {
-  const device = await activeDevice(req);
+  const device = await activeLauncherDevice(req);
   if (device.error) return device;
   const result = await getPool().query(
-    "with next_job as (select id from tool_jobs where account_id=$1 and status='queued' order by created_at for update skip locked limit 1) update tool_jobs set status='claimed',updated_at=now() where id in (select id from next_job) and account_id=$1 returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
-    [device.account_id]
+    "with next_job as (select id from tool_jobs where account_id=$1 and status='queued' order by created_at for update skip locked limit 1) update tool_jobs set status='claimed',claimed_by_device=$2,updated_at=now() where id in (select id from next_job) and account_id=$1 and status='queued' returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
+    [device.account_id, device.id]
   );
   return { ok: true, jobs: result.rows.map(view) };
 }
 
 export async function updateLauncherJob(req, id, body) {
-  const device = await activeDevice(req);
+  const device = await activeLauncherDevice(req);
   if (device.error) return device;
   if (!UUID.test(String(id))) return { error: "JOB_NOT_FOUND_OR_NOT_CLAIMED", status: 409 };
   if (!isObject(body) || !["processing", "completed", "failed", "canceled"].includes(body.status))
@@ -118,8 +103,8 @@ export async function updateLauncherJob(req, id, body) {
   if (body.error !== undefined && body.error !== null && typeof body.error !== "string")
     return { error: "INVALID_JOB_ERROR", status: 400 };
   const result = await getPool().query(
-    "update tool_jobs set status=$3,result=$4::jsonb,error=$5,updated_at=now() where id=$1 and account_id=$2 and (status='claimed' or (status='processing' and $3 <> 'processing')) returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
-    [id, device.account_id, body.status, resultJson, body.error?.slice(0, 1000) || null]
+    "update tool_jobs set status=$4,result=$5::jsonb,error=$6,updated_at=now() where id=$1 and account_id=$2 and claimed_by_device=$3 and (status='claimed' or (status='processing' and $4 <> 'processing')) returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
+    [id, device.account_id, device.id, body.status, resultJson, body.error?.slice(0, 1000) || null]
   );
   return result.rows[0] ? { ok: true, job: view(result.rows[0]) }
     : { error: "JOB_NOT_FOUND_OR_NOT_CLAIMED", status: 409 };
