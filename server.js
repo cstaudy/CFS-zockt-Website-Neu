@@ -200,7 +200,7 @@ async function serveStatic(req, res) {
     const info = await stat(filePath);
     if (!info.isFile()) return json(res, 404, { error: "NOT_FOUND" });
     const isPrivateWorkspacePage = pathname.startsWith("/pages/") && /(?:dashboard|account|creator-suite|widget-studio|scene-studio|stream-studio|universal-builder|settings|integrations|launcher|cut-studio|audio-studio|stream-maker|editor)\.html$/.test(pathname);
-    const isWidgetOutputPage = pathname === "/widgets/output.html";
+    const isWidgetOutputPage = ["/widgets/output.html", "/widgets/scene.html", "/widgets/stream-maker.html", "/widgets/follower-goal.html"].includes(pathname);
     if (isPrivateWorkspacePage || isWidgetOutputPage) res.setHeader("referrer-policy", "no-referrer");
     res.writeHead(200, {
       "content-type": mimeTypes[extname(filePath).toLowerCase()] || "application/octet-stream",
