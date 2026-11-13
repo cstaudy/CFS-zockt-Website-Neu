@@ -37,7 +37,7 @@ import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-medi
 import { listPresets, savePreset, deletePreset } from "./src/creator-presets.js";
 import { publicTwitchState, publicTwitchCommunity } from "./src/public-twitch.js";
 import { handleTwitchEventSub, readEventSubBody } from "./src/twitch-eventsub.js";
-import { getTwitchFollowStatus, enableTwitchFollowEvents } from "./src/twitch-follow-subscriptions.js";
+import { getTwitchFollowStatus, enableTwitchFollowEvents, disableTwitchFollowEvents } from "./src/twitch-follow-subscriptions.js";
 import { paypalStatus, createPayPalOrder, capturePayPalOrder } from "./src/paypal.js";
 import { publicLiveControl } from "./src/public-live.js";
 import { creatorSettings } from "./src/creator-settings.js";
@@ -302,6 +302,10 @@ async function handle(req, res) {
   }
   if (url.pathname === "/api/creator/twitch/follow-events/enable" && method === "POST") {
     const result = await enableTwitchFollowEvents(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  if (url.pathname === "/api/creator/twitch/follow-events/disable" && method === "POST") {
+    const result = await disableTwitchFollowEvents(req);
     return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
   }
   if (url.pathname === "/api/creator/twitch/status" && method === "GET") { const result=await getTwitchStatus(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
