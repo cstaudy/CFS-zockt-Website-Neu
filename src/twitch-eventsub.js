@@ -134,7 +134,8 @@ export async function handleTwitchEventSub(req, rawBody) {
       `select s.account_id from twitch_follow_subscriptions s
        join twitch_connections c on c.account_id=s.account_id
        where s.subscription_id=$1 and s.broadcaster_user_id=$2
-         and c.twitch_user_id=$2 and s.status in ('pending','enabled')
+         and c.twitch_user_id=$2 and s.status='enabled'
+         and ('moderator:read:followers'=any(regexp_split_to_array(c.scope,'[, ]+')))
        for update of s`,
       [subscription.id, broadcasterId]
     );
@@ -150,10 +151,6 @@ export async function handleTwitchEventSub(req, rawBody) {
        on conflict(message_id) do nothing returning id`,
       [accountId, id, broadcasterId, String(event.user_id),
         event.user_name.trim().slice(0, 100), event.followed_at]
-    );
-    await client.query(
-      "update twitch_follow_subscriptions set status='enabled',updated_at=now() where subscription_id=$1 and account_id=$2",
-      [subscription.id, accountId]
     );
     if (result.rows[0]) {
       await client.query(
