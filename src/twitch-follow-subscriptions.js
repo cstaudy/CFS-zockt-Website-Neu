@@ -37,7 +37,7 @@ export async function getTwitchFollowStatus(req) {
   return { ok: true, connected, permissions_granted: hasFollowScope(row?.scope),
     configured: eventSubConfigured() && !!callbackUrl(),
     subscription_status: matching ? row?.status || "unavailable" : "unavailable",
-    enabled: matching && row?.status === "enabled",
+    enabled: matching && hasFollowScope(row?.scope) && row?.status === "enabled",
     cleanup_pending: row?.status === "revoked" ||
       (!!row?.subscription_id && !matching),
     needs_reauthorization: connected && !hasFollowScope(row.scope) };
