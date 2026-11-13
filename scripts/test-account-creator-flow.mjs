@@ -1193,6 +1193,55 @@ try {
     const afterAdds = (await request('GET', cutUrl, { cookie: psCookie })).data;
     assert.equal(afterAdds.clips.length, 2);
     assert.equal(afterAdds.project.version, 10);
+    // Project settings use the dedicated API; they must never drop timeline
+    // clips or bypass the same revision guard through generic CRUD.
+    assert.equal((await request('POST', '/api/creator/projects', {
+      cookie: psCookie, body: { kind: 'cut', name: 'Generic bypass', data: {} }
+    })).status, 409, 'Cut projects cannot be created through generic project APIs');
+    assert.equal((await request('PATCH', '/api/creator/projects/' + atomicCutId, {
+      cookie: psCookie, body: { data: { clips: [] } }
+    })).status, 409, 'Generic updates cannot silently remove existing cut clips');
+    assert.equal((await request('DELETE', '/api/creator/projects/' + atomicCutId, {
+      cookie: psCookie
+    })).status, 409, 'Generic delete cannot bypass Cut revision checks');
+    assert.equal((await request('PUT', cutUrl, {
+      cookie: psCookie,
+      body: { title: 'No clips allowed', base_updated_at: afterAdds.project.updated_at,
+        clips: [] }
+    })).status, 409, 'Project settings updates must not accept a replacement clip list');
+    assert.equal((await request('PUT', cutUrl, {
+      cookie: otherCookie,
+      body: { title: 'Foreign settings', base_updated_at: afterAdds.project.updated_at }
+    })).status, 404, 'Foreign creator cannot update settings');
+    const settingsSave = await request('PUT', cutUrl, {
+      cookie: psCookie, body: {
+        title: 'Cut UI settings saved', notes: 'settings-only edit',
+        base_updated_at: afterAdds.project.updated_at,
+        expected_version: afterAdds.project.version
+      }
+    });
+    assert.equal(settingsSave.status, 200,
+      'Dedicated settings save failed: ' + JSON.stringify(settingsSave.data));
+    assert.equal(settingsSave.data.project.version, 11);
+    const afterSettings = (await request('GET', cutUrl, { cookie: psCookie })).data;
+    assert.equal(afterSettings.project.name, 'Cut UI settings saved');
+    assert.equal(afterSettings.project.notes, 'settings-only edit');
+    assert.equal(afterSettings.clips.length, 2,
+      'Saving settings must preserve all existing timeline clips');
+    assert.equal((await request('PUT', cutUrl, {
+      cookie: psCookie,
+      body: { title: 'Stale settings', base_updated_at: afterAdds.project.updated_at }
+    })).status, 409, 'Stale project settings must not overwrite recent timeline work');
+    assert.equal((await request('DELETE', cutUrl, {
+      cookie: psCookie, body: { base_updated_at: afterAdds.project.updated_at }
+    })).status, 409, 'Stale archive must not delete a newly edited Cut project');
+    assert.equal((await request('DELETE', cutUrl, {
+      cookie: psCookie, body: { base_updated_at: afterSettings.project.updated_at,
+        expected_version: afterSettings.project.version }
+    })).status, 200, 'Project owner can archive after confirming current revision');
+    assert.equal((await request('GET', cutUrl, { cookie: psCookie })).status, 404,
+      'Archived Cut project must disappear from owner access');
+
 
 
 
