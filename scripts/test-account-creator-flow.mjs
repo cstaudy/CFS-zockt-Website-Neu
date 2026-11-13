@@ -313,6 +313,9 @@ try {
       subscription,challenge:'ci-eventsub-challenge-123'
     });
     assert.equal(challenge.status,200,'Authentic Twitch callback challenges bypass browser origin checks');
+    assert.equal(challenge.headers.get('content-length'),
+      String(Buffer.byteLength('ci-eventsub-challenge-123')),
+      'EventSub verification must send Twitch the explicit challenge byte length');
     assert.equal(await challenge.text(),'ci-eventsub-challenge-123');
     await followPool.query(
       `insert into twitch_follow_subscriptions
@@ -406,17 +409,70 @@ try {
     const afterRevoke=await request('GET','/api/public/widgets/'+followerWidget.id);
     assert.deepEqual(afterRevoke.data.events,[],
       'Revoked EventSub subscriptions cannot continue exposing follower events');
-    assert.equal((await request('POST','/api/creator/twitch/disconnect',{
+    const disabled=await request('POST','/api/creator/twitch/follow-events/disable',{
       cookie:otherCookie,body:{}
-    })).status,200);
+    });
+    assert.equal(disabled.status,200);
+    assert.equal(disabled.data.disabled,true);
+    assert.equal(disabled.data.provider_deleted,false,
+      'Without Twitch credentials no remote deletion may be claimed');
+    assert.equal(disabled.data.cleanup_pending,true,
+      'Remote cleanup must remain retryable after local consent revocation');
+    assert.equal((await followPool.query(
+      'select status from twitch_follow_subscriptions where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].status,'revoked',
+    'A remotely unresolved subscription must remain locally revoked');
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,0,'Disable must immediately delete saved follower names');
+    assert.equal((await deliverEventSub('notification',followPayload)).status,403,
+      'Late signed Twitch events must not reactivate a revoked subscription');
+    assert.equal((await request('GET','/api/public/widgets/'+followerWidget.id)).data.events.length,0,
+      'Disabled follow widget must never reveal saved followers');
+    const retry=await request('POST','/api/creator/twitch/follow-events/disable',{
+      cookie:otherCookie,body:{}
+    });
+    assert.equal(retry.status,200);
+    assert.equal(retry.data.cleanup_pending,true,
+      'A provider outage must not erase the pending cleanup ID on retries');
+    const disconnect=await request('POST','/api/creator/twitch/disconnect',{
+      cookie:otherCookie,body:{}
+    });
+    assert.equal(disconnect.status,200);
+    assert.equal(disconnect.data.disconnected,true);
+    assert.equal(disconnect.data.follow_events_disabled,true);
+    assert.equal(disconnect.data.provider_cleanup_pending,true,
+      'Account disconnect must not claim a failed Twitch cleanup succeeded');
     assert.equal((await followPool.query(
       'select count(*)::int as n from twitch_follow_events where account_id=$1',
       [second.data.account.id]
     )).rows[0].n,0,'Disconnect removes saved follower names');
-    assert.equal((await followPool.query(
-      'select count(*)::int as n from twitch_follow_subscriptions where account_id=$1',
+    const pendingCleanup=(await followPool.query(
+      'select status,subscription_id from twitch_follow_subscriptions where account_id=$1',
       [second.data.account.id]
-    )).rows[0].n,0,'Disconnect revokes local trusted subscription mapping');
+    )).rows[0];
+    assert.equal(pendingCleanup.status,'revoked');
+    assert.equal(pendingCleanup.subscription_id,subscriptionId,
+      'Remote cleanup can be retried without accepting new events');
+    const statusAfterDisconnect=await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:otherCookie
+    });
+    assert.equal(statusAfterDisconnect.data.connected,false);
+    assert.equal(statusAfterDisconnect.data.cleanup_pending,true);
+    assert.equal(statusAfterDisconnect.data.enabled,false);
+    assert.equal((await request('POST','/api/creator/twitch/follow-events/disable')).status,401,
+      'Anonymous visitors cannot disable another account\'s Twitch subscription');
+    assert.equal((await request('POST','/api/creator/twitch/follow-events/disable',{
+      cookie:created.cookie,body:{}
+    })).status,200,
+      'Another creator may disable their own account without touching the foreign subscription');
+    assert.equal((await followPool.query(
+      'select subscription_id from twitch_follow_subscriptions where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].subscription_id,subscriptionId,
+      'Other account actions cannot clear foreign pending provider subscriptions');
   } finally { await followPool.end(); }
 
   // Scene Studio must own its creation, publication and optimistic revisions.
