@@ -536,25 +536,39 @@
     };
   }
 
+  let liveRequestInFlight = false;
   async function loadLiveSession() {
+    if (liveRequestInFlight) return;
+    liveRequestInFlight = true;
     try {
       const response = await fetch("/api/public/live-session", {
-        headers: { Accept: "application/json" }, cache: "no-store", credentials: "omit"
+        headers: { Accept: "application/json" }, cache: "no-store", credentials: "omit",
+        signal: AbortSignal.timeout(20000)
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       renderLiveSession(adaptTwitchLive(await response.json()));
     } catch {
       renderLiveSession(adaptTwitchLive(null));
+    } finally {
+      liveRequestInFlight = false;
     }
   }
 
+  let communityRequestInFlight = false;
   async function loadCommunityStats() {
+    if (communityRequestInFlight) return;
+    communityRequestInFlight = true;
     try {
-      const response = await fetch("/api/public/community-stats", { headers: { Accept: "application/json" }, cache: "no-store" });
+      const response = await fetch("/api/public/community-stats", {
+        headers: { Accept: "application/json" }, cache: "no-store", credentials: "omit",
+        signal: AbortSignal.timeout(20000)
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       applyCommunityStats(await response.json());
     } catch {
       renderCommunityError();
+    } finally {
+      communityRequestInFlight = false;
     }
   }
 
