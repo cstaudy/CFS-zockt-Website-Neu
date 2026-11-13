@@ -340,6 +340,16 @@ try {
   const scopedImage = await fetch(scopedImageUrl);
   assert.equal(scopedImage.status, 200, 'A valid OBS source can load its own referenced image');
   assert.deepEqual(Buffer.from(await scopedImage.arrayBuffer()), privateImage);
+  const otherMakerWithImage = await request('POST', '/api/creator/stream-maker', {
+    cookie: mediaOtherCookie, body: { config: {
+      name: 'Foreign private image', source: asset.data.asset.url,
+      elements: [{ id: 'foreign_image', template: 'camera' }]
+    } }
+  });
+  assert.equal(otherMakerWithImage.status, 201);
+  assert.equal((await fetch(base + asset.data.asset.url +
+    '?source_token=' + otherMakerWithImage.data.bundle.public_token)).status, 401,
+    'A second account cannot authorize someone else\'s image through its own OBS source');
   const imageRotated = await request('POST', '/api/creator/stream-maker/' + makerWithImage.data.bundle.id + '/rotate-token', {
     cookie: login.cookie, body: { version: makerWithImage.data.bundle.version }
   });
