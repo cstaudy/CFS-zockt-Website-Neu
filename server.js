@@ -184,9 +184,11 @@ async function serveStatic(req, res) {
   try {
     const info = await stat(filePath);
     if (!info.isFile()) return json(res, 404, { error: "NOT_FOUND" });
+    const isPrivateWorkspacePage = pathname.startsWith("/pages/") && /(?:dashboard|account|creator-suite|widget-studio|scene-studio|stream-studio|universal-builder|settings|integrations|launcher|cut-studio|audio-studio|stream-maker|editor)\\.html$/.test(pathname);
+    if (isPrivateWorkspacePage) res.setHeader("referrer-policy", "no-referrer");
     res.writeHead(200, {
       "content-type": mimeTypes[extname(filePath).toLowerCase()] || "application/octet-stream",
-      "cache-control": isUpload ? "private, no-store" : extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
+      "cache-control": isUpload || isPrivateWorkspacePage ? "private, no-store" : extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
     });
     if (req.method === "HEAD") return res.end();
     createReadStream(filePath).pipe(res);
