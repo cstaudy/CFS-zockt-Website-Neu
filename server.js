@@ -94,14 +94,20 @@ function requestId(req) {
 
 function requestOriginAllowed(req) {
   const origin = String(req.headers.origin || "").trim();
-  if (!origin) return true;
+  // Some clients omit Origin; validate Referer when it is available instead.
+  const referer = String(req.headers.referer || "").trim();
+  let candidate = origin;
+  if (!candidate && referer) {
+    try { candidate = new URL(referer).origin; } catch { return false; }
+  }
+  if (!candidate) return true;
   const configured = String(process.env.APP_BASE_URL || "").trim();
   if (configured) {
-    try { return origin === new URL(configured).origin; } catch { return false; }
+    try { return candidate === new URL(configured).origin; } catch { return false; }
   }
   const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
   const protocol = forwardedProto || (req.socket?.encrypted ? "https" : "http");
-  return origin === `${protocol}://${req.headers.host || ""}`;
+  return candidate === `${protocol}://${req.headers.host || ""}`;
 }
 
 async function readJson(req) {
