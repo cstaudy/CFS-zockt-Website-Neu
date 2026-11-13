@@ -192,6 +192,10 @@ try {
       style: { fontSize: 24, color: '#ffffff' } }],
     settings: { manualValue: 7 }
   };
+  assert.equal((await request('GET', `/api/public/widgets/${widgetId}`)).status, 404,
+    'Unpublished widget must never be exposed anonymously');
+  assert.equal((await request('GET', '/api/public/widgets/not-a-uuid')).status, 404,
+    'Invalid public widget IDs must fail closed');
   const widgetDraftSave = await request('PUT', `/api/creator/widget-studio/widgets/${widgetId}/draft`, {
     cookie: created.cookie, body: { expected_version: 1, config: widgetPublishedConfig }
   });
@@ -206,6 +210,13 @@ try {
   assert.equal(firstWidgetPublish.data.widget.status, 'live');
   assert.equal(firstWidgetPublish.data.widget.published_config.elements[0].data.text, 'VISIBLE VERSION');
   assert.equal(firstWidgetPublish.data.widget.has_unpublished_changes, false);
+  const widgetPublicOriginal = await request('GET', `/api/public/widgets/${widgetId}`);
+  assert.equal(widgetPublicOriginal.status, 200, 'Published manual widget must be usable in OBS');
+  assert.equal(widgetPublicOriginal.data.widget.id, widgetId);
+  assert.equal(widgetPublicOriginal.data.widget.definition.mode, 'manual_counter');
+  assert.equal(widgetPublicOriginal.data.widget.config.elements[0].data.text, 'VISIBLE VERSION');
+  assert.equal(JSON.stringify(widgetPublicOriginal.data).includes(email), false);
+  assert.equal(JSON.stringify(widgetPublicOriginal.data).includes('password_hash'), false);
   const privateDraftConfig = {
     ...widgetPublishedConfig,
     elements: [{ id: 'private_text', type: 'text', data: { text: 'PRIVATE DRAFT' } }]
@@ -221,6 +232,12 @@ try {
   assert.equal(widgetPrivateEdit.data.widget.published_config.elements[0].data.text, 'VISIBLE VERSION',
     'Draft content must not alter previously published snapshot');
   assert.equal(widgetPrivateEdit.data.widget.has_unpublished_changes, true);
+  const widgetPublicDuringEdit = await request('GET', `/api/public/widgets/${widgetId}`);
+  assert.equal(widgetPublicDuringEdit.status, 200);
+  assert.equal(widgetPublicDuringEdit.data.widget.config.elements[0].data.text, 'VISIBLE VERSION',
+    'Anonymous OBS feed must retain approved snapshot during private editing');
+  assert.equal(JSON.stringify(widgetPublicDuringEdit.data).includes('PRIVATE DRAFT'), false,
+    'Public output may not reveal unpublished editor contents');
   const widgetAfterSave = await request('GET', `/api/creator/widget-studio/widgets/${widgetId}`, {
     cookie: created.cookie
   });
@@ -247,6 +264,22 @@ try {
   assert.equal(widgetRepublish.data.widget.published_config.elements[0].data.text, 'PRIVATE DRAFT',
     'Only explicit publish changes public widget snapshot');
   assert.equal(widgetRepublish.data.widget.has_unpublished_changes, false);
+  const widgetAfterRepublish = await request('GET', `/api/public/widgets/${widgetId}`);
+  assert.equal(widgetAfterRepublish.status, 200);
+  assert.equal(widgetAfterRepublish.data.widget.config.elements[0].data.text, 'PRIVATE DRAFT',
+    'Public snapshot changes only after explicit republish');
+  const unsupportedWidget = await request('POST', '/api/creator/widget-studio/widgets', {
+    cookie: created.cookie, body: { name: 'Provider not live', widget_type: 'twitch_live_timer' }
+  });
+  assert.equal(unsupportedWidget.status, 201);
+  const unsupportedId = unsupportedWidget.data.widget.id;
+  const unsupportedPublished = await request('POST',
+    `/api/creator/widget-studio/widgets/${unsupportedId}/publish`, {
+      cookie: created.cookie, body: {}
+    });
+  assert.equal(unsupportedPublished.status, 200);
+  assert.equal((await request('GET', `/api/public/widgets/${unsupportedId}`)).status, 404,
+    'Twitch provider output must remain blocked before verified event/source integration');
 
   const secondProject = await request('POST', '/api/creator/projects', {
     cookie: otherCookie, body: { kind: 'design', name: 'Private B Design', data: { secret: 'B only' } }
