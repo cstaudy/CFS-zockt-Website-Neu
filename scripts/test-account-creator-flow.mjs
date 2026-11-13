@@ -174,6 +174,59 @@ try {
     cookie: created.cookie
   })).status, 200, 'Owner must still access their own widget');
 
+  // Scene Studio must own its creation, publication and optimistic revisions.
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie: created.cookie, body: { kind: 'scene', name: 'Shortcut Scene', data: {} }
+  })).status, 409, 'Generic projects cannot create Scenes outside the quota');
+  assert.equal((await request('PATCH', '/api/creator/projects/' + sceneId, {
+    cookie: created.cookie, body: { name: 'Changed outside Scene Studio' }
+  })).status, 409, 'Generic project changes must not bypass Scene Studio versioning');
+  assert.equal((await request('POST', '/api/creator/widget-studio/scenes', {
+    cookie: created.cookie, body: { config: null }
+  })).status, 400, 'Malformed scene configurations must be rejected');
+  assert.equal((await request('POST', '/api/creator/widget-studio/scenes/' + sceneId + '/publish', {
+    cookie: created.cookie, body: { expected_version: sceneCreated.data.scene.version }
+  })).status, 400, 'Incomplete scene drafts cannot be advertised as OBS-ready');
+  const firstSceneConfig = { profile: 'landscape', canvas: {
+    width: 1920, height: 1080, background: 'transparent'
+  }, items: [{ id: 'ci_board_widget', widget_id: widgetId, visible: true,
+    x: 30, y: 70, scale: 1, opacity: 1, rotation: 0, z_index: 0 }] };
+  const sceneDraft = await request('PUT', '/api/creator/widget-studio/scenes/' + sceneId, {
+    cookie: created.cookie, body: { expected_version: sceneCreated.data.scene.version, config: firstSceneConfig }
+  });
+  assert.equal(sceneDraft.status, 200, `Scene draft save failed: ${JSON.stringify(sceneDraft.data)}`);
+  assert.equal((await request('GET', '/api/public/scenes/' + sceneId)).status, 404,
+    'Unpublished scene layouts must remain private');
+  assert.equal((await request('POST', '/api/creator/widget-studio/scenes/' + sceneId + '/publish', {
+    cookie: created.cookie, body: { expected_version: sceneDraft.data.scene.version }
+  })).status, 409, 'Scene publication must reject draft or foreign widgets');
+  const widgetPublished = await request('POST', '/api/creator/widget-studio/widgets/' + widgetId + '/publish', {
+    cookie: created.cookie, body: { expected_version: widgetCreated.data.widget.version }
+  });
+  assert.equal(widgetPublished.status, 200, `Widget publication failed: ${JSON.stringify(widgetPublished.data)}`);
+  const scenePublished = await request('POST', '/api/creator/widget-studio/scenes/' + sceneId + '/publish', {
+    cookie: created.cookie, body: { expected_version: sceneDraft.data.scene.version }
+  });
+  assert.equal(scenePublished.status, 200, `Scene publication failed: ${JSON.stringify(scenePublished.data)}`);
+  assert.equal(scenePublished.data.scene.status, 'live');
+  assert.match(scenePublished.data.scene.source_url, /\/widgets\/scene\.html\?scene=/);
+  const publicScene = await request('GET', '/api/public/scenes/' + sceneId);
+  assert.equal(publicScene.status, 200);
+  assert.equal(publicScene.data.scene.items[0].widget_id, widgetId);
+  assert.equal(publicScene.data.scene.items[0].x, 30);
+  const changedScene = await request('PUT', '/api/creator/widget-studio/scenes/' + sceneId, {
+    cookie: created.cookie,
+    body: { expected_version: scenePublished.data.scene.version,
+      config: { ...firstSceneConfig, items: [{ ...firstSceneConfig.items[0], x: 88 }] } }
+  });
+  assert.equal(changedScene.status, 200);
+  assert.equal(changedScene.data.scene.has_unpublished_changes, true);
+  assert.equal((await request('GET', '/api/public/scenes/' + sceneId)).data.scene.items[0].x, 30,
+    'Later scene draft changes must not leak into its published OBS output');
+  assert.equal((await request('PUT', '/api/creator/widget-studio/scenes/' + sceneId, {
+    cookie: created.cookie, body: { expected_version: sceneDraft.data.scene.version, name: 'Stale' }
+  })).status, 409, 'Scene concurrent edits must reject stale revisions');
+
   // Stream Maker: authenticated storage, owner isolation, bearer-source rotation and deletion.
   assert.equal((await request('GET', '/api/creator/stream-maker')).status, 401,
     'Anonymous visitors cannot enumerate private maker bundles');
