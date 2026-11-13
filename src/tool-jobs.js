@@ -1,6 +1,6 @@
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
-import { activeLauncherDevice } from "./launcher-auth.js";
+import { activeLauncherDevice, launcherAuthorized, UUID as LAUNCHER_UUID } from "./launcher-auth.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_PENDING = 3;
@@ -80,13 +80,34 @@ export async function cancelJob(req, id) {
 }
 
 export async function claimJobs(req) {
-  const device = await activeLauncherDevice(req);
-  if (device.error) return device;
-  const result = await getPool().query(
-    "with next_job as (select id from tool_jobs where account_id=$1 and status='queued' order by created_at for update skip locked limit 1) update tool_jobs set status='claimed',claimed_by_device=$2,updated_at=now() where id in (select id from next_job) and account_id=$1 and status='queued' returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
-    [device.account_id, device.id]
-  );
-  return { ok: true, jobs: result.rows.map(view) };
+  if (!launcherAuthorized(req)) return { error: "LAUNCHER_UNAUTHORIZED", status: 401 };
+  const deviceId = req?.headers?.["x-cfs-device-id"];
+  if (typeof deviceId !== "string" || !LAUNCHER_UUID.test(deviceId))
+    return { error: "DEVICE_ID_REQUIRED", status: 400 };
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    // Hold the device lock through the claim. Revocation cannot slip between
+    // the active-device check and assignment of a queued job.
+    const active = await client.query(
+      "update launcher_devices set last_seen_at=now(),updated_at=now() where id=$1 and status='active' and account_id is not null returning id,account_id",
+      [deviceId]
+    );
+    const device = active.rows[0];
+    if (!device) {
+      await client.query("ROLLBACK");
+      return { error: "DEVICE_NOT_ACTIVE", status: 403 };
+    }
+    const result = await client.query(
+      "with next_job as (select id from tool_jobs where account_id=$1 and status='queued' order by created_at for update skip locked limit 1) update tool_jobs set status='claimed',claimed_by_device=$2,updated_at=now() where id in (select id from next_job) and account_id=$1 and status='queued' returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
+      [device.account_id, device.id]
+    );
+    await client.query("COMMIT");
+    return { ok: true, jobs: result.rows.map(view) };
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally { client.release(); }
 }
 
 export async function updateLauncherJob(req, id, body) {
