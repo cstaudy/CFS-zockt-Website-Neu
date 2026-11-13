@@ -14,6 +14,14 @@ assert.equal(widgetConfigs(republished, "published").changed, false);
 republished.draft_config.elements[0].text = "LOCAL CHANGE";
 assert.equal(republished.published_config.elements[0].text, "ENTWURF");
 
+const incomplete = { config: { elements: [{ text: "PRIVATE" }] }, draft_config: { elements: [{ text: "PRIVATE" }] } };
+const savedIncomplete = nextWidgetData(incomplete, { config: { elements: [{ text: "NEW PRIVATE" }] } }, false, "published");
+assert.equal(Object.hasOwn(savedIncomplete, "published_config"), false);
+assert.equal(widgetConfigs(savedIncomplete, "published").published, null);
+const repaired = nextWidgetData(savedIncomplete, {}, true, "published");
+assert.equal(repaired.published_config.elements[0].text, "NEW PRIVATE");
+assert.equal(widgetConfigs(repaired, "published").changed, false);
+
 assert.equal(widgetConfigs(initial, "draft").published, null);
 assert.equal(widgetConfigs(initial, "published").published.elements[0].text, "LIVE");
 console.log("Widget publication tests passed: legacy compatibility, draft isolation, republish.");
