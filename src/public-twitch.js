@@ -93,3 +93,33 @@ export async function publicTwitchCommunity() {
     twitch_followers: Number.isSafeInteger(total) && total >= 0 && follows?.total != null ? total : null,
     source: follows ? "twitch" : "fallback" };
 }
+
+const twitchStreamCache = new Map();
+const STREAM_CACHE_MS = 12000;
+
+// Public widget data must come from the Twitch ID connected to the owning
+// creator account, never the site's global TWITCH_CHANNEL_LOGIN.
+export async function twitchStreamForUserId(userId) {
+  const id = String(userId || "");
+  if (!/^[0-9]{1,24}$/.test(id)) return { status: "unknown" };
+  const cached = twitchStreamCache.get(id);
+  if (cached && cached.until > Date.now()) return cached.value;
+  if (cached) twitchStreamCache.delete(id);
+  const stream = await queryTwitch(`streams?user_id=${encodeURIComponent(id)}`);
+  let value = { status: "unknown" };
+  if (Array.isArray(stream?.data)) {
+    const active = stream.data[0];
+    if (!active) {
+      value = { status: "offline" };
+    } else if (String(active.user_id || "") === id && active.type === "live") {
+      const startedAt = typeof active.started_at === "string" ? Date.parse(active.started_at) : NaN;
+      const age = Date.now() - startedAt;
+      if (Number.isFinite(startedAt) && age >= 0 && age < 30 * 86400000) {
+        value = { status: "live", started_at: new Date(startedAt).toISOString() };
+      }
+    }
+  }
+  if (twitchStreamCache.size >= 100) twitchStreamCache.clear();
+  twitchStreamCache.set(id, { value, until: Date.now() + STREAM_CACHE_MS });
+  return value;
+}
