@@ -21,7 +21,7 @@ export function nextWidgetData(data = {}, body = {}, publish = false, status = "
     draft_config: draft,
     ...(publish
       ? { published_config: structuredClone(draft) }
-      : status === "published" && !Object.hasOwn(data, "published_config")
+      : status === "published" && !Object.hasOwn(data, "published_config") && !Object.hasOwn(data, "draft_config")
         ? { published_config: structuredClone(data.config ?? {}) }
         : {})
   };
