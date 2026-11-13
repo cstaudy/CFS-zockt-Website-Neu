@@ -111,8 +111,17 @@ export async function handleTwitchEventSub(req, rawBody) {
     return { challenge: payload.challenge, status: 200 };
   }
   if (type === "revocation") {
+    // Revocation invalidates all stored names for that subscription,
+    // not just the public projection. Ignore unknown/old subscription IDs.
     await pool.query(
-      "update twitch_follow_subscriptions set status='revoked',updated_at=now() where subscription_id=$1 and broadcaster_user_id=$2",
+      `with revoked as (
+         update twitch_follow_subscriptions
+         set status='revoked',updated_at=now()
+         where subscription_id=$1 and broadcaster_user_id=$2
+         returning account_id
+       )
+       delete from twitch_follow_events
+       where account_id in (select account_id from revoked)`,
       [subscription.id, broadcasterId]
     );
     return { ok: true, status: 204 };
