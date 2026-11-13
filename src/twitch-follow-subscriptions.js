@@ -99,7 +99,7 @@ export async function enableTwitchFollowEvents(req) {
     await client.query("BEGIN");
     await client.query("select id from accounts where id=$1 for update", [account.id]);
     const connected = await client.query(
-      "select twitch_user_id,scope from twitch_connections where account_id=$1",
+      "select twitch_user_id,scope from twitch_connections where account_id=$1 for update",
       [account.id]
     );
     let user = connected.rows[0];
@@ -134,7 +134,7 @@ export async function enableTwitchFollowEvents(req) {
       await client.query("BEGIN");
       await client.query("select id from accounts where id=$1 for update", [account.id]);
       const freshConnection = await client.query(
-        "select twitch_user_id,scope from twitch_connections where account_id=$1",
+        "select twitch_user_id,scope from twitch_connections where account_id=$1 for update",
         [account.id]
       );
       user = freshConnection.rows[0];
