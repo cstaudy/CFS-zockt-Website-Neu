@@ -1,6 +1,7 @@
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
 import { eventSubConfigured } from "./twitch-eventsub.js";
+import { deleteRemoteFollowSubscription } from "./twitch-eventsub-provider.js";
 
 const hasFollowScope = value => String(value || "").split(/[\s,]+/).includes("moderator:read:followers");
 const validUser = value => /^[0-9]{1,24}$/.test(String(value || ""));
@@ -22,18 +23,69 @@ export async function getTwitchFollowStatus(req) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
   const found = await getPool().query(
-    `select c.twitch_user_id,c.scope,s.subscription_id,s.status
-     from twitch_connections c left join twitch_follow_subscriptions s
-       on s.account_id=c.account_id and s.broadcaster_user_id=c.twitch_user_id
-     where c.account_id=$1`,
+    `select c.twitch_user_id,c.scope,s.subscription_id,s.status,
+       s.broadcaster_user_id
+     from accounts a
+     left join twitch_connections c on c.account_id=a.id
+     left join twitch_follow_subscriptions s on s.account_id=a.id
+     where a.id=$1`,
     [account.id]
   );
   const row = found.rows[0];
-  return { ok: true, connected: !!row, permissions_granted: hasFollowScope(row?.scope),
+  const connected = !!row?.twitch_user_id;
+  const matching = connected && String(row.broadcaster_user_id || "") === String(row.twitch_user_id);
+  return { ok: true, connected, permissions_granted: hasFollowScope(row?.scope),
     configured: eventSubConfigured() && !!callbackUrl(),
-    subscription_status: row?.status || "unavailable",
-    enabled: row?.status === "enabled",
-    needs_reauthorization: !!row && !hasFollowScope(row.scope) };
+    subscription_status: matching ? row?.status || "unavailable" : "unavailable",
+    enabled: matching && row?.status === "enabled",
+    cleanup_pending: row?.status === "revoked" ||
+      (!!row?.subscription_id && !matching),
+    needs_reauthorization: connected && !hasFollowScope(row.scope) };
+}
+
+// Call only inside a transaction after locking the owning accounts row.
+// Always disable the locally trusted feed first; a Twitch outage must not
+// prevent a creator from revoking consent or stop the public OBS output.
+export async function disableTwitchFollowForAccount(client, accountId) {
+  const stored = await client.query(
+    "select subscription_id from twitch_follow_subscriptions where account_id=$1 for update",
+    [accountId]
+  );
+  await client.query("delete from twitch_follow_events where account_id=$1", [accountId]);
+  const subscriptionId = stored.rows[0]?.subscription_id;
+  if (!subscriptionId)
+    return { ok: true, disabled: true, provider_deleted: true, cleanup_pending: false };
+  await client.query(
+    "update twitch_follow_subscriptions set status='revoked',updated_at=now() where account_id=$1",
+    [accountId]
+  );
+  const result = await deleteRemoteFollowSubscription(subscriptionId);
+  if (result.deleted) {
+    await client.query(
+      "delete from twitch_follow_subscriptions where account_id=$1 and subscription_id=$2",
+      [accountId, subscriptionId]
+    );
+    await client.query("delete from twitch_follow_challenges where subscription_id=$1",
+      [subscriptionId]);
+  }
+  return { ok: true, disabled: true, provider_deleted: result.deleted,
+    cleanup_pending: !result.deleted };
+}
+
+export async function disableTwitchFollowEvents(req) {
+  const account = await requireAccount(req);
+  if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("select id from accounts where id=$1 for update", [account.id]);
+    const result = await disableTwitchFollowForAccount(client, account.id);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally { client.release(); }
 }
 
 export async function enableTwitchFollowEvents(req) {
@@ -68,6 +120,15 @@ export async function enableTwitchFollowEvents(req) {
         ["pending", "enabled"].includes(active.status)) {
       await client.query("COMMIT");
       return { ok: true, subscription_status: active.status };
+    }
+    if (active) {
+      // Never overwrite an old provider subscription ID while Twitch may
+      // still be delivering to it. Clear it remotely (404 is fine) first.
+      const cleanup = await disableTwitchFollowForAccount(client, account.id);
+      if (cleanup.cleanup_pending) {
+        await client.query("COMMIT");
+        return { error: "TWITCH_EVENTSUB_CLEANUP_PENDING", status: 409 };
+      }
     }
     const tokenResponse = await fetch("https://id.twitch.tv/oauth2/token", {
       method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
