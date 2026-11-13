@@ -583,20 +583,60 @@ try {
     'x-cfs-launcher-secret': ciLauncherSecret,
     'x-cfs-device-id': deviceId
   });
+  assert.equal((await request('POST', '/api/launcher/devices/register', {
+    body: { machine_name: 'Unauthenticated' }
+  })).status, 401, 'Launcher device registration requires the shared bridge secret');
+  assert.equal((await request('POST', '/api/launcher/devices/register', {
+    headers: bridgeHeaders('00000000-0000-4000-8000-000000000000'), body: null
+  })).status, 400, 'Malformed launcher registration must not throw');
+  assert.equal((await request('POST', '/api/launcher/heartbeat', {
+    headers: bridgeHeaders('invalid-device-id'), body: {}
+  })).status, 400, 'Malformed heartbeat device IDs must not reach PostgreSQL');
+  assert.equal((await request('POST', '/api/creator/launcher/device-link/confirm', {
+    cookie: created.cookie, body: null
+  })).status, 400, 'Malformed pairing requests must not throw');
   async function pairTestLauncher(cookie, name) {
     const registered = await request('POST', '/api/launcher/devices/register', {
       headers: bridgeHeaders('00000000-0000-4000-8000-000000000000'),
       body: { machine_name: name, client_version: 'ci-1.0' }
     });
     assert.equal(registered.status, 201, `Test launcher registration failed: ${JSON.stringify(registered.data)}`);
+    const code = registered.data.device.user_code;
+    assert.equal((await request('GET', '/api/creator/launcher/device-link/' + code)).status, 401,
+      'Pairing code metadata must not be readable anonymously');
+    const pending = await request('GET', '/api/creator/launcher/device-link/' + code, { cookie });
+    assert.equal(pending.status, 200, 'An authenticated creator may preview an unused pairing code');
+    assert.equal(pending.data.device_link.status, 'pending');
     const linked = await request('POST', '/api/creator/launcher/device-link/confirm', {
-      cookie, body: { user_code: registered.data.device.user_code }
+      cookie, body: { user_code: code }
     });
     assert.equal(linked.status, 200, `Device linking failed: ${JSON.stringify(linked.data)}`);
+    assert.equal((await request('GET', '/api/creator/launcher/device-link/' + code, {
+      cookie
+    })).status, 404, 'A consumed pairing code cannot expose a paired device');
+    assert.equal((await request('POST', '/api/creator/launcher/device-link/confirm', {
+      cookie, body: { user_code: code }
+    })).status, 400, 'A consumed pairing code cannot link a second account');
     return registered.data.device.id;
   }
   const deviceA = await pairTestLauncher(created.cookie, 'Creator A test launcher');
   const deviceB = await pairTestLauncher(otherCookie, 'Creator B test launcher');
+  const deviceA2 = await pairTestLauncher(created.cookie, 'Creator A second launcher');
+  const heartbeat = await request('POST', '/api/launcher/heartbeat', {
+    headers: bridgeHeaders(deviceA), body: { obs: { connected: true, version: '30.0' } }
+  });
+  assert.equal(heartbeat.status, 200);
+  assert.equal(heartbeat.data.device.obs_connected, true);
+  assert.equal((await request('POST', '/api/launcher/heartbeat', {
+    headers: bridgeHeaders(deviceA), body: {}
+  })).data.device.obs_connected, true, 'Heartbeat without OBS status must not erase last known state');
+  assert.equal((await request('POST', '/api/launcher/heartbeat', {
+    headers: bridgeHeaders(deviceA), body: { obs: { connected: 'true' } }
+  })).status, 400, 'Heartbeat OBS state must be a boolean');
+  assert.equal((await request('DELETE', '/api/creator/launcher/devices/' + deviceA, {
+    cookie: otherCookie
+  })).status, 404, 'Another creator cannot revoke a paired launcher');
+
   assert.equal((await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
     body: {}
   })).status, 401, 'Anonymous visitors cannot queue exports');
@@ -640,6 +680,11 @@ try {
     body: { status: 'completed', result: { output: 'foreign.mp4' } }
   })).status, 409, 'Foreign launcher devices must not modify claimed jobs');
   assert.equal((await request('PUT', '/api/launcher/jobs/' + claimedId, {
+    headers: bridgeHeaders(deviceA2),
+    body: { status: 'completed', result: { output: 'same-account-other-device.mp4' } }
+  })).status, 409, 'A different device on the same account must not complete a job it did not claim');
+
+  assert.equal((await request('PUT', '/api/launcher/jobs/' + claimedId, {
     headers: bridgeHeaders(deviceA), body: { status: 'unrecognized' }
   })).status, 400, 'Invalid launcher transitions must be rejected');
   const completed = await request('PUT', '/api/launcher/jobs/' + claimedId, {
@@ -658,6 +703,44 @@ try {
       cookie: created.cookie, body: {}
     })).status, 200);
   }
+  const queueAfterCancel = await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
+    cookie: created.cookie, body: {}
+  });
+  assert.equal(queueAfterCancel.status, 202);
+  const pendingClaim = await request('GET', '/api/launcher/jobs', { headers: bridgeHeaders(deviceA) });
+  assert.equal(pendingClaim.status, 200);
+  assert.equal(pendingClaim.data.jobs.length, 1);
+  assert.equal(pendingClaim.data.jobs[0].id, queueAfterCancel.data.job.id);
+  assert.equal((await request('DELETE', '/api/creator/launcher/devices/' + deviceA, {
+    cookie: created.cookie
+  })).status, 200, 'Owner can revoke an active launcher');
+  assert.equal((await request('POST', '/api/launcher/heartbeat', {
+    headers: bridgeHeaders(deviceA), body: {}
+  })).status, 403, 'Revoked launchers cannot send successful heartbeats');
+  assert.equal((await request('GET', '/api/launcher/jobs', {
+    headers: bridgeHeaders(deviceA)
+  })).status, 403, 'Revoked launchers cannot claim new jobs');
+  assert.equal((await request('PUT', '/api/launcher/jobs/' + queueAfterCancel.data.job.id, {
+    headers: bridgeHeaders(deviceA), body: { status: 'completed', result: {} }
+  })).status, 403, 'Revoked launchers cannot finish formerly claimed jobs');
+  const reassigned = await request('GET', '/api/launcher/jobs', { headers: bridgeHeaders(deviceA2) });
+  assert.equal(reassigned.status, 200);
+  assert.equal(reassigned.data.jobs.length, 1);
+  assert.equal(reassigned.data.jobs[0].id, queueAfterCancel.data.job.id,
+    'Unstarted work from a revoked launcher may be claimed by another paired device');
+  const processing = await request('PUT', '/api/launcher/jobs/' + reassigned.data.jobs[0].id, {
+    headers: bridgeHeaders(deviceA2), body: { status: 'processing' }
+  });
+  assert.equal(processing.status, 200);
+  assert.equal((await request('DELETE', '/api/creator/launcher/devices/' + deviceA2, {
+    cookie: created.cookie
+  })).status, 200);
+  const failedAfterRevoke = (await request('GET', '/api/creator/cut-studio/jobs', {
+    cookie: created.cookie
+  })).data.jobs.find(job => job.id === queueAfterCancel.data.job.id);
+  assert.equal(failedAfterRevoke.status, 'failed',
+    'A revoked launcher must not leave processing exports permanently pending or duplicate them');
+
 
   const cutBeforeArchive = await request('GET','/api/creator/cut-studio/projects/' + cutId,{
     cookie:created.cookie
