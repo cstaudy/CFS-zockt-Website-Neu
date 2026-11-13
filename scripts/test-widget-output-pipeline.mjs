@@ -63,4 +63,22 @@ await new Promise(resolve => setImmediate(resolve));
 assert.equal(missingStage.innerHTML, "");
 await missingTick();
 assert.equal(notFoundCalls, 1);
+// Revoked and permanently removed widgets must clear previously rendered frames.
+for (const status of [403, 410]) {
+  let calls = 0;
+  const revokedStage = { style: {}, dataset: {}, innerHTML: "previously-published", replaceChildren() { this.innerHTML = ""; } };
+  let nextTick;
+  runInNewContext(runtimeSource, {
+    console: { error() {} }, URLSearchParams,
+    location: { search: "?widget=" + row.id },
+    document: { getElementById(id) { return id === "cfsScene" ? { style: {}, dataset: {} } : id === "cfsWidgetStage" ? revokedStage : null; } },
+    CFSWidgetRenderer: renderer,
+    fetch: async () => { calls++; return { ok: false, status }; },
+    setInterval(fn) { nextTick = fn; }
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(revokedStage.innerHTML, "");
+  await nextTick();
+  assert.equal(calls, 1);
+}
 console.log("OBS output pipeline tests passed: published projection, manual value, vertical browser render and polling.");
