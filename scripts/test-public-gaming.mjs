@@ -113,4 +113,67 @@ assert.equal(unavailable.get("refPsStatus").textContent, "NICHT SYNCHRONISIERT")
 const failed = await renderPublicPlayStation(null, true);
 assert.equal(failed.get("refPsStatus").textContent, "DATEN NICHT ERREICHBAR");
 assert.equal(failed.get("refPsRecent").children.length, 1);
+
+function readText(node) {
+  if (typeof node === "string") return node;
+  return [node?.textContent || "", ...(node?.children || []).map(readText)].join(" ");
+}
+async function renderGameHomepage(payload) {
+  const nodes = new Map([
+    "recentGamesGrid", "recentGamesMeta", "recentGamesCount",
+    "r107MoreGames", "r107OtherGamesGrid", "r107MoreCount", "r107GamesNote",
+    "statGameTime", "statLatestGame", "statGameTimeLabel", "statLatestGameLabel", "footerRecentGames"
+  ].map(id => [id, fakeNode()]));
+  for (const node of nodes.values()) {
+    node.dataset = {};
+    node.setAttribute = (key, value) => { node[key] = value; };
+  }
+  const document = {
+    readyState: "complete",
+    getElementById: id => nodes.get(id) || null,
+    querySelectorAll: () => [],
+    querySelector: () => null,
+    createElement: tag => {
+      const node = fakeNode(tag);
+      node.dataset = {};
+      node.setAttribute = (key, value) => { node[key] = value; };
+      node.appendChild = child => node.children.push(child);
+      node.addEventListener = () => {};
+      return node;
+    }
+  };
+  const fetch = async path => {
+    if (path === "/api/public/games") return { ok: true, json: async () => payload };
+    if (path === "/api/public/creator-state") return {
+      ok: true, json: async () => ({ ok: true, creator: {}, game: {},
+        social: {}, live: { active: false, status: "unknown" } })
+    };
+    throw new Error("Unexpected public request: " + path);
+  };
+  // The IIFE initializes the homepage with independent social and game feeds.
+  runInNewContext(homeScript, {
+    document, fetch, Intl, Date, URL,
+    window: { setInterval: () => 1 }, console: { error: () => {} }
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  return nodes;
+}
+const homepage = await renderGameHomepage({
+  ...projected,
+  recent: projected.recent.map(game => ({ ...game, image_url: null })),
+  games: projected.games.map(game => ({ ...game, image_url: null }))
+});
+const grid = homepage.get("recentGamesGrid");
+assert.equal(grid.children.length, 1, "An undated catalog-only title must not count as recently played");
+assert.match(readText(grid.children[0]), /Racing/, "Confirmed dated play history should appear");
+assert.doesNotMatch(readText(grid.children[0]), /Library only/, "Never invent a play date for catalog items");
+assert.doesNotMatch(readText(grid.children[0]), /0 min|0 Starts|0 Sessions/,
+  "Missing playtime and session statistics must not be displayed as zero");
+assert.equal(homepage.get("statGameTime").textContent, "—");
+assert.equal(homepage.get("statGameTimeLabel").textContent, "Spielzeit nicht erfasst");
+assert.match(homepage.get("recentGamesMeta").textContent, /Launcher offline/,
+  "The gaming panel should report a disconnected source");
+assert.match(homepage.get("recentGamesCount").textContent, /1 Spiel/);
+
 console.log("Public gaming: confirmed history projection, no invented stats, safe links, offline and error states.");
