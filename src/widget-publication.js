@@ -1,9 +1,10 @@
 // Pure helpers: no database dependency, safe to exercise in unit tests.
 export function widgetConfigs(data = {}, status = "draft") {
   const draft = data.draft_config ?? data.config ?? {};
-  // Existing published rows have only data.config; keep them readable until migrated.
+  // Legacy published rows may have only config. Once a draft_config exists,
+  // never fall back to the editable config if the published snapshot is missing.
   const published = status === "published"
-    ? (data.published_config ?? data.config ?? null)
+    ? (Object.hasOwn(data, "published_config") ? data.published_config : !Object.hasOwn(data, "draft_config") ? data.config ?? null : null)
     : null;
   return {
     draft,
