@@ -381,19 +381,33 @@ try {
     cookie: otherCookie
   })).status, 404, 'Foreign account cannot read a Cut timeline');
   const newClip = await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/clips', {
-    cookie: created.cookie, body: { label: 'First Clip', in_ms: 0, out_ms: 15000, id: 'attacker-defined-id', updated_at: '2000-01-01T00:00:00.000Z' }
+    cookie: created.cookie, body: { base_updated_at:cutOpened.data.project.updated_at,expected_version:cutOpened.data.project.version, label: 'First Clip', in_ms: 0, out_ms: 15000, id: 'attacker-defined-id', updated_at: '2000-01-01T00:00:00.000Z' }
   });
   assert.equal(newClip.status, 201, `Cut clip create failed: ${JSON.stringify(newClip.data)}`);
   assert.match(newClip.data.clip.id, /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i, "Cut clip IDs must be server-generated");
   assert.notEqual(newClip.data.clip.updated_at, "2000-01-01T00:00:00.000Z", "Client timestamps cannot replace server clip revisions");
   assert.equal((await request("POST", "/api/creator/cut-studio/projects/" + cutId + "/clips", {
-    cookie: created.cookie, body: { label:"Bad negative clip", in_ms:-1, out_ms:5000 }
+    cookie: created.cookie, body: { base_updated_at:newClip.data.project_updated_at,expected_version:newClip.data.project_version,label:"Bad negative clip", in_ms:-1, out_ms:5000 }
   })).status, 400, "Clip bounds must be checked server-side");
   const cutAfterClip = await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
     cookie: created.cookie
   });
   assert.equal(cutAfterClip.data.clips.length, 1);
   assert.equal(cutAfterClip.data.clips[0].id, newClip.data.clip.id);
+  assert.equal((await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/clips', {
+    cookie: created.cookie,
+    body: { base_updated_at:cutOpened.data.project.updated_at,expected_version:cutOpened.data.project.version,
+      label:'Concurrent stale create',in_ms:0,out_ms:2000 }
+  })).status, 409, 'Outdated clip additions must not overwrite another edit');
+  assert.equal((await request('PUT', '/api/creator/cut-studio/projects/' + cutId + '/clips/order', {
+    cookie: created.cookie, body: { base_updated_at:cutAfterClip.data.project.updated_at,
+      expected_version:cutAfterClip.data.project.version, clip_ids:[newClip.data.clip.id,newClip.data.clip.id] }
+  })).status, 400, 'Duplicate clip IDs must be rejected when sorting');
+  assert.equal((await request('DELETE', '/api/creator/cut-studio/projects/' + cutId + '/clips/' + newClip.data.clip.id, {
+    cookie:otherCookie, body: { project_base_updated_at:cutAfterClip.data.project.updated_at,
+      clip_base_updated_at:newClip.data.clip.updated_at }
+  })).status, 404, 'Foreign clips cannot be deleted');
+
   const combined = await request('PUT', '/api/creator/cut-studio/projects/' + cutId + '/save', {
     cookie: created.cookie,
     body: { project: { title: 'Cut Timeline Saved', format: 'vertical',
