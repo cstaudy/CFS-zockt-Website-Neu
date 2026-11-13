@@ -2,6 +2,7 @@ import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
 import { launcherAuthorized, UUID } from "./launcher-auth.js";
 import { validatePlayStationSync } from "./playstation-validation.js";
+import { projectPlayStationState } from "./playstation-state.js";
 
 // One launcher sync is one atomic operation. An invalid entry cannot leave a
 // partially updated profile, game catalog or public video list behind.
@@ -95,23 +96,54 @@ export async function syncPlayStationFromLauncher(req, body) {
   }
 }
 
+async function loadPlayStationState(accountId, publicView = false) {
+  const pool = getPool();
+  const [profiles, games, videos, launchers] = await Promise.all([
+    pool.query(
+      "select provider,platform,display_name,connected,updated_at from creator_playstation_profiles where account_id=$1",
+      [accountId]
+    ),
+    pool.query(
+      "select id,title,platform,cover_url,last_played_at,in_catalog,source from creator_playstation_games where account_id=$1 order by last_played_at desc nulls last,title asc limit 500",
+      [accountId]
+    ),
+    pool.query(
+      "select id,title,url,thumbnail_url,published_at,source from creator_playstation_videos where account_id=$1 order by published_at desc nulls last,title asc limit 100",
+      [accountId]
+    ),
+    pool.query(
+      "select max(last_seen_at) as last_seen_at from launcher_devices where account_id=$1 and status='active'",
+      [accountId]
+    )
+  ]);
+  return projectPlayStationState({
+    profile: profiles.rows[0] || null, games: games.rows, videos: videos.rows,
+    lastLauncherSeenAt: launchers.rows[0]?.last_seen_at || null,
+    publicView
+  });
+}
+
 export async function getPlayStationState(req) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
-  const pool = getPool();
-  const profile = (await pool.query("select provider, platform, display_name, connected, updated_at from creator_playstation_profiles where account_id=$1", [account.id])).rows[0] || null;
-  const games = (await pool.query("select id, title, platform, cover_url, last_played_at, in_catalog, source from creator_playstation_games where account_id=$1 order by last_played_at desc nulls last, title asc", [account.id])).rows;
-  const videos = (await pool.query("select id, title, url, thumbnail_url, published_at, source from creator_playstation_videos where account_id=$1 order by published_at desc nulls last, title asc", [account.id])).rows;
-  return { ok: true, connected: Boolean(profile?.connected), profile, recent_games: games.filter(game => game.last_played_at).slice(0, 3), game_catalog: games, videos, limits: { recent_games: 3 }, source: profile?.provider || "launcher", message: videos.length ? "PlayStation-Daten geladen." : "Keine bestätigte Videoquelle verfügbar." };
+  return loadPlayStationState(account.id);
 }
 
-export async function publicPlayStationState(){
-  const emails=[process.env.CFS_ADMIN_DESKTOP_OWNER_EMAIL,...String(process.env.CFS_ADMIN_EMAILS||"").split(",")].map(x=>String(x||"").trim().toLowerCase()).filter(Boolean);
-  if(!emails.length)return{ok:true,connected:false,recent_games:[],game_catalog:[],videos:[],limits:{recent_games:3},message:"PlayStation Network ist noch nicht veröffentlicht."};
-  const pool=getPool(),account=(await pool.query("select id from accounts where lower(email)=any($1::text[]) order by created_at asc limit 1",[emails])).rows[0];
-  if(!account)return{ok:true,connected:false,recent_games:[],game_catalog:[],videos:[],limits:{recent_games:3},message:"PlayStation Network ist noch nicht verbunden."};
-  const profile=(await pool.query("select provider,platform,display_name,connected,updated_at from creator_playstation_profiles where account_id=$1",[account.id])).rows[0]||null;
-  const games=(await pool.query("select title,platform,cover_url,last_played_at,in_catalog from creator_playstation_games where account_id=$1 order by last_played_at desc nulls last,title asc",[account.id])).rows;
-  const videos=(await pool.query("select title,url,thumbnail_url,published_at from creator_playstation_videos where account_id=$1 order by published_at desc nulls last,title asc",[account.id])).rows;
-  return{ok:true,connected:Boolean(profile?.connected),profile:profile?{platform:profile.platform,display_name:profile.display_name,updated_at:profile.updated_at}:null,recent_games:games.filter(x=>x.last_played_at).slice(0,3),game_catalog:games,videos,limits:{recent_games:3},message:videos.length?"PlayStation-Daten geladen.":"Keine bestätigte Videoquelle verfügbar."};
+export async function publicPlayStationState() {
+  const emails = [process.env.CFS_ADMIN_DESKTOP_OWNER_EMAIL,
+    ...String(process.env.CFS_ADMIN_EMAILS || "").split(",")]
+    .map(value => String(value || "").trim().toLowerCase()).filter(Boolean);
+  if (!emails.length) return {
+    ...projectPlayStationState({ publicView: true }),
+    message: "PlayStation Network ist noch nicht veröffentlicht."
+  };
+  const account = (await getPool().query(
+    "select id from accounts where lower(email)=any($1::text[]) order by created_at asc limit 1",
+    [emails]
+  )).rows[0];
+  if (!account) return {
+    ...projectPlayStationState({ publicView: true }),
+    message: "PlayStation Network ist noch nicht verbunden."
+  };
+  return loadPlayStationState(account.id, true);
 }
