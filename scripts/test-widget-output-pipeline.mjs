@@ -81,4 +81,27 @@ for (const status of [403, 410]) {
   await nextTick();
   assert.equal(calls, 1);
 }
+// Short outages preserve the frame; sustained outages clear it and recovery renders again.
+let offline = true;
+let outageTick;
+const outageStage = { style: {}, dataset: {}, innerHTML: "last-known-frame", replaceChildren() { this.innerHTML = ""; } };
+const outageScene = { style: {}, dataset: {} };
+runInNewContext(runtimeSource, {
+  console: { error() {} }, URLSearchParams,
+  location: { search: "?widget=" + row.id },
+  document: { getElementById(id) { return id === "cfsScene" ? outageScene : id === "cfsWidgetStage" ? outageStage : null; } },
+  CFSWidgetRenderer: renderer,
+  fetch: async () => offline ? { ok: false, status: 503 } : { ok: true, json: async () => payload },
+  setInterval(fn) { outageTick = fn; }
+});
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(outageStage.innerHTML, "last-known-frame");
+await outageTick();
+await outageTick();
+assert.equal(outageStage.innerHTML, "last-known-frame");
+await outageTick();
+assert.equal(outageStage.innerHTML, "");
+offline = false;
+await outageTick();
+assert.ok(outageStage.innerHTML.includes("42"));
 console.log("OBS output pipeline tests passed: published projection, manual value, vertical browser render and polling.");
