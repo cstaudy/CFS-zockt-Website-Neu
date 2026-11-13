@@ -32,7 +32,10 @@
     const img = new Image();
     img.onload = () => { if (imagePath === path) { image = img; render(); } };
     img.onerror = () => { if (imagePath === path) image = null; };
-    img.src = path;
+    const url = new URL(path, location.origin);
+    if (url.origin !== location.origin) return;
+    if (url.pathname.startsWith("/assets/uploads/")) url.searchParams.set("source_token", token);
+    img.src = url.href;
   }
   async function refresh() {
     if (busy || stopped) return;
