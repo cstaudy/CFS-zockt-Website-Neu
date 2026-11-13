@@ -42,27 +42,49 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const followStatus = document.getElementById("twitchFollowStatus");
   const followEnable = document.getElementById("twitchFollowEnable");
+  const followDisable = document.getElementById("twitchFollowDisable");
   const followReconnect = document.getElementById("twitchFollowReconnect");
 
   async function checkTwitchFollowEvents(connected) {
     if (followEnable) followEnable.hidden = true;
+    if (followDisable) followDisable.hidden = true;
     if (followReconnect) followReconnect.hidden = true;
     if (!followStatus) return;
-    if (!connected) {
-      followStatus.textContent = "Follow-Events nicht aktiv: zuerst Twitch verbinden.";
-      return;
-    }
     try {
       const state = await CFS.json("/api/creator/twitch/follow-events/status");
-      if (state.needs_reauthorization) {
+      if (state.cleanup_pending) {
+        followStatus.textContent = "Follow-Events lokal deaktiviert. Twitch konnte die alte Subscription noch nicht löschen; die Bereinigung kann erneut versucht werden.";
+        if (followDisable) {
+          followDisable.textContent = "TWITCH-LÖSCHUNG ERNEUT VERSUCHEN";
+          followDisable.hidden = false;
+        }
+      } else if (!connected || !state.connected) {
+        followStatus.textContent = "Follow-Events nicht aktiv: zuerst Twitch verbinden.";
+      } else if (state.needs_reauthorization) {
         followStatus.textContent = "Twitch muss die Berechtigung moderator:read:followers erst bestätigen.";
         if (followReconnect) followReconnect.hidden = false;
+        if (followDisable && ["pending", "enabled"].includes(state.subscription_status)) {
+          followDisable.textContent = "FOLLOW-EVENTS DEAKTIVIEREN";
+          followDisable.hidden = false;
+        }
       } else if (!state.configured) {
         followStatus.textContent = "Follow-Events sind serverseitig noch nicht konfiguriert.";
+        if (followDisable && ["pending", "enabled"].includes(state.subscription_status)) {
+          followDisable.textContent = "FOLLOW-EVENTS DEAKTIVIEREN";
+          followDisable.hidden = false;
+        }
       } else if (state.subscription_status === "enabled") {
         followStatus.textContent = "Twitch-Follow-Events bestätigt. Nur echte, signierte Follow-Nachrichten werden an Widgets weitergegeben.";
+        if (followDisable) {
+          followDisable.textContent = "FOLLOW-EVENTS DEAKTIVIEREN";
+          followDisable.hidden = false;
+        }
       } else if (state.subscription_status === "pending") {
         followStatus.textContent = "EventSub-Verifizierung bei Twitch ausstehend. Noch keine Live-Follow-Events verfügbar.";
+        if (followDisable) {
+          followDisable.textContent = "FOLLOW-EVENTS DEAKTIVIEREN";
+          followDisable.hidden = false;
+        }
       } else {
         followStatus.textContent = "Noch keine bestätigte EventSub-Subscription. Follow-Events können gesondert aktiviert werden.";
         if (followEnable) followEnable.hidden = false;
@@ -80,6 +102,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       actionError(error, "Twitch-Follow-Subscription konnte nicht eingerichtet werden");
     } finally {
       followEnable.disabled = false;
+    }
+  });
+  if (followDisable) followDisable.addEventListener("click", async () => {
+    followDisable.disabled = true;
+    try {
+      const result = await CFS.json("/api/creator/twitch/follow-events/disable", { method: "POST", body: "{}" });
+      await checkTwitchFollowEvents(true);
+      if (result.cleanup_pending && followStatus)
+        followStatus.textContent = "Follow-Events deaktiviert. Twitch-Löschung steht noch aus und kann erneut versucht werden.";
+    } catch(error) {
+      actionError(error, "Twitch-Follow-Events konnten nicht deaktiviert werden");
+    } finally {
+      followDisable.disabled = false;
     }
   });
 
@@ -125,6 +160,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (twitchIntegrationStatus) twitchIntegrationStatus.textContent = "Twitch-Status derzeit nicht prüfbar. Keine Verbindung wurde geändert. Bitte erneut prüfen.";
       if (twitchIntegrationBadge) twitchIntegrationBadge.textContent = "NICHT ERREICHBAR";
       if (followEnable) followEnable.hidden = true;
+      if (followDisable) followDisable.hidden = true;
       if (followReconnect) followReconnect.hidden = true;
       if (followStatus) followStatus.textContent = "Twitch-Follow-Status derzeit nicht erreichbar.";
       if (twitchRetryButton) twitchRetryButton.hidden = false;
