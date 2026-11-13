@@ -373,6 +373,27 @@ try {
     });
     assert.equal(followStatus.data.enabled,true);
     assert.equal(followStatus.data.permissions_granted,true);
+    await followPool.query("update twitch_connections set scope='user:read:email' where account_id=$1",
+      [second.data.account.id]);
+    const noScopeStatus=await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:otherCookie
+    });
+    assert.equal(noScopeStatus.data.permissions_granted,false);
+    assert.equal(noScopeStatus.data.enabled,false,
+      'A revoked Twitch permission must not be reported as enabled');
+    assert.equal((await deliverEventSub('notification',followPayload)).status,403,
+      'Signed follow notifications must be rejected when Twitch permission is absent');
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,1,'Events without the required scope must not enter PostgreSQL');
+    await followPool.query(
+      "update twitch_connections set scope='user:read:email moderator:read:followers' where account_id=$1",
+      [second.data.account.id]
+    );
+    assert.equal((await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:otherCookie
+    })).data.enabled,true,'A valid permission can restore a verified subscription');
     assert.equal((await request('GET','/api/creator/twitch/follow-events/status',{
       cookie:created.cookie
     })).data.connected,false,
