@@ -332,12 +332,20 @@
         return;
       }
       if (key === "tiktok") {
-        detail.textContent = channel?.tracking_ready
+        detail.textContent = channel?.tracking_ready === true
           ? "CFS TikTok-LIVE-Signal bereit"
-          : (channel?.connected ? "TikTok verbunden · LIVE-Signal wird geprüft" : "TikTok noch nicht verbunden");
+          : channel?.connected === true
+          ? "TikTok verbunden · LIVE-Signal wird geprüft"
+          : channel?.connected === false
+          ? "TikTok noch nicht verbunden"
+          : "TikTok-LIVE-Status nicht verfügbar";
         return;
       }
-      detail.textContent = channel?.connected ? `${label} verbunden · Status wird geprüft` : `${label} noch nicht verbunden`;
+      detail.textContent = channel?.connected === true
+        ? `${label} verbunden · Status wird geprüft`
+        : channel?.connected === false
+        ? `${label} noch nicht verbunden`
+        : `${label}-LIVE-Status nicht verfügbar`;
     };
     renderPlatformState("twitch", twitchChannel, "Twitch");
     renderPlatformState("tiktok", tiktokChannel, "TikTok");
@@ -521,8 +529,9 @@
       started_at: startTime, viewers, likes: null, shares: null,
       current_game: game,
       channels: {
-        twitch: { status, connected: verified, url: `https://www.twitch.tv/${channel}` },
-        tiktok: { status: "unknown", connected: false }
+        twitch: { status, connected: verified ? true : null, url: `https://www.twitch.tv/${channel}` },
+        // Twitch observations say nothing about TikTok connection state.
+        tiktok: { status: "unknown", connected: null }
       }
     };
   }
