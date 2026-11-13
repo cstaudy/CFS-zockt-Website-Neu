@@ -407,6 +407,39 @@ try {
     cookie: otherCookie, body: { project: { title: 'Foreign', expected_version: combined.data.project.version }, clips: [] }
   })).status, 404, 'Foreign accounts cannot alter Cut project and clips together');
 
+  // Stream Studio uses one account-scoped record and rejects concurrent stale saves.
+  assert.equal((await request('GET', '/api/creator/stream-studio')).status, 401,
+    'Stream Studio state requires authentication');
+  const streamInitial = await request('GET', '/api/creator/stream-studio', { cookie: created.cookie });
+  assert.equal(streamInitial.status, 200);
+  assert.equal(streamInitial.data.version, null);
+  assert.equal(streamInitial.data.scenes.some(item => item.id === sceneId), true,
+    'Stream Studio must receive the creator\'s actual scenes');
+  assert.equal(streamInitial.data.widgets.some(item => item.id === widgetId), true,
+    'Stream Studio must receive the creator\'s actual widgets');
+  const firstStream = await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie,
+    body: { expected_version: null, config: { program_scene_id:sceneId, scene_order:[sceneId] } }
+  });
+  assert.equal(firstStream.status, 200, `Stream Studio first save failed: ${JSON.stringify(firstStream.data)}`);
+  const secondStream = await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie,
+    body: { expected_version:firstStream.data.version, config: { program_scene_id:sceneId, scene_order:[sceneId], preview_scene_id:sceneId } }
+  });
+  assert.equal(secondStream.status, 200);
+  assert.equal((await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie,
+    body: { expected_version:firstStream.data.version, config: { program_scene_id:'stale' } }
+  })).status, 409, 'Stream Studio must reject an outdated edit');
+  const streamState = await request('GET', '/api/creator/stream-studio', { cookie:created.cookie });
+  assert.equal(streamState.data.version, secondStream.data.version);
+  assert.equal(streamState.data.config.preview_scene_id, sceneId);
+  assert.equal((await request('GET', '/api/creator/stream-studio', { cookie:otherCookie }))
+    .data.config.program_scene_id, undefined, 'Second creator must not see the first Stream Studio workspace');
+  const streamRows = (await request('GET', '/api/creator/projects?kind=stream', { cookie:created.cookie }))
+    .data.projects.filter(item => item.data?.type === 'stream_studio');
+  assert.equal(streamRows.length, 1, 'Repeated Stream Studio saves must not create duplicate projects');
+
   const archived = await request('DELETE', `/api/creator/projects/${encodeURIComponent(projectId)}`, { cookie: created.cookie });
   assert.equal(archived.status, 200, 'Owner must be able to archive their project');
   const afterArchive = await request('GET', '/api/creator/projects', { cookie: created.cookie });
