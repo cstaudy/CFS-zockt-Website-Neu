@@ -170,9 +170,11 @@ async function serveStatic(req, res) {
           and project.status='published'
           and project.kind in ('widget','scene')
           and jsonb_path_exists(
-            case when project.kind='widget'
-              then coalesce(project.data->'published_config', project.data->'config', '{}'::jsonb)
-              else project.data end,
+            case when project.data ? 'published_config'
+              then coalesce(project.data->'published_config', '{}'::jsonb)
+              when not (project.data ? 'draft_config')
+              then coalesce(project.data->'config', '{}'::jsonb)
+              else '{}'::jsonb end,
             '$.** ? (@ == $url)'::jsonpath,
             jsonb_build_object('url', $2::text)
           )
