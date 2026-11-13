@@ -46,7 +46,7 @@ export async function savePreset(req, body, id = null) {
         `update creator_presets set kind=$3,name=$4,data=$5::jsonb,
          updated_at=greatest(clock_timestamp(),updated_at + interval '1 millisecond')
          where id=$1 and account_id=$2
-         ${body.expected_updated_at === undefined ? "" : "and updated_at=$6::timestamptz"}
+         ${body.expected_updated_at === undefined ? "" : "and date_trunc('milliseconds', updated_at)=$6::timestamptz"}
          returning id,kind,name,data,created_at,updated_at`,
         [id, account.id, body.kind, name.trim(), serialized,
           ...(body.expected_updated_at === undefined ? [] : [body.expected_updated_at])]
