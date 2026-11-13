@@ -16,6 +16,7 @@ import { modulesState, launcherModuleState, audioModuleState } from "./src/modul
 import { publicReviews } from "./src/reviews.js";
 import { createProject, deleteProject, listProjects, updateProject, requireAdmin, requireAccount } from "./src/projects.js";
 import { createScene, listScenes, updateScene } from "./src/studio-adapter.js";
+import { getPublicScene } from "./src/scene-output.js";
 import { createWidget, getWidget, listWidgets, updateWidget } from "./src/widget-adapter.js";
 import { getPublicWidget } from "./src/widget-output.js";
 import { listAssets, uploadAsset } from "./src/assets.js";
@@ -286,6 +287,13 @@ async function handle(req, res) {
   const publicWidgetMatch = url.pathname.match(/^\/api\/public\/widgets\/([^/]+)$/);
   if (publicWidgetMatch && ["GET", "HEAD"].includes(method)) {
     const result = await getPublicWidget(publicWidgetMatch[1]);
+    return result.error
+      ? json(res, result.status, { error: result.error })
+      : json(res, 200, result.payload);
+  }
+  const publicSceneMatch = url.pathname.match(/^\/api\/public\/scenes\/([^/]+)$/);
+  if (publicSceneMatch && ["GET", "HEAD"].includes(method)) {
+    const result = await getPublicScene(publicSceneMatch[1]);
     return result.error
       ? json(res, result.status, { error: result.error })
       : json(res, 200, result.payload);
