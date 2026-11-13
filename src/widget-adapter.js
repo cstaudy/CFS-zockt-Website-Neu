@@ -1,6 +1,7 @@
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
 import { widgetConfigs, nextWidgetData } from "./widget-publication.js";
+import { validateWidgetElementAttributes } from "./widget-element-validation.js";
 
 const registry = [
   { key: "follower_goal", label: "TikTok Follower Goal", short_label: "FOLLOWER GOAL", provider: "tiktok", mode: "goal", source_kind: "profile", metric: "followers", canvas: { width: 620, height: 132 } },
@@ -86,6 +87,8 @@ export async function updateWidget(req, id, body, publish = false) {
     if (Array.isArray(body.config.elements) && body.config.elements.some(element => ["position", "size", "style", "data"].some(key => element[key] !== undefined && (!element[key] || typeof element[key] !== "object" || Array.isArray(element[key]))))) return { error: "INVALID_WIDGET_ELEMENT_PROPERTIES", status: 400 };
     if (Array.isArray(body.config.elements) && body.config.elements.some(element => [["position", ["x", "y"]], ["size", ["width", "height"]]].some(([key, fields]) => element[key] && fields.some(field => element[key][field] !== undefined && (typeof element[key][field] !== "number" || !Number.isFinite(element[key][field])))))) return { error: "INVALID_WIDGET_ELEMENT_GEOMETRY", status: 400 };
     if (Array.isArray(body.config.elements) && body.config.elements.some(element => [["position", "x", -4000, 4000], ["position", "y", -4000, 4000], ["size", "width", 1, 4000], ["size", "height", 1, 4000]].some(([key, field, min, max]) => element[key]?.[field] !== undefined && (element[key][field] < min || element[key][field] > max)))) return { error: "WIDGET_ELEMENT_GEOMETRY_OUT_OF_RANGE", status: 400 };
+    const elementAttributeError = validateWidgetElementAttributes(body.config.elements);
+    if (elementAttributeError) return { error: elementAttributeError, status: 400 };
     if (body.config.canvas !== undefined && (!body.config.canvas || typeof body.config.canvas !== "object" || Array.isArray(body.config.canvas))) return { error: "INVALID_WIDGET_CANVAS", status: 400 };
     if (body.config.canvas && [["width", 1, 4000], ["height", 1, 4000]].some(([field, min, max]) => body.config.canvas[field] !== undefined && (typeof body.config.canvas[field] !== "number" || !Number.isFinite(body.config.canvas[field]) || body.config.canvas[field] < min || body.config.canvas[field] > max))) return { error: "INVALID_WIDGET_CANVAS_DIMENSIONS", status: 400 };
     if (body.config.settings !== undefined && (!body.config.settings || typeof body.config.settings !== "object" || Array.isArray(body.config.settings))) return { error: "INVALID_WIDGET_SETTINGS", status: 400 };
