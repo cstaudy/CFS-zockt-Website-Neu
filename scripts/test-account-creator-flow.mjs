@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+const ciLauncherSecret = 'ci-bridge-local-only-secret-for-sync-tests';
 import pg from 'pg';
 import { totpCode } from '../src/totp.js';
 import { spawn } from 'node:child_process';
@@ -31,7 +32,8 @@ const server = spawn(process.execPath, ['scripts/start.js'], {
     HOST: '127.0.0.1',
     PORT: String(port),
     MIGRATION_BASELINE_ON_START: 'no',
-    CFS_LOGIN_THROTTLE_SOCKET_MODE: 'enabled'
+    CFS_LOGIN_THROTTLE_SOCKET_MODE: 'enabled',
+    LAUNCHER_BRIDGE_SECRET: ciLauncherSecret
   },
   stdio: ['ignore', 'pipe', 'pipe']
 });
@@ -40,8 +42,8 @@ for (const pipe of [server.stdout, server.stderr]) {
   pipe.on('data', chunk => { output = (output + chunk.toString()).slice(-6000); });
 }
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-async function request(method, path, { body, cookie } = {}) {
-  const headers = { origin: base };
+async function request(method, path, { body, cookie, extraHeaders } = {}) {
+  const headers = { origin: base, ...(extraHeaders || {}) };
   if (cookie) headers.cookie = cookie;
   if (body !== undefined) headers['content-type'] = 'application/json';
   const response = await fetch(base + path, {
@@ -533,6 +535,136 @@ try {
     assert.equal(disabledAccountLogin.status, 200, 'After explicit MFA-disable, normal login must be possible');
     assert.equal(disabledAccountLogin.data.authenticated, true);
     assert(disabledAccountLogin.cookie.startsWith('cfs_session='));
+
+    // Isolated PostgreSQL HTTP acceptance: PlayStation sync only uses a paired,
+    // non-revoked launcher, and malformed messages never cause partial writes.
+    const bridge = deviceId => ({
+      'x-cfs-launcher-secret': ciLauncherSecret,
+      'x-cfs-device-id': deviceId
+    });
+    async function pairDevice(cookie, label) {
+      const registered = await request('POST', '/api/launcher/devices/register', {
+        extraHeaders: bridge('00000000-0000-4000-8000-000000000000'),
+        body: { machine_name: label }
+      });
+      assert.equal(registered.status, 201, 'Device registration requires configured bridge credential');
+      const code = registered.data.device.user_code;
+      const linked = await request('POST', '/api/creator/launcher/device-link/confirm', {
+        cookie, body: { user_code: code }
+      });
+      assert.equal(linked.status, 200, 'Device pairing must be confirmed by its owner');
+      return registered.data.device.id;
+    }
+    const psCookie = disabledAccountLogin.cookie;
+    const deviceOne = await pairDevice(psCookie, 'PostgreSQL PlayStation A');
+    const deviceTwo = await pairDevice(psCookie, 'PostgreSQL PlayStation B');
+    const foreignDevice = await pairDevice(otherCookie, 'PostgreSQL PlayStation Foreign');
+    assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+      body: { games: [] }
+    })).status, 401, 'Unauthenticated device must not synchronize');
+    assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+      extraHeaders: bridge('bad-device-id'), body: { games: [] }
+    })).status, 400, 'Malformed device IDs must be rejected before PostgreSQL');
+    assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+      extraHeaders: bridge(deviceOne), body: { games: [{
+        title: 'Invalid calendar entry', last_played_at: '2026-02-30T12:00:00Z'
+      }] }
+    })).status, 400, 'Invalid calendar dates must be rejected');
+    assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+      extraHeaders: bridge(deviceOne), body: { videos: [{
+        title: 'Private host', url: 'https://localhost./secret'
+      }] }
+    })).status, 400, 'Trailing-dot internal URLs must be rejected');
+    assert.equal((await request('GET', '/api/creator/playstation', { cookie: psCookie })).data.connected,
+      false, 'Rejected imports cannot mark a previously unused profile connected');
+    const videoUrl = 'https://videos.example.com/highlight/one';
+    const firstPayload = {
+      profile: { platform: 'PS5', display_name: 'CI Player' },
+      games: [{ title: 'Racing', platform: 'PS5',
+        cover_url: 'https://cdn.example.com/cover.jpg',
+        last_played_at: '2026-11-12T19:00:00Z', in_catalog: true }],
+      videos: [{ title: 'First Highlight', url: videoUrl }]
+    };
+    const firstSync = await request('POST', '/api/launcher/playstation/sync', {
+      extraHeaders: bridge(deviceOne), body: firstPayload
+    });
+    assert.equal(firstSync.status, 200, 'Valid sync failed: ' + JSON.stringify(firstSync.data));
+    assert.equal(firstSync.data.account_id, undefined,
+      'Sync response must not disclose the paired account ID');
+    const firstState = (await request('GET', '/api/creator/playstation', {
+      cookie: psCookie
+    })).data;
+    assert.equal(firstState.connected, true);
+    assert.equal(firstState.game_catalog.length, 1);
+    assert.equal(firstState.videos.length, 1);
+    const initialVideoId = firstState.videos[0].id;
+    const replaySync = await request('POST', '/api/launcher/playstation/sync', {
+      extraHeaders: bridge(deviceOne), body: firstPayload
+    });
+    assert.equal(replaySync.status, 200);
+    const replayState = (await request('GET', '/api/creator/playstation', {
+      cookie: psCookie
+    })).data;
+    assert.equal(replayState.game_catalog.length, 1,
+      'Repeated games must use the existing unique catalog row');
+    assert.equal(replayState.videos.length, 1,
+      'Repeated video URLs must not duplicate rows');
+    assert.equal(replayState.videos[0].id, initialVideoId,
+      'Repeated video updates must preserve existing IDs');
+    assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+      extraHeaders: bridge(deviceOne),
+      body: { games: [{ title: 'Never committed', platform: 'PS5' }],
+        videos: [{ title: 'Rejected', url: 'http://127.0.0.1/private' }] }
+    })).status, 400, 'One invalid video must invalidate the entire sync payload');
+    assert.equal((await request('GET', '/api/creator/playstation', {
+      cookie: psCookie
+    })).data.game_catalog.length, 1,
+    'Invalid batch must not create partial game rows');
+    const concurrent = await Promise.all([deviceOne, deviceTwo].map(id =>
+      request('POST', '/api/launcher/playstation/sync', {
+        extraHeaders: bridge(id), body: {
+          videos: [{ title: 'Updated Highlight', url: videoUrl }]
+        }
+      })
+    ));
+    assert.deepEqual(concurrent.map(x => x.status), [200, 200],
+      'Two active devices of the same creator must serialize safely');
+    const parallelState = (await request('GET', '/api/creator/playstation', {
+      cookie: psCookie
+    })).data;
+    assert.equal(parallelState.videos.length, 1);
+    assert.equal(parallelState.videos[0].id, initialVideoId);
+    assert.equal(parallelState.videos[0].title, 'Updated Highlight');
+    assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+      extraHeaders: bridge(deviceOne), body: { videos: [] }
+    })).status, 200);
+    assert.equal((await request('GET', '/api/creator/playstation', {
+      cookie: psCookie
+    })).data.videos.length, 1,
+    'Empty video sync must not silently delete historical data in this release');
+    const foreignState = (await request('GET', '/api/creator/playstation', {
+      cookie: otherCookie
+    })).data;
+    assert.equal(foreignState.connected, false,
+      'Creator B must not see creator A PlayStation profile');
+    assert.deepEqual(foreignState.videos, []);
+    assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+      extraHeaders: bridge(foreignDevice),
+      body: { games: [{ title: 'Private B Game', platform: 'PC' }] }
+    })).status, 200);
+    assert.equal((await request('GET', '/api/creator/playstation', {
+      cookie: psCookie
+    })).data.game_catalog.some(game => game.title === 'Private B Game'), false,
+    'A paired launcher may write only to its own creator account');
+    assert.equal((await request('DELETE', '/api/creator/launcher/devices/' + deviceOne, {
+      cookie: psCookie
+    })).status, 200);
+    assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+      extraHeaders: bridge(deviceOne), body: { games: [] }
+    })).status, 403, 'Revoked devices must not sync');
+    assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+      extraHeaders: bridge(deviceTwo), body: { profile: { display_name: 'Still connected' } }
+    })).status, 200, 'A separate active paired device may continue syncing');
 
   } finally {
     await testPool.end();
