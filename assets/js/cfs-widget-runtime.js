@@ -10,8 +10,10 @@
     return;
   }
   let stopped = false;
+  let loading = false;
   async function refresh() {
-    if (stopped) return;
+    if (stopped || loading) return;
+    loading = true;
     try {
       const response = await fetch("/api/public/widgets/" + encodeURIComponent(id), {
         credentials: "omit", cache: "no-store"
@@ -29,6 +31,8 @@
     } catch (error) {
       console.error("Widget refresh failed", error);
       // Retain last known frame during transient network errors.
+    } finally {
+      loading = false;
     }
   }
   refresh();
