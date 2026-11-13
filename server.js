@@ -25,6 +25,7 @@ import { createPackage, listPackages, listShopCatalog, convertBundle } from "./s
 import { startTikTok, finishTikTok, tiktokConfigured, getTikTokStatus, disconnectTikTok, syncTikTok, publicTikTokVideos } from "./src/tiktok.js";
 import { startTwitch, finishTwitch, twitchConfigured, getTwitchStatus, disconnectTwitch, syncTwitch } from "./src/twitch.js";
 import { getPlayStationState, publicPlayStationState, syncPlayStationFromLauncher } from "./src/playstation.js";
+import { publicGamesFromPlayStation } from "./src/public-games.js";
 import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/universal-builder.js";
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
@@ -320,7 +321,9 @@ async function handle(req, res) {
   }
 
   if (["/api/public/games", "/api/public/recent-games"].includes(url.pathname) && ["GET", "HEAD"].includes(method)) {
-    return json(res, 200, { ok: true, games: [], recent_games: [], source: "fallback", message: "Noch keine Spieldaten verfügbar." });
+    // Same curated owner as /api/public/playstation; omit private account IDs.
+    const state = await publicPlayStationState();
+    return json(res, 200, publicGamesFromPlayStation(state));
   }
   if (url.pathname === "/api/public/playstation" && ["GET", "HEAD"].includes(method)) {
     return json(res, 200, await publicPlayStationState());
