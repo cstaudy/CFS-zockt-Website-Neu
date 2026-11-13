@@ -717,6 +717,23 @@ try {
   assert.equal(psAfterSnapshot.videos.length, 2);
   assert.equal(psAfterSnapshot.videos.find(item => item.url === psVideoUrl).id, psFirstId);
   assert.equal(psAfterSnapshot.videos.find(item => item.url === psVideoUrl).title, 'Updated Highlight');
+  const psConcurrent = await Promise.all([deviceA, deviceA2].map(deviceId =>
+    request('POST', '/api/launcher/playstation/sync', {
+      headers: bridgeHeaders(deviceId),
+      body: { videos: [
+        { title: 'Updated Highlight', url: psVideoUrl },
+        { title: 'Another Highlight', url: psSecondVideoUrl }
+      ] }
+    })));
+  assert.deepEqual(psConcurrent.map(result => result.status), [200, 200],
+    'Two paired launcher devices may sync concurrently without database errors');
+  const psAfterConcurrent = (await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data;
+  assert.equal(psAfterConcurrent.videos.length, 2,
+    'Concurrent same-account imports must not duplicate video URLs');
+  assert.equal(psAfterConcurrent.videos.find(item => item.url === psVideoUrl).id, psFirstId,
+    'Concurrent imports must retain the original video identifier');
   const psPruned = await request('POST', '/api/launcher/playstation/sync', {
     headers: bridgeHeaders(deviceA),
     body: { videos: [{ title: 'Another Highlight', url: psSecondVideoUrl }] }
@@ -838,6 +855,11 @@ try {
   assert.equal((await request('POST', '/api/launcher/heartbeat', {
     headers: bridgeHeaders(deviceA), body: {}
   })).status, 403, 'Revoked launchers cannot send successful heartbeats');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA),
+    body: { videos: [{ title: 'Unauthorized', url: 'https://videos.example.com/unauthorized' }] }
+  })).status, 403, 'Revoked launchers must not submit PlayStation changes');
+
   assert.equal((await request('GET', '/api/launcher/jobs', {
     headers: bridgeHeaders(deviceA)
   })).status, 403, 'Revoked launchers cannot claim new jobs');
