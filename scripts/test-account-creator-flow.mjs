@@ -538,6 +538,124 @@ try {
   })).status, 409, 'Foreign creator widgets must never be publishable in another owner scene');
   assert.equal((await request('GET', `/api/public/scenes/${sceneId}`)).data.scene.items[0].widget_id, widgetId,
     'Rejected cross-account publication must retain the previously approved OBS scene');
+  // Stream Studio is one private, versioned state per Creator; repeated PUTs
+  // may not create extra records or silently overwrite concurrent changes.
+  assert.equal((await request('GET', '/api/creator/stream-studio')).status, 401,
+    'Stream Studio settings require a signed-in Creator');
+  const studioInitial = await request('GET', '/api/creator/stream-studio', {
+    cookie: created.cookie
+  });
+  assert.equal(studioInitial.status, 200);
+  assert.equal(studioInitial.data.version, null);
+  assert.equal(studioInitial.data.scenes.some(scene => scene.id === sceneId), true,
+    'Stream Studio must list the authenticated Creator scenes');
+  assert.equal(studioInitial.data.widgets.some(widget => widget.id === widgetId), true,
+    'Stream Studio must list the authenticated Creator widgets');
+  assert.equal((await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie, body: null
+  })).status, 400, 'A null Studio save must be rejected');
+  assert.equal((await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie,
+    body: { expected_version: null, config: { scene_order: Array(101).fill(sceneId) } }
+  })).status, 400, 'Stream Studio scene ordering is bounded');
+  assert.equal((await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie,
+    body: { expected_version: null, config: { note: 'x'.repeat(530000) } }
+  })).status, 413, 'Oversized Stream Studio JSON must fail before DB insert');
+  const studioCreated = await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie,
+    body: { expected_version: null, config: {
+      preview_scene_id: sceneId, scene_order: [sceneId], workspace_marker: 'private-A'
+    } }
+  });
+  assert.equal(studioCreated.status, 200,
+    'First Stream Studio save failed: ' + JSON.stringify(studioCreated.data));
+  assert.equal(studioCreated.data.version, 1);
+  assert.equal((await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie, body: {
+      expected_version: null, config: { workspace_marker: 'Stale initial creation' }
+    }
+  })).status, 409, 'Repeated initialization cannot create another Stream Studio row');
+  const studioUpdated = await request('PUT', '/api/creator/stream-studio', {
+    cookie: created.cookie, body: {
+      expected_version: studioCreated.data.version,
+      config: { preview_scene_id: sceneId, scene_order: [sceneId],
+        workspace_marker: 'latest-A' }
+    }
+  });
+  assert.equal(studioUpdated.status, 200);
+  assert.equal(studioUpdated.data.version, 2);
+  const studioRaces = await Promise.all(['Alpha', 'Beta'].map(tag =>
+    request('PUT', '/api/creator/stream-studio', {
+      cookie: created.cookie, body: {
+        expected_version: studioUpdated.data.version,
+        config: { workspace_marker: 'Race ' + tag, scene_order: [sceneId] }
+      }
+    })
+  ));
+  assert.deepEqual(studioRaces.map(x => x.status).sort((a, b) => a - b), [200, 409],
+    'Only one parallel save can update a given Stream Studio version');
+  const studioLatest = await request('GET', '/api/creator/stream-studio', {
+    cookie: created.cookie
+  });
+  assert.equal(studioLatest.data.version, 3);
+  assert.match(studioLatest.data.config.workspace_marker, /^Race (Alpha|Beta)$/);
+  assert.equal((await request('GET', '/api/creator/stream-studio', {
+    cookie: otherCookie
+  })).data.config.workspace_marker, undefined,
+  'Creator B must never see Creator A workspace settings');
+  const studioRows = (await request('GET', '/api/creator/projects?kind=stream', {
+    cookie: created.cookie
+  })).data.projects.filter(row => row.data?.type === 'stream_studio');
+  assert.equal(studioRows.length, 1, 'Repeated Stream Studio saves must update one row');
+  const studioId = studioRows[0].id;
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie: created.cookie, body: {
+      kind: 'stream', name: 'Duplicate via generic API',
+      data: { type: 'stream_studio', config: {} }
+    }
+  })).status, 409, 'Generic projects cannot insert a reserved Studio state');
+  assert.equal((await request('PATCH', '/api/creator/projects/' + studioId, {
+    cookie: created.cookie, body: { name: 'Tampered outside Studio' }
+  })).status, 409, 'Generic projects cannot overwrite versioned Stream Studio state');
+  assert.equal((await request('DELETE', '/api/creator/projects/' + studioId, {
+    cookie: created.cookie
+  })).status, 409, 'Generic projects cannot archive the Studio state');
+  for (const method of ['GET', 'PUT', 'DELETE']) {
+    const target = await request(method, '/api/creator/stream-studio/projects/' + studioId, {
+      cookie: created.cookie,
+      ...(method === 'PUT' ? { body: { title: 'Generic bypass', data: {} } } : {})
+    });
+    assert.equal(target.status, 404, 'Generic Stream Studio project path must not expose or alter versioned settings');
+  }
+  // The previously used untyped stream record is reused in place rather than
+  // discarded; no schema migration or automatic deletion is needed.
+  const legacyStudio = await request('POST', '/api/creator/projects', {
+    cookie: otherCookie,
+    body: { kind: 'stream', name: 'Legacy Stream Workspace',
+      data: { preview_scene_id: 'legacy-ci-scene', note: 'preserved legacy field' } }
+  });
+  assert.equal(legacyStudio.status, 201);
+  const otherStudioState = await request('GET', '/api/creator/stream-studio', {
+    cookie: otherCookie
+  });
+  assert.equal(otherStudioState.data.config.preview_scene_id, 'legacy-ci-scene');
+  assert.equal(otherStudioState.data.version, 1);
+  const legacyMigrated = await request('PUT', '/api/creator/stream-studio', {
+    cookie: otherCookie,
+    body: { expected_version: otherStudioState.data.version,
+      config: { preview_scene_id: 'legacy-ci-scene', note: 'preserved legacy field' } }
+  });
+  assert.equal(legacyMigrated.status, 200);
+  assert.equal(legacyMigrated.data.version, 2);
+  const migratedOther = (await request('GET', '/api/creator/projects?kind=stream', {
+    cookie: otherCookie
+  })).data.projects;
+  assert.equal(migratedOther.filter(row => row.data?.type === 'stream_studio').length, 1,
+    'Legacy Stream Studio is versioned in its existing row');
+  assert.equal(migratedOther.some(row => row.id === legacyStudio.data.project.id), true,
+    'Legacy workspace ID must remain stable after versioning');
+
   // Widget package conversion must reuse validated widget creation and owner quotas.
   assert.equal((await request('GET', '/api/creator/widget-studio/packages')).status, 401,
     'Anonymous visitors must not read Creator packages');
