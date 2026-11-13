@@ -240,6 +240,7 @@ async function handle(req, res) {
     if (result.error) return json(res, result.status, { error: result.error });
     if (result.challenge !== undefined) {
       res.writeHead(200, { "content-type": "text/plain; charset=utf-8",
+        "content-length": Buffer.byteLength(result.challenge, "utf8"),
         "cache-control": "no-store", "x-content-type-options": "nosniff" });
       return res.end(result.challenge);
     }
