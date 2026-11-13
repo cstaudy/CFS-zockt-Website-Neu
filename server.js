@@ -306,7 +306,7 @@ async function handle(req, res) {
 
   if (url.pathname === "/api/account/me" && ["GET", "HEAD"].includes(method)) {
     const account = await currentAccount(req);
-    const view = account ? { ...account, admin: isAdminEmail(account.email), role: isAdminEmail(account.email) ? "admin" : "creator", email_verified: Boolean(account.email_verified_at) } : null;
+    const view = account ? { ...account, admin: Boolean(account.email_verified_at) && isAdminEmail(account.email), role: Boolean(account.email_verified_at) && isAdminEmail(account.email) ? "admin" : "creator", email_verified: Boolean(account.email_verified_at) } : null;
     return json(res, 200, { authenticated: Boolean(view), account: view });
   }
   if(url.pathname==="/api/account/mail/status"&&method==="GET")return json(res,200,mailStatus());
