@@ -432,6 +432,110 @@ try {
     cookie: otherCookie, body: { project: { title: 'Foreign', expected_version: combined.data.project.version }, clips: [] }
   })).status, 404, 'Foreign accounts cannot alter Cut project and clips together');
 
+  // Settings-only Cut writes must preserve clips; generic projects cannot bypass revision checks.
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie:created.cookie,body:{kind:'cut',name:'Generic cut shortcut',data:{}}
+  })).status, 409, 'Cut projects must be created through their dedicated API');
+  assert.equal((await request('PATCH', '/api/creator/projects/' + cutId, {
+    cookie:created.cookie,body:{name:'Outside Cut Studio'}
+  })).status, 409, 'Generic project edits may not overwrite Cut revisions');
+  const cutSettings = await request('PUT', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie:created.cookie,body:{title:'Cut Settings Edited',notes:'Keep the clip',
+      expected_version:cutStillSaved.data.project.version,
+      base_updated_at:cutStillSaved.data.project.updated_at}
+  });
+  assert.equal(cutSettings.status, 200, `Cut settings save failed: ${JSON.stringify(cutSettings.data)}`);
+  const cutAfterSettings = await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie:created.cookie
+  });
+  assert.equal(cutAfterSettings.data.project.title, 'Cut Settings Edited');
+  assert.equal(cutAfterSettings.data.clips.length, 1, 'Settings-only save cannot remove clips');
+  assert.equal(cutAfterSettings.data.clips[0].caption, 'Safe updated caption');
+  assert.equal((await request('PUT', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie:created.cookie,body:{title:'Stale title',
+      base_updated_at:cutStillSaved.data.project.updated_at,
+      expected_version:cutStillSaved.data.project.version}
+  })).status, 409, 'Settings-only save rejects stale project revisions');
+  assert.equal((await request('PUT', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie:created.cookie,body:{title:'Cannot remove clips', clips:[],
+      base_updated_at:cutAfterSettings.data.project.updated_at,
+      expected_version:cutAfterSettings.data.project.version}
+  })).status, 409, 'Settings-only endpoint cannot replace the timeline');
+
+  const concurrentCreate = await Promise.all(['Concurrent A','Concurrent B'].map(label =>
+    request('POST', '/api/creator/cut-studio/projects/' + cutId + '/clips', {
+      cookie:created.cookie,body:{base_updated_at:cutAfterSettings.data.project.updated_at,
+        expected_version:cutAfterSettings.data.project.version,label,in_ms:2000,out_ms:6000}
+    })));
+  assert.deepEqual(concurrentCreate.map(r => r.status).sort((a,b) => a-b), [201,409],
+    'Only one concurrent Cut clip write may use the same revision');
+  const cutTwoClips = await request('GET','/api/creator/cut-studio/projects/' + cutId,{
+    cookie:created.cookie
+  });
+  assert.equal(cutTwoClips.data.clips.length, 2, 'Concurrent clip creation must preserve existing clips');
+  const reverseIds = cutTwoClips.data.clips.map(clip => clip.id).reverse();
+  assert.equal((await request('PUT','/api/creator/cut-studio/projects/' + cutId + '/clips/order',{
+    cookie:created.cookie,body:{clip_ids:[reverseIds[0],reverseIds[0]],
+      base_updated_at:cutTwoClips.data.project.updated_at,
+      expected_version:cutTwoClips.data.project.version}
+  })).status,400,'Duplicate clip order must be rejected');
+  const reordered = await request('PUT','/api/creator/cut-studio/projects/' + cutId + '/clips/order',{
+    cookie:created.cookie,body:{clip_ids:reverseIds,
+      base_updated_at:cutTwoClips.data.project.updated_at,
+      expected_version:cutTwoClips.data.project.version}
+  });
+  assert.equal(reordered.status,200, `Cut clip sort failed: ${JSON.stringify(reordered.data)}`);
+  assert.deepEqual(reordered.data.clips.map(clip=>clip.id),reverseIds);
+  assert.equal((await request('PUT','/api/creator/cut-studio/projects/' + cutId + '/clips/order',{
+    cookie:created.cookie,body:{clip_ids:reverseIds,
+      base_updated_at:cutTwoClips.data.project.updated_at,
+      expected_version:cutTwoClips.data.project.version}
+  })).status,409,'Clip order rejects stale concurrent changes');
+  const latestClip = reordered.data.clips[0];
+  const updatedClip = await request('PUT','/api/creator/cut-studio/projects/' + cutId + '/clips/' + latestClip.id,{
+    cookie:created.cookie,body:{
+      project_base_updated_at:reordered.data.project_updated_at,
+      expected_version:reordered.data.project_version,
+      clip_base_updated_at:latestClip.updated_at,
+      caption:'Edited clip caption',id:'replacement-not-allowed',
+      updated_at:'1999-01-01T00:00:00.000Z'}
+  });
+  assert.equal(updatedClip.status,200, `Cut clip update failed: ${JSON.stringify(updatedClip.data)}`);
+  assert.equal(updatedClip.data.clip.id,latestClip.id,'Clip IDs cannot be replaced by client payloads');
+  assert.equal(updatedClip.data.clip.caption,'Edited clip caption');
+  assert.notEqual(updatedClip.data.clip.updated_at,'1999-01-01T00:00:00.000Z');
+  assert.equal((await request('PUT','/api/creator/cut-studio/projects/' + cutId + '/clips/' + latestClip.id,{
+    cookie:created.cookie,body:{project_base_updated_at:reordered.data.project_updated_at,
+      expected_version:reordered.data.project_version,clip_base_updated_at:latestClip.updated_at,
+      caption:'Stale clip caption'}
+  })).status,409,'Stale Cut clip updates cannot silently overwrite newer data');
+  assert.equal((await request('DELETE','/api/creator/cut-studio/projects/' + cutId + '/clips/' + latestClip.id,{
+    cookie:created.cookie,body:{project_base_updated_at:updatedClip.data.project_updated_at,
+      expected_version:updatedClip.data.project_version,
+      clip_base_updated_at:latestClip.updated_at}
+  })).status,409,'Deletion rejects stale clip revisions');
+  const cutDeletedClip = await request('DELETE','/api/creator/cut-studio/projects/' + cutId + '/clips/' + latestClip.id,{
+    cookie:created.cookie,body:{project_base_updated_at:updatedClip.data.project_updated_at,
+      expected_version:updatedClip.data.project_version,
+      clip_base_updated_at:updatedClip.data.clip.updated_at}
+  });
+  assert.equal(cutDeletedClip.status,200);
+  const cutBeforeArchive = await request('GET','/api/creator/cut-studio/projects/' + cutId,{
+    cookie:created.cookie
+  });
+  assert.equal(cutBeforeArchive.data.clips.length,1);
+  assert.equal((await request('DELETE','/api/creator/cut-studio/projects/' + cutId,{
+    cookie:created.cookie,body:{base_updated_at:cutBeforeArchive.data.project.updated_at,
+      expected_version:cutBeforeArchive.data.project.version-1}
+  })).status,409,'Archiving Cut projects requires the current project version');
+  assert.equal((await request('DELETE','/api/creator/cut-studio/projects/' + cutId,{
+    cookie:created.cookie,body:{base_updated_at:cutBeforeArchive.data.project.updated_at,
+      expected_version:cutBeforeArchive.data.project.version}
+  })).status,200);
+  assert.equal((await request('GET','/api/creator/cut-studio/projects/' + cutId,{
+    cookie:created.cookie
+  })).status,404,'Archived Cut projects must not remain accessible');
+
   // Stream Studio uses one account-scoped record and rejects concurrent stale saves.
   assert.equal((await request('GET', '/api/creator/stream-studio')).status, 401,
     'Stream Studio state requires authentication');
