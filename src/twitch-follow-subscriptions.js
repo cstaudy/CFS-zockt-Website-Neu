@@ -118,20 +118,33 @@ export async function enableTwitchFollowEvents(req) {
       await client.query("ROLLBACK");
       return { error: "TWITCH_EVENTSUB_INVALID_RESPONSE", status: 502 };
     }
+    const verification = await client.query(
+      `select 1 from twitch_follow_challenges
+       where subscription_id=$1 and broadcaster_user_id=$2
+         and verified_at > now()-interval '10 minutes'`,
+      [subscription.id, user.twitch_user_id]
+    );
+    const initialStatus = verification.rows[0] ? "enabled" : "pending";
     await client.query(
       `insert into twitch_follow_subscriptions
        (account_id,subscription_id,broadcaster_user_id,status)
-       values($1,$2,$3,'pending')
+       values($1,$2,$3,$4)
        on conflict(account_id) do update
        set subscription_id=excluded.subscription_id,
            broadcaster_user_id=excluded.broadcaster_user_id,
-           status='pending',updated_at=now()`,
-      [account.id, subscription.id, user.twitch_user_id]
+           status=case when twitch_follow_subscriptions.subscription_id=excluded.subscription_id
+             and twitch_follow_subscriptions.status='enabled' then 'enabled'
+             else excluded.status end,updated_at=now()`,
+      [account.id, subscription.id, user.twitch_user_id, initialStatus]
     );
     // Changing the account or subscription invalidates previously received follows.
     await client.query("delete from twitch_follow_events where account_id=$1", [account.id]);
     await client.query("COMMIT");
-    return { ok: true, subscription_status: "pending" };
+    const current = await pool.query(
+      "select status from twitch_follow_subscriptions where account_id=$1 and subscription_id=$2",
+      [account.id, subscription.id]
+    );
+    return { ok: true, subscription_status: current.rows[0]?.status || initialStatus };
   } catch(error) {
     await client.query("ROLLBACK").catch(() => {});
     if (error.name === "TimeoutError" || error.name === "AbortError" || error instanceof TypeError)
