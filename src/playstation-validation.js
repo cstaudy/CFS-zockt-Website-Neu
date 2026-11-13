@@ -1,9 +1,17 @@
 import { isIP } from "node:net";
 
 const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
-const isoDate = value => typeof value === "string" && value.length <= 40 &&
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) &&
-  Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) !== "Invalid";
+function isoDate(value) {
+  if (typeof value !== "string" || value.length > 40) return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(?:Z|([+-])(\d{2}):(\d{2}))$/.exec(value);
+  if (!match || !Number.isFinite(Date.parse(value))) return false;
+  const [, year, month, day, hour, minute, second, , offsetHour, offsetMinute] = match;
+  const y = Number(year), m = Number(month), d = Number(day);
+  return y >= 1970 && y <= 2100 && m >= 1 && m <= 12 &&
+    d >= 1 && d <= new Date(Date.UTC(y, m, 0)).getUTCDate() &&
+    Number(hour) <= 23 && Number(minute) <= 59 && Number(second) <= 59 &&
+    (offsetHour === undefined || (Number(offsetHour) <= 23 && Number(offsetMinute) <= 59));
+}
 const optionalText = (value, limit) => value === undefined || value === null ||
   (typeof value === "string" && value.length <= limit);
 const optionalDate = value => value === undefined || value === null || isoDate(value);
