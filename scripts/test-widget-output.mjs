@@ -15,6 +15,11 @@ const row = {
   }
 };
 assert.equal(publicWidgetPayload({ ...row, status: "draft" }), null);
+// A published row with an editable draft but no publication snapshot must not leak it.
+assert.equal(publicWidgetPayload({ ...row, data: { config: { elements: [{ type: "text", data: { text: "PRIVATE" } }] }, draft_config: { elements: [{ type: "text", data: { text: "PRIVATE" } }] } } }), null);
+// Preserve read-only support for legacy rows that never had a separate draft.
+assert.equal(publicWidgetPayload({ ...row, data: { config: { elements: [{ id: "legacy", type: "text", data: { text: "LEGACY" } }] } } }).widget.config.elements[0].id, "legacy");
+assert.equal(publicWidgetPayload({ ...row, data: { published_config: null, config: { elements: [{ type: "text", data: { text: "PRIVATE" } }] } } }), null);
 const payload = publicWidgetPayload(row);
 assert.equal(payload.widget.config.elements[0].id, "live");
 assert.equal(payload.widget.config.settings.manualValue, 7);
