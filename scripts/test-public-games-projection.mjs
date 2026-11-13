@@ -52,6 +52,8 @@ for (const url of [
   "https://example.internal/a", "https://example.local/a",
   "https://user:pass@example.com/a", "https://example.com:1234/a",
   "https://example.com/a#secret", "javascript:alert(1)",
+  "https://localhost./a", "https://server.internal./a",
+  "https://[::ffff:127.0.0.1]/a", "https://0x7f000001/a",
   "/relative", "https://[::1]/"
 ]) {
   const value = publicGamesFromPlayStation({

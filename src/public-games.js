@@ -15,8 +15,11 @@ function publicCoverUrl(value) {
   try {
     const url = new URL(value);
     const host = url.hostname.toLowerCase();
+    const bareHost = host.replace(/^\[|\]$/g, "");
+    // Trailing-dot hosts can bypass localhost/internal suffix checks.
     if (url.protocol !== "https:" || url.username || url.password ||
-        url.port || url.hash || !host.includes(".") || isIP(host) ||
+        url.port || url.hash || host.endsWith(".") ||
+        !host.includes(".") || isIP(bareHost) ||
         /\.(?:local|localhost|internal|test|invalid)$/.test(host)) return null;
     return url.href;
   } catch { return null; }
