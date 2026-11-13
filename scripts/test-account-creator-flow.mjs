@@ -622,6 +622,127 @@ try {
   const deviceA = await pairTestLauncher(created.cookie, 'Creator A test launcher');
   const deviceB = await pairTestLauncher(otherCookie, 'Creator B test launcher');
   const deviceA2 = await pairTestLauncher(created.cookie, 'Creator A second launcher');
+  // PlayStation imports are only accepted from an active paired launcher,
+  // and retries must preserve video IDs without creating duplicate rows.
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    body: { games: [] }
+  })).status, 401, 'PlayStation sync must require the launcher bridge credential');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders('not-a-valid-device-id'), body: { games: [] }
+  })).status, 400, 'PlayStation sync must reject invalid device IDs');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: { games: [{
+      title: 'Not stored', last_played_at: '2026-02-30T12:00:00Z'
+    }] }
+  })).status, 400, 'PlayStation sync rejects invalid calendar dates');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: { videos: [{
+      title: 'Unsafe', url: 'http://127.0.0.1/private'
+    }] }
+  })).status, 400, 'PlayStation sync rejects private and insecure video URLs');
+  const psBefore = await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  });
+  assert.equal(psBefore.status, 200);
+  assert.equal(psBefore.data.connected, false,
+    'Invalid launcher messages cannot mark PlayStation as connected');
+  const psVideoUrl = 'https://videos.example.com/watch?v=1';
+  const psSecondVideoUrl = 'https://videos.example.com/watch?v=2';
+  const psPayload = {
+    profile: { platform: 'PS5', display_name: 'CI Test Player' },
+    games: [{ title: 'Racing', platform: 'PS5',
+      cover_url: 'https://cdn.example.com/game.jpg',
+      last_played_at: '2026-11-12T19:00:00Z', in_catalog: true }],
+    videos: [{ title: 'First Highlight', url: psVideoUrl,
+      thumbnail_url: 'https://cdn.example.com/thumb.jpg',
+      published_at: '2026-11-12T20:00:00Z' }]
+  };
+  const psFirst = await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: psPayload
+  });
+  assert.equal(psFirst.status, 200, `PlayStation first import failed: ${JSON.stringify(psFirst.data)}`);
+  assert.equal(psFirst.data.games_synced, 1);
+  assert.equal(psFirst.data.videos_synced, 1);
+  const psOwner = await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  });
+  assert.equal(psOwner.data.connected, true);
+  assert.equal(psOwner.data.profile.platform, 'PS5');
+  assert.equal(psOwner.data.game_catalog.length, 1);
+  assert.equal(psOwner.data.videos.length, 1);
+  const psFirstId = psOwner.data.videos[0].id;
+  const psOther = await request('GET', '/api/creator/playstation', {
+    cookie: otherCookie
+  });
+  assert.equal(psOther.data.connected, false,
+    'Launcher sync must never connect an unrelated Creator account');
+  assert.equal(psOther.data.videos.length, 0);
+  assert.equal(psOther.data.game_catalog.length, 0);
+  const psRepeated = await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: psPayload
+  });
+  assert.equal(psRepeated.status, 200);
+  const psAfterRepeat = (await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data;
+  assert.equal(psAfterRepeat.game_catalog.length, 1,
+    'Replayed game imports cannot create duplicate catalog rows');
+  assert.equal(psAfterRepeat.videos.length, 1,
+    'Replayed video imports cannot duplicate the same URL');
+  assert.equal(psAfterRepeat.videos[0].id, psFirstId,
+    'A repeated video sync must preserve the existing video identifier');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: {
+      games: [{ title: 'Uncommitted Game', platform: 'PS5' }],
+      videos: [{ title: 'Unsafe Video', url: 'javascript:alert(1)' }]
+    }
+  })).status, 400, 'Invalid videos must reject the entire game/video batch');
+  assert.equal((await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data.game_catalog.length, 1, 'Rejected batches cannot store partial game changes');
+  const psNewSnapshot = await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: {
+      videos: [
+        { title: 'Updated Highlight', url: psVideoUrl },
+        { title: 'Another Highlight', url: psSecondVideoUrl }
+      ]
+    }
+  });
+  assert.equal(psNewSnapshot.status, 200);
+  const psAfterSnapshot = (await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data;
+  assert.equal(psAfterSnapshot.profile.display_name, 'CI Test Player',
+    'Video-only sync must preserve stored player details');
+  assert.equal(psAfterSnapshot.videos.length, 2);
+  assert.equal(psAfterSnapshot.videos.find(item => item.url === psVideoUrl).id, psFirstId);
+  assert.equal(psAfterSnapshot.videos.find(item => item.url === psVideoUrl).title, 'Updated Highlight');
+  const psPruned = await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA),
+    body: { videos: [{ title: 'Another Highlight', url: psSecondVideoUrl }] }
+  });
+  assert.equal(psPruned.status, 200);
+  const psCurrent = (await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data;
+  assert.equal(psCurrent.videos.length, 1,
+    'A complete video snapshot removes obsolete launcher-provided video links');
+  assert.equal(psCurrent.videos[0].url, psSecondVideoUrl);
+  assert.equal(psCurrent.game_catalog.length, 1,
+    'Video-only sync must never remove saved game catalog entries');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: { profile: { display_name: 'Updated Player' } }
+  })).status, 200);
+  assert.equal((await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data.videos.length, 1,
+  'A partial profile-only sync must preserve the existing videos');
+  assert.equal((await request('POST', '/api/launcher/playstation/sync', {
+    headers: bridgeHeaders(deviceA), body: { videos: [] }
+  })).status, 200);
+  assert.equal((await request('GET', '/api/creator/playstation', {
+    cookie: created.cookie
+  })).data.videos.length, 0, 'An explicit empty video snapshot clears launcher-provided links');
   const heartbeat = await request('POST', '/api/launcher/heartbeat', {
     headers: bridgeHeaders(deviceA), body: { obs: { connected: true, version: '30.0' } }
   });
