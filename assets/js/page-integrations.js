@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ttText.textContent = betaBlocked
       ? (tt?.beta_access?.email_verified === false ? "E-Mail zuerst bestätigen; danach kann der Admin TikTok freigeben." : "TikTok wartet auf deine Beta-Freigabe im Admin Control.")
       : tt.connected
-        ? `${tt.profile?.display_name || "TikTok"} · ${Number(tt.profile?.follower_count || 0).toLocaleString("de-DE")} Follower`
+        ? `${tt.profile?.display_name || "TikTok"} · ${Number.isSafeInteger(tt.profile?.follower_count) && tt.profile.follower_count >= 0 ? tt.profile.follower_count.toLocaleString("de-DE") + " Follower" : "Followerzahl nicht verfügbar"}`
         : "TikTok ist aktuell nicht verbunden.";
   } catch(error) {
     ttStatus.textContent = "FEHLER";
@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (twitch && twitchIntegrationStatus && !twitchIntegrationStatus.dataset.liveStatus) {
       const cfg = twitch.configuration || {};
       const configured = cfg.client_id && cfg.client_secret && cfg.redirect_uri;
-      twitchIntegrationStatus.textContent = `${twitch.oauth_implemented ? "OAuth implementiert" : "OAuth-Grundlage vorbereitet"} · ${configured ? "Server-Konfiguration vorhanden" : "Server-Konfiguration noch offen"} · EventSub + Chat sind code-seitig implementiert; reale Twitch-Abnahme bleibt offen.`;
+      twitchIntegrationStatus.textContent = `${twitch.oauth_implemented ? "OAuth implementiert" : "OAuth-Grundlage vorbereitet"} · ${configured ? "Server-Konfiguration vorhanden" : "Server-Konfiguration noch offen"} · Follow-Events sind vorbereitet und erfordern Zustimmung, EventSub-Aktivierung und Twitch-Bestätigung. Twitch-Chat ist noch nicht als Echtzeit-Widgetquelle angeschlossen.`;
     }
     if (obsIntegrationStatus && caps?.integrations?.obs_websocket) {
       obsIntegrationStatus.textContent = "OBS WebSocket ist code-seitig implementiert: Szenen lesen/wechseln, Browser Sources aktualisieren, lokale verschlüsselte Credentials. Reale OBS-Abnahme bleibt offen.";
@@ -102,7 +102,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       twitchIntegrationStatus.textContent = betaBlocked
         ? (tw?.beta_access?.email_verified === false ? "E-Mail zuerst bestätigen; danach kann der cfs_zockt Admin Twitch freigeben." : "Twitch wartet auf deine Beta-Freigabe im Admin Control.")
         : tw.connected
-          ? `${name} ist verbunden · Token validiert${tw.validated_at ? " · " + new Date(tw.validated_at).toLocaleString("de-DE") : ""}. EventSub + Chat sind eingerichtet, sobald alle Twitch-Berechtigungen bestätigt wurden; reale Twitch-Abnahme bleibt offen.`
+          ? `${name} ist verbunden · Token validiert${tw.validated_at ? " · " + new Date(tw.validated_at).toLocaleString("de-DE") : ""}. Follow-Events erfordern noch eine gesonderte EventSub-Aktivierung; Twitch-Chat ist keine bestätigte Widgetquelle.`
           : (tw.configured ? "Bereit zum Verbinden. Twitch OAuth ist auf dem Server konfiguriert." : "Twitch OAuth-Code ist vorhanden, aber TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET / TWITCH_REDIRECT_URI sind noch nicht vollständig gesetzt.");
     }
     if (twitchIntegrationBadge) twitchIntegrationBadge.textContent = betaBlocked ? "BETA AUSSTEHEND" : tw.connected ? "VERBUNDEN" : (tw.configured ? "BEREIT" : "KONFIG FEHLT");
