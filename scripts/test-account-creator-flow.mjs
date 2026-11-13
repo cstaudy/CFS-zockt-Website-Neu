@@ -359,6 +359,54 @@ try {
   assert(!(await request('GET', '/api/creator/universal-builder', { cookie: created.cookie }))
     .data.bundles?.some(row => row.id === builderId), 'Archived Builder bundles must not appear in active lists');
 
+  // Cut Studio: detail response includes timeline clips and the combined save is atomic.
+  const cutCreated = await request('POST', '/api/creator/cut-studio/projects', {
+    cookie: created.cookie, body: { title: 'CI Cut Timeline', format: 'landscape' }
+  });
+  assert.equal(cutCreated.status, 201, `Cut project failed: ${JSON.stringify(cutCreated.data)}`);
+  const cutId = cutCreated.data.project.id;
+  const cutOpened = await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie: created.cookie
+  });
+  assert.equal(cutOpened.status, 200);
+  assert.equal(cutOpened.data.project.title, 'CI Cut Timeline');
+  assert.deepEqual(cutOpened.data.clips, []);
+  assert.equal((await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie: otherCookie
+  })).status, 404, 'Foreign account cannot read a Cut timeline');
+  const newClip = await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/clips', {
+    cookie: created.cookie, body: { label: 'First Clip', in_ms: 0, out_ms: 15000 }
+  });
+  assert.equal(newClip.status, 201, `Cut clip create failed: ${JSON.stringify(newClip.data)}`);
+  const cutAfterClip = await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie: created.cookie
+  });
+  assert.equal(cutAfterClip.data.clips.length, 1);
+  assert.equal(cutAfterClip.data.clips[0].id, newClip.data.clip.id);
+  const combined = await request('PUT', '/api/creator/cut-studio/projects/' + cutId + '/save', {
+    cookie: created.cookie,
+    body: { project: { title: 'Cut Timeline Saved', format: 'vertical',
+      expected_version: cutAfterClip.data.project.version },
+      clips: [{ ...cutAfterClip.data.clips[0], base_updated_at: cutAfterClip.data.clips[0].updated_at,
+        caption: 'Safe updated caption' }] }
+  });
+  assert.equal(combined.status, 200, `Atomic Cut save failed: ${JSON.stringify(combined.data)}`);
+  assert.equal(combined.data.project.title, 'Cut Timeline Saved');
+  assert.equal(combined.data.clips[0].caption, 'Safe updated caption');
+  assert.equal((await request('PUT', '/api/creator/cut-studio/projects/' + cutId + '/save', {
+    cookie: created.cookie,
+    body: { project: { title: 'Stale', expected_version: cutAfterClip.data.project.version },
+      clips: [{ ...cutAfterClip.data.clips[0], base_updated_at: cutAfterClip.data.clips[0].updated_at }] }
+  })).status, 409, 'Stale Cut Studio revisions cannot overwrite a committed timeline');
+  const cutStillSaved = await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
+    cookie: created.cookie
+  });
+  assert.equal(cutStillSaved.data.project.title, 'Cut Timeline Saved');
+  assert.equal(cutStillSaved.data.clips[0].caption, 'Safe updated caption');
+  assert.equal((await request('PUT', '/api/creator/cut-studio/projects/' + cutId + '/save', {
+    cookie: otherCookie, body: { project: { title: 'Foreign', expected_version: combined.data.project.version }, clips: [] }
+  })).status, 404, 'Foreign accounts cannot alter Cut project and clips together');
+
   const archived = await request('DELETE', `/api/creator/projects/${encodeURIComponent(projectId)}`, { cookie: created.cookie });
   assert.equal(archived.status, 200, 'Owner must be able to archive their project');
   const afterArchive = await request('GET', '/api/creator/projects', { cookie: created.cookie });
