@@ -678,6 +678,23 @@ try {
   assert.equal(psOwner.data.profile.platform, 'PS5');
   assert.equal(psOwner.data.game_catalog.length, 1);
   assert.equal(psOwner.data.videos.length, 1);
+  const publicGames = await request('GET', '/api/public/games');
+  const publicRecentGames = await request('GET', '/api/public/recent-games');
+  assert.equal(publicGames.status, 200);
+  assert.equal(publicRecentGames.status, 200);
+  assert.equal(publicGames.data.ok, true);
+  assert.equal(publicGames.data.active, null,
+    'A public game history feed must never invent current gameplay');
+  assert.deepEqual(publicGames.data.games, publicRecentGames.data.games,
+    'Both public gaming routes must expose the same curated historical data');
+  assert.deepEqual(publicGames.data.recent, publicRecentGames.data.recent);
+  assert.equal(JSON.stringify(publicGames.data).includes(email), false,
+    'The public games API must not disclose the signed-in Creator email');
+  assert.equal(JSON.stringify(publicGames.data).includes(psOwner.data.videos[0].id), false,
+    'The public games API must not expose private video record IDs');
+  assert.equal(publicGames.data.games.every(game =>
+    game.minutes === undefined && game.sessions === undefined), true,
+    'Historical PlayStation game entries must not invent session or playtime numbers');
   const psFirstId = psOwner.data.videos[0].id;
   const psOther = await request('GET', '/api/creator/playstation', {
     cookie: otherCookie
