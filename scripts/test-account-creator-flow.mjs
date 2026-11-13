@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { access } from 'node:fs/promises';
 import { join, basename } from 'node:path';
 import { uploadRoot } from '../src/upload-storage.js';
+import { pruneExpiredTwitchFollows } from '../src/twitch-follow-retention.js';
 
 // Never run destructive acceptance tests on a production or staging DB.
 const databaseUrl = process.env.DATABASE_URL || '';
@@ -364,6 +365,24 @@ try {
     );
     assert.equal(count.rows[0].n,1,
       'Replayed webhook messages cannot duplicate the follow alert');
+    const expiredFollowerId=randomUUID();
+    await followPool.query(
+      `insert into twitch_follow_events
+       (account_id,message_id,broadcaster_user_id,follower_user_id,follower_name,followed_at,received_at)
+       values($1,$2,$3,'9999','Expired-Name',now()-interval '35 days',now()-interval '35 days')`,
+      [second.data.account.id,'ci-old-follow-'+expiredFollowerId,broadcasterId]
+    );
+    const pruned=await pruneExpiredTwitchFollows(followPool);
+    assert(pruned.deleted>=1,'Expired Twitch follower names must be pruned without new follows');
+    assert.equal((await followPool.query(
+      `select count(*)::int as n from twitch_follow_events
+       where account_id=$1 and follower_name='Expired-Name'`,
+      [second.data.account.id]
+    )).rows[0].n,0,'Old follower identities cannot survive scheduled retention pruning');
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,1,'Cleanup must preserve currently valid follow events');
     const oldTimestamp=new Date(Date.now()-11*60*1000).toISOString();
     assert.equal((await deliverEventSub('notification',followPayload,{
       timestamp:oldTimestamp
