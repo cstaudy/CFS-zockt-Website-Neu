@@ -35,7 +35,7 @@ export function verifyEventSubMessage(headers, rawBody, secret, now = Date.now()
   const type = headers?.["twitch-eventsub-message-type"];
   const subscriptionType = headers?.["twitch-eventsub-subscription-type"];
   const version = headers?.["twitch-eventsub-subscription-version"];
-  if (typeof id !== "string" || !/^[a-zA-Z0-9._:-]{1,128}$/.test(id) ||
+  if (typeof id !== "string" || !/^[\x21-\x7e]{1,128}$/.test(id) ||
       typeof timestamp !== "string" || timestamp.length > 50 ||
       !Number.isFinite(Date.parse(timestamp)) || Math.abs(now - Date.parse(timestamp)) > WINDOW_MS ||
       !TYPES.has(type) || subscriptionType !== "channel.follow" || version !== "2" ||
@@ -56,7 +56,7 @@ export function verifyEventSubMessage(headers, rawBody, secret, now = Date.now()
       String(payload.subscription.condition.moderator_user_id) !== String(payload.subscription.condition.broadcaster_user_id))
     return { error: "INVALID_EVENTSUB_SUBSCRIPTION", status: 400 };
   if (type === "webhook_callback_verification" &&
-      (typeof payload.challenge !== "string" || !/^[a-zA-Z0-9_-]{1,256}$/.test(payload.challenge)))
+      (typeof payload.challenge !== "string" || !/^[\x20-\x7e]{1,512}$/.test(payload.challenge)))
     return { error: "INVALID_EVENTSUB_CHALLENGE", status: 400 };
   if (type === "notification") {
     const event = payload.event;
