@@ -6,7 +6,10 @@ assert.equal(validateMakerConfig(valid).elements[0].id, "counter_ci");
 assert.equal(validateMakerConfig(valid).elements[0].value, 0);
 assert.equal(validateMakerConfig({ ...valid, source: "https://evil.example/private.png" }).source, "");
 assert.equal(validateMakerConfig({ ...valid, source: "/assets/uploads/123e4567-e89b-42d3-a456-426614174000-ci.png" }).source,
-  "/assets/uploads/123e4567-e89b-42d3-a456-426614174000-ci.png");
+  "", "Private uploaded files cannot be turned into public Maker sources without asset authorization");
+assert.equal(validateMakerConfig({ ...valid, source: "/assets/img/design-pack-v208/aurora-master.jpg" }).source,
+  "/assets/img/design-pack-v208/aurora-master.jpg",
+  "Supported first-party design pack media is allowed");
 assert.equal(validateMakerConfig({ ...valid, source: "/assets/uploads/../../secret" }).source, "");
 assert.equal(validateMakerConfig({ ...valid, elements: [{ id: "p", template: "camera" }] }).elements[0].template, "camera");
 for (const invalid of [
