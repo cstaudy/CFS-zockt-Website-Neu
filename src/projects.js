@@ -74,7 +74,7 @@ export async function updateProject(req, id, body) {
   fields.push("updated_at = now()");
   // Enforce the widget restriction in the UPDATE itself to prevent a check/write race.
   const widgetRestricted = body.data !== undefined || (body.status !== undefined && body.status !== "archived");
-  const sceneRestricted = body.data !== undefined || (body.status !== undefined && body.status !== "archived");
+  const sceneRestricted = body.name !== undefined || body.data !== undefined || (body.status !== undefined && body.status !== "archived");
   const restriction = (widgetRestricted ? " and kind <> 'widget'" : "") +
     (sceneRestricted ? " and kind <> 'scene'" : "") +
     " and not (kind = 'stream' and data->>'type' = 'stream_maker')";
