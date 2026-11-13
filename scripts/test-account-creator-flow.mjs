@@ -1087,6 +1087,12 @@ try {
     assert.equal((await request('POST', '/api/launcher/playstation/sync', {
       extraHeaders: bridge(deviceOne), body: { games: [] }
     })).status, 403, 'Revoked devices must not sync');
+    assert.equal((await request('GET', '/api/launcher/jobs', {
+      extraHeaders: bridge(deviceOne)
+    })).status, 403, 'Revoked launcher must not claim export jobs');
+    assert.equal((await request('PUT', '/api/launcher/jobs/' + claimedA, {
+      extraHeaders: bridge(deviceOne), body: { status: 'failed' }
+    })).status, 403, 'Revoked launcher must not submit any export status updates');
     assert.equal((await request('POST', '/api/launcher/playstation/sync', {
       extraHeaders: bridge(deviceTwo), body: { profile: { display_name: 'Still connected' } }
     })).status, 200, 'A separate active paired device may continue syncing');
