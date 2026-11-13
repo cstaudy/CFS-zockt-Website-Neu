@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
-import { publicWidgetPayload, applyTwitchWidgetState } from "../src/widget-output.js";
+import { publicWidgetPayload, applyTwitchWidgetState, applyTwitchFollowWidgetState } from "../src/widget-output.js";
 
 const rendererSource = await readFile(new URL("../assets/js/cfs-widget-renderer.js", import.meta.url), "utf8");
 const runtimeSource = await readFile(new URL("../assets/js/cfs-widget-runtime.js", import.meta.url), "utf8");
@@ -224,5 +224,55 @@ timerResponse = applyTwitchWidgetState(timerBase, { status: "live", started_at: 
 await timerIntervals.get(15000)();
 assert.equal(timerIntervalCalls.get(1000), 1,
   "Recovering a Twitch connection must not spawn duplicate timer tickers");
+
+
+const followAlertConfig = {
+  widgetType: "twitch_follow_alert", canvas: { width: 620, height: 132 },
+  elements: [{ id: "follow-name", type: "text", data: { text: "{{actor}}" } }],
+  settings: { offlineBehavior: "zero" }
+};
+const followAlertRow = { id: row.id, status: "published",
+  data: { published_config: followAlertConfig } };
+const followAlertBase = publicWidgetPayload(followAlertRow);
+let followClock = Date.now();
+class FollowTestDate extends Date {
+  static now() { return followClock; }
+}
+const followEvent = {
+  id: "123e4567-e89b-42d3-a456-426614174099",
+  follower_name: "CI Confirmed Follow",
+  followed_at: new Date(followClock - 4000).toISOString()
+};
+let followResponse = applyTwitchFollowWidgetState(followAlertBase,
+  { status: "enabled", event: followEvent }, followClock);
+const followStage = {
+  style: {}, dataset: {}, innerHTML: "stale-before-follow",
+  replaceChildren() { this.innerHTML = ""; }
+};
+const followIntervals = new Map();
+runInNewContext(runtimeSource, {
+  console: { error() {} }, URLSearchParams, AbortController, Date: FollowTestDate,
+  setTimeout, clearTimeout,
+  location: { search: "?widget=" + row.id },
+  document: { getElementById(id) { return id === "cfsScene" ? { style: {}, dataset: {} } :
+    id === "cfsWidgetStage" ? followStage : null; } },
+  CFSWidgetRenderer: renderer,
+  fetch: async () => ({ ok: true, json: async () => followResponse }),
+  setInterval(fn, ms) { followIntervals.set(ms, fn); }
+});
+await new Promise(resolve => setImmediate(resolve));
+assert.match(followStage.innerHTML, /CI Confirmed Follow/,
+  "A signed Twitch follower event appears in its published OBS alert");
+assert.equal(typeof followIntervals.get(1000), "function",
+  "Follow alerts need a local expiry ticker");
+followClock += 46000;
+followIntervals.get(1000)();
+assert.equal(followStage.innerHTML, "",
+  "Follow alerts must expire locally even without another API request");
+followResponse = applyTwitchFollowWidgetState(followAlertBase,
+  { status: "unavailable", event: followEvent }, followClock);
+await followIntervals.get(15000)();
+assert.equal(followStage.innerHTML, "",
+  "Unverified or revoked EventSub data cannot restore an old follow alert");
 
 console.log("OBS output pipeline tests passed: published projection, manual value, vertical browser render and polling.");
