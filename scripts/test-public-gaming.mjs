@@ -152,7 +152,7 @@ async function renderGameHomepage(payload) {
   };
   // The IIFE initializes the homepage with independent social and game feeds.
   runInNewContext(homeScript, {
-    document, fetch, Intl, Date, URL,
+    document, fetch, Intl, Date, URL, AbortSignal,
     window: { setInterval: () => 1 }, console: { error: () => {} }
   });
   await new Promise(resolve => setImmediate(resolve));
