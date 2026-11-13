@@ -14,7 +14,7 @@ function setupCfsStudioInstall(){
   };
 }
 const clone=v=>JSON.parse(JSON.stringify(v));
-const state={data:null,config:null,settings:null,previewSceneId:"",sourceFilter:"all",sourceQuery:"",saving:false,lastSavedConfig:null,taking:false,drag:null,multistreamLimit:1,layoutEditing:false,layoutDragId:"",layoutDragArmed:"",layoutSaveTimer:null,layoutResize:null,zoneResize:null,composerSceneId:"",composerConfig:null,composerLayout:"landscape",composerSelectedItem:"",composerZoom:.35,composerDirty:false,composerDrag:null,maxScenes:0,sceneDragId:"",sceneDragArmed:"",activityEvents:[],activityFilter:"all",activityProvider:"all",activityPaused:false,activityLoading:false,activityTimer:null,activityLastUpdated:null,runtime:null,runtimeLoading:false,runtimeTimer:null,runtimeLastUpdated:null,liveHealthSamples:[],sessionTransferredBytes:0,sessionLastSampleAt:null,sessionLastUploadKbps:0,sessionTimer:null};
+const state={data:null,config:null,version:null,settings:null,previewSceneId:"",sourceFilter:"all",sourceQuery:"",saving:false,lastSavedConfig:null,taking:false,drag:null,multistreamLimit:1,layoutEditing:false,layoutDragId:"",layoutDragArmed:"",layoutSaveTimer:null,layoutResize:null,zoneResize:null,composerSceneId:"",composerConfig:null,composerLayout:"landscape",composerSelectedItem:"",composerZoom:.35,composerDirty:false,composerDrag:null,maxScenes:0,sceneDragId:"",sceneDragArmed:"",activityEvents:[],activityFilter:"all",activityProvider:"all",activityPaused:false,activityLoading:false,activityTimer:null,activityLastUpdated:null,runtime:null,runtimeLoading:false,runtimeTimer:null,runtimeLastUpdated:null,liveHealthSamples:[],sessionTransferredBytes:0,sessionLastSampleAt:null,sessionLastUploadKbps:0,sessionTimer:null};
 const DEFAULT_CONFIG={version:5,program_scene_id:"",preview_scene_id:"",scene_order:[],overlay_widget_ids:[],overlay_layout:{},transition:{type:"fade",duration_ms:350},lifecycle:{enabled:false,auto_runtime:false,starting_scene_id:"",live_scene_id:"",brb_scene_id:"",ending_scene_id:"",offline_scene_id:""},workspace_layout:{version:3,zones:{left:["scenes","sources"],center:["monitors","scene_composer","transition","overlay_rack"],right:["session","lifecycle","preflight","multistream"],bottom:["audio","capture","output"],wide:["activity","health"]},sizes:{},columns:{left_px:280,right_px:340}},workspace_presets:[],capture_sources:{display:false,window:false,game:false,camera:false},audio:{microphone:{level:85,muted:false},game:{level:80,muted:false},discord:{level:80,muted:false},music:{level:65,muted:false},alerts:{level:90,muted:false}},output:{profile:"1080p60",destination:"recording_only",encoder:"auto",bitrate_kbps:6000,audio_bitrate_kbps:160,recording_format:"mkv",recording_tracks:{mix:true,mic:true,game:true,discord:true,music:true,alerts:true}},multistream:{mode:"launcher_local",destinations:[{id:"twitch",label:"Twitch",provider:"twitch",enabled:false,profile:"1080p60",bitrate_kbps:6000,audio_bitrate_kbps:160},{id:"tiktok",label:"TikTok",provider:"tiktok",enabled:false,profile:"vertical1080p60",bitrate_kbps:4500,audio_bitrate_kbps:160},{id:"kick",label:"Kick",provider:"kick",enabled:false,profile:"1080p60",bitrate_kbps:6000,audio_bitrate_kbps:160}],failure_policy:"isolate_destination",cloud_relay:false,credentials:"launcher_local_only"}};
 function toast(message,bad=false){const el=$("#streamToast");el.textContent=message;el.classList.toggle("bad",bad);el.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.hidden=true,2600)}
 function sceneById(id){return (state.data?.scenes||[]).find(scene=>String(scene.id)===String(id))||null}
@@ -495,9 +495,10 @@ async function save(){
   updateSaveFeedback("pending");
   let status="failure";
   try{
-    const data=await CFS.json("/api/creator/stream-studio",{method:"PUT",body:JSON.stringify({config:JSON.parse(submittedConfig)})});
+    const data=await CFS.json("/api/creator/stream-studio",{method:"PUT",body:JSON.stringify({config:JSON.parse(submittedConfig),expected_version:state.version})});
     const changedDuringSave=JSON.stringify(state.config)!==submittedConfig;
     const confirmedConfig=normalizeConfig(data.config);
+    state.version=data.version;
     state.lastSavedConfig=JSON.stringify(confirmedConfig);
     if(!changedDuringSave)state.config=confirmedConfig;
     state.settings=data.settings||state.settings;
@@ -662,7 +663,7 @@ async function init(){
   bind();
   try{
     const data=await CFS.json("/api/creator/stream-studio");
-    state.data=data;state.runtime=data.runtime||null;state.settings=data.settings||{};state.multistreamLimit=Math.max(1,Number(data.multistream?.max_destinations||1));state.maxScenes=Math.max(0,Number(data.access?.entitlements?.max_scenes||0));state.config=normalizeConfig(data.config);normalizeSceneOrder();
+    state.data=data;state.version=data.version??null;state.runtime=data.runtime||null;state.settings=data.settings||{};state.multistreamLimit=Math.max(1,Number(data.multistream?.max_destinations||1));state.maxScenes=Math.max(0,Number(data.access?.entitlements?.max_scenes||0));state.config=normalizeConfig(data.config);normalizeSceneOrder();
     if(!state.config.preview_scene_id){const first=(data.scenes||[]).find(scene=>scene.status==="live");if(first)state.config.preview_scene_id=String(first.id)}
     state.lastSavedConfig=JSON.stringify(state.config);
     const firstComposer=sceneById(state.config.preview_scene_id)||(orderedScenes()[0]||null);if(firstComposer){state.composerSceneId=String(firstComposer.id);state.composerLayout=firstComposer.profile==="tiktok_vertical"?"tiktok_vertical":"landscape";state.composerConfig=normalizeComposerConfig(firstComposer.draft_config||firstComposer.published_config||sceneDefaults(firstComposer.profile),firstComposer.profile);syncComposerActiveLayout();state.composerZoom=state.composerLayout==="tiktok_vertical"?.32:.35}

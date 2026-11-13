@@ -41,6 +41,7 @@ export async function createProject(req, body) {
   if (!kinds.has(kind)) return { error: "INVALID_PROJECT_KIND", status: 400 };
   if (kind === "cut") return { error: "USE_CUT_STUDIO_API", status: 409 };
   if (kind === "stream" && body?.data?.type === "stream_maker") return { error: "USE_STREAM_MAKER_API", status: 409 };
+  if (kind === "stream" && body?.data?.type === "stream_studio") return { error: "USE_STREAM_STUDIO_API", status: 409 };
   if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 };
   const result = await getPool().query("insert into creator_projects (account_id, kind, name, data) values ($1, $2, $3, $4::jsonb) returning id, kind, name, data, status, created_at, updated_at", [account.id, kind, name, JSON.stringify(body.data || {})]);
   return { project: result.rows[0] };
@@ -50,6 +51,7 @@ export async function updateProject(req, id, body) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
   if (body?.data?.type === "stream_maker") return { error: "USE_STREAM_MAKER_API", status: 409 };
+  if (body?.data?.type === "stream_studio") return { error: "USE_STREAM_STUDIO_API", status: 409 };
   const fields = [];
   const values = [id, account.id];
   if (body.name !== undefined) { const name = String(body.name).trim(); if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 }; values.push(name); fields.push(`name = $${values.length}`); }
@@ -57,14 +59,16 @@ export async function updateProject(req, id, body) {
   if (body.status !== undefined) { if (!statuses.has(String(body.status))) return { error: "INVALID_PROJECT_STATUS", status: 400 }; values.push(String(body.status)); fields.push(`status = $${values.length}`); }
   if (!fields.length) return { error: "NO_CHANGES", status: 400 };
   fields.push("updated_at = now()");
-  const result = await getPool().query(`update creator_projects set ${fields.join(", ")} where id = $1 and account_id = $2 and kind <> 'cut' and not (kind='stream' and data->>'type'='stream_maker') returning id, kind, name, data, status, created_at, updated_at`, values);
+  const result = await getPool().query(`update creator_projects set ${fields.join(", ")} where id = $1 and account_id = $2 and kind <> 'cut' and not (kind='stream' and data->>'type'='stream_maker') and not (kind='stream' and data->>'type'='stream_studio') returning id, kind, name, data, status, created_at, updated_at`, values);
   if (result.rows[0]) return { project: result.rows[0] };
   const owned = await getPool().query("select kind, data->>'type' as project_type from creator_projects where id=$1 and account_id=$2", [id, account.id]);
   return owned.rows[0]?.kind === "cut"
     ? { error: "USE_CUT_STUDIO_API", status: 409 }
     : owned.rows[0]?.kind === "stream" && owned.rows[0]?.project_type === "stream_maker"
       ? { error: "USE_STREAM_MAKER_API", status: 409 }
-      : { error: "PROJECT_NOT_FOUND", status: 404 };
+      : owned.rows[0]?.kind === "stream" && owned.rows[0]?.project_type === "stream_studio"
+        ? { error: "USE_STREAM_STUDIO_API", status: 409 }
+        : { error: "PROJECT_NOT_FOUND", status: 404 };
 }
 
 export async function deleteProject(req, id) {
