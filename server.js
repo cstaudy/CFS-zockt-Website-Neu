@@ -29,6 +29,7 @@ import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/univ
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
 import { saveCutProjectAndClips } from "./src/cut-project-save.js";
+import { getStreamStudioState, saveStreamStudioState } from "./src/stream-studio-state.js";
 import { listMakerBundles, saveMakerBundle, controlMakerBundle, rotateMakerToken, deleteMakerBundle, getPublicMakerBundle } from "./src/stream-maker.js";
 import { createCutProject, saveCutProject, archiveCutProject } from "./src/cut-project-crud.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
@@ -420,8 +421,8 @@ async function handle(req, res) {
   const paypalOrder=url.pathname.match(/^\/api\/creator\/shop\/paypal\/orders\/([^/]+)\/capture$/);
   if(paypalOrder&&method==="POST"){const result=await capturePayPalOrder(req,decodeURIComponent(paypalOrder[1]));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
 
-  if(url.pathname==="/api/creator/stream-studio"&&method==="GET"){const result=await listToolProjects(req,"stream");return result.error?json(res,result.status,{error:result.error}):json(res,200,{...result,config:result.projects[0]?.data||{}});}
-  if(url.pathname==="/api/creator/stream-studio"&&method==="PUT"){const result=await saveToolProject(req,"stream",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,{...result,config:result.project.data});}
+  if(url.pathname==="/api/creator/stream-studio"&&method==="GET"){const result=await getStreamStudioState(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/creator/stream-studio"&&method==="PUT"){const result=await saveStreamStudioState(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/cut-studio/projects"&&method==="GET"){const result=await listToolProjects(req,"cut");return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/cut-studio/projects"&&method==="POST"){const result=await createCutProject(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
   const cutAtomicSave = url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/save$/);
