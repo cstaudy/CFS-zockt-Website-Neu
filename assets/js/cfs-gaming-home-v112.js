@@ -468,8 +468,15 @@
     } catch {
       latestRecentGames = [];
       renderGamesError();
-      const footer = document.getElementById("footerRecentGames");
-      if (footer) footer.textContent = "—";
+      for (const id of ["footerRecentGames", "statGameTime", "statLatestGame"]) {
+        const node = document.getElementById(id);
+        if (node) node.textContent = "—";
+      }
+      const label = document.getElementById("statGameTimeLabel");
+      if (label) label.textContent = "Spielzeit nicht verfügbar";
+      const gameLabel = document.getElementById("statLatestGameLabel");
+      if (gameLabel) gameLabel.textContent = "Status offen";
+      if (latestLiveSession) renderLiveSession(latestLiveSession);
     }
   }
 
