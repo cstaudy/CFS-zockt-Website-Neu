@@ -67,6 +67,13 @@ export async function publicTwitchState() {
       title: "Aktuell nicht live", game: null, viewer_count: null,
       started_at: null, source: "twitch" };
   }
+  // Helix "streams" data is live only when the stream matches the
+  // requested broadcaster and Twitch explicitly reports type "live".
+  if (String(active.user_id || "") !== String(profile.id) || active.type !== "live") {
+    return { ok: true, live: false, status: "unknown", channel: login,
+      title: "Twitch-LIVE-Status wird geprüft", game: null, viewer_count: null,
+      started_at: null, source: "fallback" };
+  }
   const viewers = Number(active.viewer_count);
   return { ok: true, live: true, status: "live", channel: profile.login || login,
     title: typeof active.title === "string" ? active.title : "",
