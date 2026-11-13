@@ -109,21 +109,27 @@ async function renderHomepageLive(payload, fail = false) {
     querySelectorAll: () => [], querySelector: () => null,
     createElement: () => node()
   };
-  const fetch = async url => {
+  const fetch = async (url, options) => {
     if (url === "/api/public/live-session") {
+      assert.equal(options.credentials, "omit");
+      assert(options.signal, "Public live requests must be time-bounded");
       if (fail) throw new Error("Twitch unreachable");
       return { ok: true, json: async () => payload };
     }
-    if (url === "/api/public/community-stats") return {
+    if (url === "/api/public/community-stats") {
+      assert.equal(options.credentials, "omit");
+      assert(options.signal, "Public community requests must be time-bounded");
+      return {
       ok: true, json: async () => ({ ok: true, source: "fallback" })
-    };
+      };
+    }
     if (url === "/api/public/games") return {
       ok: true, json: async () => ({ ok: true, source: "unavailable", games: [], recent: [] })
     };
     throw new Error("Unexpected homepage request: " + url);
   };
   runInNewContext(homepage, {
-    document, fetch, Intl, Date, URL,
+    document, fetch, Intl, Date, URL, AbortSignal,
     window: { setInterval: () => 1 },
     console: { error: () => {} }
   });
