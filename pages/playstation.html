@@ -1,2 +1,74 @@
-<!doctype html><html lang="de" data-cfs-r51-design><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PlayStation Network | cfs_zockt</title><link rel="stylesheet" href="/assets/css/styles.css"><link rel="stylesheet" href="/assets/css/cfs-brand-v198.css?v=global"><link rel="stylesheet" href="/assets/css/playstation.css">  <link rel="stylesheet" href="/assets/css/cfs-reference-system.css?v=4">
-</head><body data-cfs-brand-v198="1" class="creator-workspace"><header class="site-header creator-site-header"><div class="container header-inner creator-header-inner"><a class="creator-brand" href="/pages/dashboard.html"><img class="creator-brand-logo" src="/assets/img/brand/cfs-zockt-logo.png" alt="cfs_zockt"><span>CREATOR SUITE</span></a><nav class="nav creator-nav"><a href="/pages/dashboard.html">DASHBOARD</a><a href="/pages/widget-studio.html">WIDGET STUDIO</a><a href="/pages/games.html">GAMES</a><a class="active" href="/pages/playstation.html">PLAYSTATION</a><a href="/pages/account.html">ACCOUNT</a></nav></div></header><main class="container psn-shell"><section class="psn-hero"><div><span>GAMING · PLAYSTATION NETWORK</span><h1>DEINE PLAYSTATION-<strong>ÜBERSICHT.</strong></h1><p>Aktuelles Spiel, die letzten drei gespielten Titel und – sobald verfügbar – deine gekauften Spiele an einer Stelle.</p></div><div id="psnStatus" class="psn-status">STATUS WIRD GELADEN</div></section><section class="psn-grid"><article class="psn-card psn-active"><span>AKTUELL AKTIV</span><h2 id="psnActiveTitle">Noch nicht verbunden</h2><p id="psnActiveMeta">Verbinde PlayStation Network, um das aktuelle Spiel anzuzeigen.</p></article><article class="psn-card"><div class="psn-card-head"><div><span>LETZTE 3 SPIELE</span><h2>Zuletzt gespielt</h2></div><b id="psnRecentCount">0 / 3</b></div><div id="psnRecent" class="psn-list"><p class="psn-empty">Noch keine PlayStation-Daten verfügbar.</p></div></article><article class="psn-card"><div class="psn-card-head"><div><span>SPIELEKATALOG</span><h2>Gekaufte Spiele</h2></div><b id="psnPurchasedCount">0</b></div><div id="psnPurchased" class="psn-list"><p class="psn-empty">Der gekaufte Katalog wird nach der Verbindung geladen.</p></div></article></section><section class="psn-next"><strong>PSN-Verbindung vorbereiten</strong><p>Die Anzeige ist bereit. Für echte Daten fehlt noch die sichere PlayStation-Anmeldung beziehungsweise ein freigegebener Datenanbieter. Es werden keine Spiele oder Käufe erfunden.</p><a class="btn" href="/pages/integrations.html">VERBINDUNGEN ÖFFNEN</a></section></main><script src="/assets/js/playstation.js" defer></script></body></html>
+<!doctype html>
+<html lang="de" data-cfs-r51-design>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PlayStation | cfs_zockt Creator Suite</title>
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/cfs-brand-v198.css?v=global">
+  <link rel="stylesheet" href="/assets/css/playstation.css">
+  <link rel="stylesheet" href="/assets/css/cfs-reference-system.css?v=4">
+</head>
+<body data-cfs-brand-v198="1" class="creator-workspace">
+  <header class="site-header creator-site-header">
+    <div class="container header-inner creator-header-inner">
+      <a class="creator-brand" href="/pages/dashboard.html">
+        <img class="creator-brand-logo" src="/assets/img/brand/cfs-zockt-logo.png" alt="cfs_zockt">
+        <span>CREATOR SUITE</span>
+      </a>
+      <nav class="nav creator-nav">
+        <a href="/pages/dashboard.html">DASHBOARD</a>
+        <a href="/pages/widget-studio.html">WIDGET STUDIO</a>
+        <a href="/pages/games.html">GAMES</a>
+        <a class="active" href="/pages/playstation.html" aria-current="page">PLAYSTATION</a>
+        <a href="/pages/account.html">ACCOUNT</a>
+      </nav>
+    </div>
+  </header>
+  <main class="container psn-shell">
+    <section class="psn-hero">
+      <div>
+        <span>GAMING · PLAYSTATION</span>
+        <h1>DEINE PLAYSTATION-<strong>ÜBERSICHT.</strong></h1>
+        <p>Zuletzt gemeldete Spiele und Videos aus deinem verbundenen Launcher. Der Status zeigt, ob diese Daten aktuell, veraltet oder offline sind.</p>
+        <p id="psnLastSync" class="psn-last-sync">Letzte Synchronisierung: noch keine</p>
+      </div>
+      <div id="psnStatus" class="psn-status" role="status" aria-live="polite">STATUS WIRD GELADEN</div>
+    </section>
+    <section class="psn-grid">
+      <article class="psn-card psn-active">
+        <span>LIVE-SPIELSTATUS</span>
+        <h2 id="psnActiveTitle">Nicht verfügbar</h2>
+        <p id="psnActiveMeta">Der Launcher meldet gespielte Titel, aber noch kein zuverlässig bestätigtes aktuell laufendes Spiel.</p>
+      </article>
+      <article class="psn-card">
+        <div class="psn-card-head">
+          <div><span>LETZTE 3 SPIELE</span><h2>Zuletzt gespielt</h2></div>
+          <b id="psnRecentCount">0 / 3</b>
+        </div>
+        <div id="psnRecent" class="psn-list"><p class="psn-empty">Noch keine bestätigte Spielaktivität verfügbar.</p></div>
+      </article>
+      <article class="psn-card">
+        <div class="psn-card-head">
+          <div><span>SPIELEKATALOG</span><h2>Im Katalog gemeldet</h2></div>
+          <b id="psnPurchasedCount">0</b>
+        </div>
+        <div id="psnPurchased" class="psn-list"><p class="psn-empty">Noch keine Spiele im synchronisierten Katalog.</p></div>
+      </article>
+      <article class="psn-card psn-videos">
+        <div class="psn-card-head">
+          <div><span>VIDEOS</span><h2>Gemeldete Videolinks</h2></div>
+          <b id="psnVideoCount">0</b>
+        </div>
+        <div id="psnVideos" class="psn-list"><p class="psn-empty">Noch keine bestätigten Videolinks verfügbar.</p></div>
+      </article>
+    </section>
+    <section class="psn-next">
+      <strong>Woher kommen die Daten?</strong>
+      <p>Diese Übersicht zeigt die zuletzt über deinen gekoppelten Launcher gespeicherten Informationen. „Im Katalog“ bestätigt keine Käufe, und „Zuletzt gespielt“ bedeutet nicht „jetzt aktiv“. Eine direkte Live-Abfrage von PlayStation Network ist nicht eingerichtet.</p>
+      <a class="btn" href="/pages/integrations.html">VERBINDUNGEN ÖFFNEN</a>
+    </section>
+  </main>
+  <script src="/assets/js/playstation.js" defer></script>
+</body>
+</html>
