@@ -78,6 +78,9 @@ export async function updateWidget(req, id, body, publish = false) {
   if (body.name !== undefined && (typeof body.name !== "string" || !body.name.trim() || body.name.length > 160)) return { error: "INVALID_WIDGET_NAME", status: 400 };
   if (body.config !== undefined) {
     if (!body.config || typeof body.config !== "object" || Array.isArray(body.config)) return { error: "INVALID_WIDGET_CONFIG", status: 400 };
+    if (body.config.elements !== undefined && (!Array.isArray(body.config.elements) || body.config.elements.length > 100)) return { error: "INVALID_WIDGET_ELEMENTS", status: 400 };
+    if (body.config.canvas !== undefined && (!body.config.canvas || typeof body.config.canvas !== "object" || Array.isArray(body.config.canvas))) return { error: "INVALID_WIDGET_CANVAS", status: 400 };
+    if (body.config.settings !== undefined && (!body.config.settings || typeof body.config.settings !== "object" || Array.isArray(body.config.settings))) return { error: "INVALID_WIDGET_SETTINGS", status: 400 };
     if (Buffer.byteLength(JSON.stringify(body.config), "utf8") > 512 * 1024) return { error: "WIDGET_CONFIG_TOO_LARGE", status: 413 };
   }
   if (body.expected_version !== undefined && (!Number.isSafeInteger(body.expected_version) || body.expected_version < 1)) return { error: "INVALID_WIDGET_VERSION", status: 400 };
