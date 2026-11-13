@@ -13,12 +13,15 @@
   let loading = false;
   let consecutiveFailures = 0;
   const maxStaleFailures = 4;
+  const requestTimeoutMs = 10000;
   async function refresh() {
     if (stopped || loading) return;
     loading = true;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
     try {
       const response = await fetch("/api/public/widgets/" + encodeURIComponent(id), {
-        credentials: "omit", cache: "no-store"
+        credentials: "omit", cache: "no-store", signal: controller.signal
       });
       if (!response.ok) {
         // Permanent removal or access revocation must never leave a stale OBS frame visible.
@@ -38,6 +41,7 @@
       if (!stopped && ++consecutiveFailures >= maxStaleFailures) stage.replaceChildren();
       // Continue polling so a recovered connection can restore the frame.
     } finally {
+      clearTimeout(timeout);
       loading = false;
     }
   }
