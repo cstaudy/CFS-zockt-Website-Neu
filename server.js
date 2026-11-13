@@ -36,6 +36,8 @@ import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./
 import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
 import { listPresets, savePreset, deletePreset } from "./src/creator-presets.js";
 import { publicTwitchState, publicTwitchCommunity } from "./src/public-twitch.js";
+import { handleTwitchEventSub, readEventSubBody } from "./src/twitch-eventsub.js";
+import { getTwitchFollowStatus, enableTwitchFollowEvents } from "./src/twitch-follow-subscriptions.js";
 import { paypalStatus, createPayPalOrder, capturePayPalOrder } from "./src/paypal.js";
 import { publicLiveControl } from "./src/public-live.js";
 import { creatorSettings } from "./src/creator-settings.js";
@@ -231,6 +233,19 @@ async function handle(req, res) {
     res.writeHead(204, { "access-control-allow-methods": "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS", "access-control-allow-headers": "content-type,x-csrf-token" });
     return res.end();
   }
+  // Provider callbacks cannot carry same-origin browser headers. Authenticity
+  // comes exclusively from the Twitch HMAC over the original raw body.
+  if (url.pathname === "/api/webhooks/twitch/eventsub" && method === "POST") {
+    const result = await handleTwitchEventSub(req, await readEventSubBody(req));
+    if (result.error) return json(res, result.status, { error: result.error });
+    if (result.challenge !== undefined) {
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8",
+        "cache-control": "no-store", "x-content-type-options": "nosniff" });
+      return res.end(result.challenge);
+    }
+    res.writeHead(204, { "cache-control": "no-store" });
+    return res.end();
+  }
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && !requestOriginAllowed(req)) {
     return json(res, 403, { error: "ORIGIN_NOT_ALLOWED", message: "Die Anfrage stammt nicht von dieser Website." });
   }
@@ -280,6 +295,14 @@ async function handle(req, res) {
   if (url.pathname === "/api/creator/tiktok/status" && method === "GET") { const result=await getTikTokStatus(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
   if (url.pathname === "/api/creator/tiktok/disconnect" && method === "POST") { const result=await disconnectTikTok(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
   if (url.pathname === "/api/creator/tiktok/sync" && method === "POST") { const result=await syncTikTok(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
+  if (url.pathname === "/api/creator/twitch/follow-events/status" && method === "GET") {
+    const result = await getTwitchFollowStatus(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  if (url.pathname === "/api/creator/twitch/follow-events/enable" && method === "POST") {
+    const result = await enableTwitchFollowEvents(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
   if (url.pathname === "/api/creator/twitch/status" && method === "GET") { const result=await getTwitchStatus(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
   if (url.pathname === "/api/creator/twitch/disconnect" && method === "POST") { const result=await disconnectTwitch(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
   if (url.pathname === "/api/creator/twitch/sync" && method === "POST") { const result=await syncTwitch(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
