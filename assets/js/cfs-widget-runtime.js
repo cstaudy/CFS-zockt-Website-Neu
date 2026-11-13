@@ -11,6 +11,8 @@
   }
   let stopped = false;
   let loading = false;
+  let consecutiveFailures = 0;
+  const maxStaleFailures = 4;
   async function refresh() {
     if (stopped || loading) return;
     loading = true;
@@ -29,9 +31,12 @@
         scene, stage, config: payload.widget.config, data,
         profile: ["obs", "tiktok_vertical", "landscape"].includes(profile) ? profile : "obs"
       });
+      consecutiveFailures = 0;
     } catch (error) {
       console.error("Widget refresh failed", error);
-      // Retain last known frame during transient network errors.
+      // Brief outages keep the last frame; prolonged outages must not show stale data indefinitely.
+      if (!stopped && ++consecutiveFailures >= maxStaleFailures) stage.replaceChildren();
+      // Continue polling so a recovered connection can restore the frame.
     } finally {
       loading = false;
     }
