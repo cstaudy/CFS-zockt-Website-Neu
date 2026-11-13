@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
-import { publicWidgetPayload } from "../src/widget-output.js";
+import { publicWidgetPayload, applyTwitchWidgetState } from "../src/widget-output.js";
 
 const rendererSource = await readFile(new URL("../assets/js/cfs-widget-renderer.js", import.meta.url), "utf8");
 const runtimeSource = await readFile(new URL("../assets/js/cfs-widget-runtime.js", import.meta.url), "utf8");
@@ -166,4 +166,63 @@ runInNewContext(runtimeSource, {
   setInterval() {}
 });
 assert.equal(invalidCalls, 0);
+
+const timerRow = {
+  ...row,
+  data: { published_config: {
+    widgetType: "twitch_live_timer",
+    canvas: { width: 620, height: 132 }, settings: { offlineBehavior: "zero" },
+    elements: [{ id: "timer", type: "counter", data: { format: "{{timer}}" } }]
+  } }
+};
+const timerBase = publicWidgetPayload(timerRow);
+const startedAt = new Date(Date.now() - 121000).toISOString();
+let timerResponse = applyTwitchWidgetState(timerBase, { status: "live", started_at: startedAt });
+const timerNode = {
+  textContent: "",
+  getAttribute(name) { return name === "data-element" ? "timer" : null; }
+};
+const timerStage = {
+  style: {}, dataset: {}, innerHTML: "",
+  replaceChildren() { this.innerHTML = ""; },
+  querySelectorAll(selector) {
+    assert.equal(selector, "[data-element]");
+    return [timerNode];
+  }
+};
+const timerIntervals = new Map();
+const timerIntervalCalls = new Map();
+runInNewContext(runtimeSource, {
+  console: { error() {} }, URLSearchParams, AbortController, setTimeout, clearTimeout,
+  location: { search: "?widget=" + row.id },
+  document: { getElementById(id) { return id === "cfsScene" ? { style: {}, dataset: {} } :
+    id === "cfsWidgetStage" ? timerStage : null; } },
+  CFSWidgetRenderer: renderer,
+  fetch: async () => ({ ok: true, json: async () => timerResponse }),
+  setInterval(fn, ms) {
+    timerIntervals.set(ms, fn);
+    timerIntervalCalls.set(ms, (timerIntervalCalls.get(ms) || 0) + 1);
+  }
+});
+await new Promise(resolve => setImmediate(resolve));
+assert.match(timerStage.innerHTML, /02:0[0-9]/,
+  "Twitch OBS timer uses the confirmed provider start time");
+assert.equal(typeof timerIntervals.get(1000), "function",
+  "Verified live timers should tick smoothly between API polls");
+assert.equal(typeof timerIntervals.get(15000), "function",
+  "Source data should still be refreshed independently every 15 seconds");
+timerIntervals.get(1000)();
+assert.match(timerNode.textContent, /02:0[0-9]/,
+  "Timer text may update locally without rebuilding the scene");
+timerResponse = applyTwitchWidgetState(timerBase, { status: "offline" });
+await timerIntervals.get(15000)();
+timerNode.textContent = "frozen";
+timerIntervals.get(1000)();
+assert.equal(timerNode.textContent, "frozen",
+  "An offline timer must never continue increasing from a stale start time");
+timerResponse = applyTwitchWidgetState(timerBase, { status: "live", started_at: startedAt });
+await timerIntervals.get(15000)();
+assert.equal(timerIntervalCalls.get(1000), 1,
+  "Recovering a Twitch connection must not spawn duplicate timer tickers");
+
 console.log("OBS output pipeline tests passed: published projection, manual value, vertical browser render and polling.");
