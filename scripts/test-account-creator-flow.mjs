@@ -174,6 +174,57 @@ try {
     cookie: created.cookie
   })).status, 200, 'Owner must still access their own widget');
 
+  // Stream Maker: authenticated storage, owner isolation, bearer-source rotation and deletion.
+  assert.equal((await request('GET', '/api/creator/stream-maker')).status, 401,
+    'Anonymous visitors cannot enumerate private maker bundles');
+  const makerCreated = await request('POST', '/api/creator/stream-maker', {
+    cookie: created.cookie,
+    body: { config: { name: 'CI Stream Maker', elements: [
+      { id: 'ci_counter', template: 'counter', value: 0 }
+    ] } }
+  });
+  assert.equal(makerCreated.status, 201, `Stream Maker create failed: ${JSON.stringify(makerCreated.data)}`);
+  const makerId = makerCreated.data.bundle.id;
+  const makerToken = makerCreated.data.bundle.public_token;
+  assert.match(makerToken, /^[0-9a-f-]{36}[A-Za-z0-9_-]{43}$/i);
+  const makerPublic = await request('GET', '/api/public/stream-maker/' + makerToken);
+  assert.equal(makerPublic.status, 200, `Maker output failed: ${JSON.stringify(makerPublic.data)}`);
+  assert.equal(makerPublic.data.config.elements[0].id, 'ci_counter');
+  assert.equal(makerPublic.data.public_token, undefined, 'Public Maker output must not reveal its signed token');
+  assert.equal((await request('GET', '/api/creator/stream-maker', { cookie: otherCookie }))
+    .data.bundles.some(bundle => bundle.id === makerId), false, 'Other creators cannot list private Maker bundles');
+  assert.equal((await request('PUT', '/api/creator/stream-maker/' + makerId, {
+    cookie: otherCookie, body: { version: makerCreated.data.bundle.version, config: { elements: [{ template: 'counter' }] } }
+  })).status, 404, 'Other creators cannot edit private Maker bundles');
+  assert.equal((await request('PUT', '/api/creator/stream-maker/' + makerId, {
+    cookie: created.cookie, body: { version: 9999, config: { elements: [{ template: 'counter' }] } }
+  })).status, 409, 'Maker saves must reject stale versions');
+  const controlledMaker = await request('POST', '/api/creator/stream-maker/' + makerId + '/control', {
+    cookie: created.cookie, body: { element: 'ci_counter', action: 'plus' }
+  });
+  assert.equal(controlledMaker.status, 200, `Maker control failed: ${JSON.stringify(controlledMaker.data)}`);
+  assert.equal(controlledMaker.data.bundle.config.elements[0].value, 1);
+  assert.equal((await request('GET', '/api/public/stream-maker/' + makerToken))
+    .data.config.elements[0].value, 1, 'OBS source reflects the stored counter');
+  const rotatedMaker = await request('POST', '/api/creator/stream-maker/' + makerId + '/rotate-token', {
+    cookie: created.cookie, body: { version: controlledMaker.data.bundle.version }
+  });
+  assert.equal(rotatedMaker.status, 200);
+  const newMakerToken = rotatedMaker.data.bundle.public_token;
+  assert.notEqual(newMakerToken, makerToken);
+  assert.equal((await request('GET', '/api/public/stream-maker/' + makerToken)).status, 404,
+    'Old OBS tokens must be revoked immediately');
+  assert.equal((await request('GET', '/api/public/stream-maker/' + newMakerToken)).status, 200);
+  assert.equal((await request('POST', '/api/creator/stream-maker/' + makerId + '/publish', {
+    cookie: created.cookie, body: { rights_confirmed: true }
+  })).status, 403, 'Creator cannot publish Shop templates without admin rights');
+  const makerDeleted = await request('DELETE', '/api/creator/stream-maker/' + makerId, {
+    cookie: created.cookie, body: { version: rotatedMaker.data.bundle.version }
+  });
+  assert.equal(makerDeleted.status, 200);
+  assert.equal((await request('GET', '/api/public/stream-maker/' + newMakerToken)).status, 404,
+    'Deleted Maker output must stop working');
+
   const secondProject = await request('POST', '/api/creator/projects', {
     cookie: otherCookie, body: { kind: 'design', name: 'Private B Design', data: { secret: 'B only' } }
   });
