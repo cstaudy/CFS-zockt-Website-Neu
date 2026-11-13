@@ -438,7 +438,7 @@ async function handle(req, res) {
     const account = await requireAdmin(req);
     if (account.error) return json(res, account.status, { error: account.error });
     const result = await getPool().query("select id, email, display_name, role, plan, email_verified_at, created_at, updated_at from accounts order by created_at desc");
-    return json(res, 200, { accounts: result.rows.map(row => ({ ...row, admin: isAdminEmail(row.email), email_verified: Boolean(row.email_verified_at) })), total: result.rowCount });
+    return json(res, 200, { accounts: result.rows.map(row => ({ ...row, admin: Boolean(row.email_verified_at) && isAdminEmail(row.email), email_verified: Boolean(row.email_verified_at) })), total: result.rowCount });
   }
 
   if (["/api/auth/register", "/api/account/register"].includes(url.pathname) && method === "POST") {
