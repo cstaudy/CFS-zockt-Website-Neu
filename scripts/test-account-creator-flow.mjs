@@ -402,6 +402,11 @@ try {
     assert.equal((await request('GET','/api/creator/twitch/follow-events/status',{
       cookie:otherCookie
     })).data.enabled,false);
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,0,
+      'Twitch revocation itself must purge previously saved follower names');
     const savedWidgets=(await request('GET','/api/creator/widget-studio/widgets',{
       cookie:otherCookie
     })).data.widgets;
