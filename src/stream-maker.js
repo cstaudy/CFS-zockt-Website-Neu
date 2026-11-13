@@ -39,6 +39,8 @@ export function validateMakerConfig(value) {
       (e.id !== undefined && (typeof e.id !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(e.id))) ||
       (e.box !== undefined && !object(e.box)) || (e.cutout !== undefined && !object(e.cutout)) ||
       (e.runtime !== undefined && !object(e.runtime)))) return null;
+  const suppliedIds = value.elements.filter(e => e.id !== undefined).map(e => e.id);
+  if (new Set(suppliedIds).size !== suppliedIds.length) return null;
   if (value.variants?.some(v => !object(v))) return null;
   if (value.theme !== undefined && !object(value.theme)) return null;
   if (Buffer.byteLength(JSON.stringify(value), "utf8") > MAX_BYTES) return null;
