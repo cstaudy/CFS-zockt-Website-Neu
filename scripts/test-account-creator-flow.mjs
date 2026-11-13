@@ -411,6 +411,53 @@ try {
   })).status, 409, 'Foreign creator widgets must never be publishable in another owner scene');
   assert.equal((await request('GET', `/api/public/scenes/${sceneId}`)).data.scene.items[0].widget_id, widgetId,
     'Rejected cross-account publication must retain the previously approved OBS scene');
+  // Widget package conversion must reuse validated widget creation and owner quotas.
+  assert.equal((await request('POST', '/api/creator/widget-studio/packages', {
+    cookie: otherCookie, body: null
+  })).status, 400, 'Malformed package payloads cannot crash');
+  assert.equal((await request('POST', '/api/creator/widget-studio/packages', {
+    cookie: otherCookie, body: { outputs: ['<script>'] }
+  })).status, 400, 'Unsupported output keys must not be stored');
+  assert.equal((await request('POST', '/api/creator/widget-studio/packages', {
+    cookie: otherCookie, body: { preview: 'x'.repeat(524288) }
+  })).status, 413, 'Package JSON must respect its 512 KiB limit');
+  const packageB = await request('POST', '/api/creator/widget-studio/packages', {
+    cookie: otherCookie, body: {
+      name: 'CI Creator B package', world: 'gaming', outputs: ['widgets']
+    }
+  });
+  assert.equal(packageB.status, 201, 'Valid private package must save');
+  const bundleId = packageB.data.package.id;
+  assert.equal((await request('GET', '/api/creator/widget-studio/packages', {
+    cookie: created.cookie
+  })).data.packages.some(p => p.id === bundleId), false,
+  'Creator A must not see creator B packages');
+  assert.equal((await request('POST', '/api/creator/shop/bundles/not-a-uuid/convert', {
+    cookie: otherCookie
+  })).status, 404, 'Invalid bundle IDs must fail closed');
+  assert.equal((await request('POST', `/api/creator/shop/bundles/${bundleId}/convert`, {
+    cookie: created.cookie
+  })).status, 404, 'Creator A cannot convert a foreign bundle');
+  const bundleConverted = await request('POST', `/api/creator/shop/bundles/${bundleId}/convert`, {
+    cookie: otherCookie
+  });
+  assert.equal(bundleConverted.status, 200,
+    'Converting under quota must create an owned widget: ' + JSON.stringify(bundleConverted.data));
+  assert.equal(bundleConverted.data.created_widgets.length, 1);
+  assert.equal((await request('GET', '/api/creator/widget-studio/widgets', {
+    cookie: otherCookie
+  })).data.widgets.some(item => item.id === bundleConverted.data.created_widgets[0].id), true,
+  'Conversion widget must belong to the requesting Creator');
+  const packageA = await request('POST', '/api/creator/widget-studio/packages', {
+    cookie: created.cookie, body: { name: 'A package above quota', outputs: ['widgets'] }
+  });
+  assert.equal(packageA.status, 201);
+  const limitBlocked = await request('POST', `/api/creator/shop/bundles/${packageA.data.package.id}/convert`, {
+    cookie: created.cookie
+  });
+  assert.equal(limitBlocked.status, 402,
+    'Bundle conversion may not bypass the Free widget quota');
+
 
 
   const secondProject = await request('POST', '/api/creator/projects', {
