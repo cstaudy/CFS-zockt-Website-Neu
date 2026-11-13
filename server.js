@@ -37,6 +37,7 @@ import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-medi
 import { listPresets, savePreset, deletePreset } from "./src/creator-presets.js";
 import { publicTwitchState, publicTwitchCommunity } from "./src/public-twitch.js";
 import { handleTwitchEventSub, readEventSubBody } from "./src/twitch-eventsub.js";
+import { startTwitchFollowRetention } from "./src/twitch-follow-retention.js";
 import { getTwitchFollowStatus, enableTwitchFollowEvents, disableTwitchFollowEvents } from "./src/twitch-follow-subscriptions.js";
 import { paypalStatus, createPayPalOrder, capturePayPalOrder } from "./src/paypal.js";
 import { publicLiveControl } from "./src/public-live.js";
@@ -691,8 +692,10 @@ const server = createServer((req, res) => {
 });
 
 server.listen(port, host, () => console.log(`CFS Zockt server listening on ${host}:${port}`));
+const stopTwitchFollowRetention = startTwitchFollowRetention();
 
 function shutdown(signal) {
+  stopTwitchFollowRetention();
   console.log(`${signal}: shutting down`);
   server.close(async () => { await closeDatabase().catch(() => {}); process.exit(0); });
   setTimeout(() => process.exit(1), 10000).unref();
