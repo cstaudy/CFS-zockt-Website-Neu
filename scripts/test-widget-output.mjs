@@ -34,4 +34,14 @@ assert.equal(malicious.widget.config.elements.length, 1);
 assert.equal(malicious.widget.config.elements[0].style.color, "transparent");
 assert.ok(!JSON.stringify(malicious).includes("evil.invalid"));
 assert.ok(!JSON.stringify(malicious).includes("PRIVATE"));
+const malformed = publicWidgetPayload({ ...row, data: { published_config: {
+  canvas: { width: "invalid", background: "url(https://evil.invalid)" },
+  settings: ["not", "a", "settings", "object"],
+  elements: [null, "text", ["text"], { type: "text", id: "safe", style: ["bad"], data: { text: "VISIBLE" } }]
+} } });
+assert.equal(malformed.widget.config.elements.length, 1);
+assert.equal(malformed.widget.config.elements[0].data.text, "VISIBLE");
+assert.deepEqual(malformed.widget.config.settings, {});
+assert.equal(malformed.widget.config.canvas.width, 620);
+assert.ok(!JSON.stringify(malformed).includes("evil.invalid"));
 console.log("Public widget projection tests passed.");
