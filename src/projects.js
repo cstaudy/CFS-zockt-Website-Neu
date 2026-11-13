@@ -49,6 +49,8 @@ export async function createProject(req, body) {
   const kind = String(body.kind || "");
   const name = String(body.name || "").trim();
   if (!kinds.has(kind)) return { error: "INVALID_PROJECT_KIND", status: 400 };
+  // Widgets require the dedicated API, which enforces plan quotas and initializes their schema.
+  if (kind === "widget") return { error: "USE_WIDGET_STUDIO_API", status: 409 };
   if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 };
   const data = projectData(body.data ?? {});
   if (data === null) return { error: "INVALID_PROJECT_DATA", status: 400 };
