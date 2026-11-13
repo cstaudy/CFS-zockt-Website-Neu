@@ -26,6 +26,9 @@ export async function syncPlayStationFromLauncher(req, body) {
       await client.query("ROLLBACK");
       return { error: "DEVICE_NOT_ACTIVE", status: 403 };
     }
+    // Two different paired devices may sync the same creator at once.
+    // Serialize them by account so URL-based video reuse stays race-free.
+    await client.query("select id from accounts where id=$1 for update", [accountId]);
     await client.query(
       `insert into creator_playstation_profiles(account_id,provider,platform,display_name,connected,updated_at)
        values($1,'launcher',$2,$3,true,now())
