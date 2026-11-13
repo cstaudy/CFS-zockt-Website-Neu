@@ -102,7 +102,7 @@ export async function enableTwitchFollowEvents(req) {
       "select twitch_user_id,scope from twitch_connections where account_id=$1",
       [account.id]
     );
-    const user = connected.rows[0];
+    let user = connected.rows[0];
     if (!user || !validUser(user.twitch_user_id)) {
       await client.query("ROLLBACK");
       return { error: "TWITCH_NOT_CONNECTED", status: 409 };
@@ -122,12 +122,41 @@ export async function enableTwitchFollowEvents(req) {
       return { ok: true, subscription_status: active.status };
     }
     if (active) {
-      // Never overwrite an old provider subscription ID while Twitch may
-      // still be delivering to it. Clear it remotely (404 is fine) first.
+      // Remote DELETE cannot be rolled back with the following Twitch POST.
+      // Commit the old subscription's removal before starting a new attempt.
       const cleanup = await disableTwitchFollowForAccount(client, account.id);
-      if (cleanup.cleanup_pending) {
-        await client.query("COMMIT");
+      await client.query("COMMIT");
+      if (cleanup.cleanup_pending)
         return { error: "TWITCH_EVENTSUB_CLEANUP_PENDING", status: 409 };
+
+      // Re-lock and re-read after the commit: another request may have
+      // connected a different account or created a subscription meanwhile.
+      await client.query("BEGIN");
+      await client.query("select id from accounts where id=$1 for update", [account.id]);
+      const freshConnection = await client.query(
+        "select twitch_user_id,scope from twitch_connections where account_id=$1",
+        [account.id]
+      );
+      user = freshConnection.rows[0];
+      if (!user || !validUser(user.twitch_user_id)) {
+        await client.query("ROLLBACK");
+        return { error: "TWITCH_NOT_CONNECTED", status: 409 };
+      }
+      if (!hasFollowScope(user.scope)) {
+        await client.query("ROLLBACK");
+        return { error: "TWITCH_FOLLOW_SCOPE_REQUIRED", status: 409 };
+      }
+      const changed = await client.query(
+        "select subscription_id,status,broadcaster_user_id from twitch_follow_subscriptions where account_id=$1",
+        [account.id]
+      );
+      if (changed.rows[0]) {
+        await client.query("COMMIT");
+        const other = changed.rows[0];
+        return other.broadcaster_user_id === user.twitch_user_id &&
+          ["pending", "enabled"].includes(other.status)
+          ? { ok: true, subscription_status: other.status }
+          : { error: "TWITCH_EVENTSUB_CLEANUP_PENDING", status: 409 };
       }
     }
     const tokenResponse = await fetch("https://id.twitch.tv/oauth2/token", {
