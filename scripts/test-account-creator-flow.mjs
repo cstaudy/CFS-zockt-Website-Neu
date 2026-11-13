@@ -568,6 +568,16 @@ try {
   const streamRows = (await request('GET', '/api/creator/projects?kind=stream', { cookie:created.cookie }))
     .data.projects.filter(item => item.data?.type === 'stream_studio');
   assert.equal(streamRows.length, 1, 'Repeated Stream Studio saves must not create duplicate projects');
+  assert.equal((await request('POST','/api/creator/projects',{
+    cookie:created.cookie,body:{kind:'stream',name:'Extra Stream Studio',data:{type:'stream_studio'}}
+  })).status,409,'Generic projects cannot create a second protected Stream Studio state');
+  assert.equal((await request('PATCH','/api/creator/projects/' + streamRows[0].id,{
+    cookie:created.cookie,body:{name:'Replaced outside Stream Studio'}
+  })).status,409,'Generic updates cannot change Stream Studio state');
+  assert.equal((await request('DELETE','/api/creator/projects/' + streamRows[0].id,{
+    cookie:created.cookie
+  })).status,409,'Generic deletion cannot archive versioned Stream Studio state');
+
   for (const method of ['GET', 'PUT', 'DELETE']) {
     const guarded = await request(method, '/api/creator/stream-studio/projects/' + streamRows[0].id, {
       cookie: created.cookie, ...(method === 'PUT' ? { body: { title:'Tampered', config:{} } } : {})
