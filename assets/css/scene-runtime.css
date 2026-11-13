@@ -1,0 +1,6 @@
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}
+body{position:relative;font-family:Inter,system-ui,sans-serif}
+#cfsSceneRuntime{position:absolute;top:0;left:0;transform-origin:top left;overflow:hidden;background:transparent}
+.cfs-scene-item{position:absolute;transform-origin:top left;pointer-events:none}
+.cfs-scene-item iframe{display:block;border:0;background:transparent;pointer-events:none}
+.cfs-scene-error{position:absolute;top:12px;left:12px;padding:10px 14px;border:1px solid #bd6670;border-radius:8px;background:rgba(50,5,14,.92);color:#ffe1e4;font:600 14px/1.4 system-ui,sans-serif;max-width:min(450px,90vw)}
