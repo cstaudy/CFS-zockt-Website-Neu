@@ -16,6 +16,15 @@
   const requestTimeoutMs = 10000;
   let lastConfirmedTimer = null;
   let timerTickerStarted = false;
+  let lastFollowAlert = null;
+  let alertTickerStarted = false;
+
+  function tickFollowAlert() {
+    if (lastFollowAlert && Date.now() - lastFollowAlert >= 45000) {
+      lastFollowAlert = null;
+      stage.replaceChildren();
+    }
+  }
 
   // Advance only confirmed Twitch timer text locally between provider polls.
   // Update text nodes rather than rebuilding the entire OBS scene each second.
@@ -53,12 +62,29 @@
       if (!payload || !payload.widget || payload.widget.id !== id || !payload.widget.config || typeof payload.widget.config !== "object" || Array.isArray(payload.widget.config)) {
         throw new Error("Invalid widget response");
       }
-      const data = renderer.runtimeData(payload);
-      renderer.mountScene({
-        scene, stage, config: payload.widget.config, data,
-        profile: ["obs", "tiktok_vertical", "landscape"].includes(profile) ? profile : "obs"
-      });
       const definition = payload.widget.definition;
+      const isFollowAlert = definition?.provider === "twitch_follow" && definition.mode === "alert";
+      const eventTime = isFollowAlert && Array.isArray(payload.events)
+        ? Date.parse(payload.events[0]?.created_at || "") : NaN;
+      const visibleFollow = isFollowAlert && Number.isFinite(eventTime)
+        && eventTime <= Date.now() && Date.now() - eventTime <= 45000;
+      if (isFollowAlert && !visibleFollow) {
+        lastFollowAlert = null;
+        stage.replaceChildren();
+      } else {
+        const data = renderer.runtimeData(payload);
+        renderer.mountScene({
+          scene, stage, config: payload.widget.config, data,
+          profile: ["obs", "tiktok_vertical", "landscape"].includes(profile) ? profile : "obs"
+        });
+        if (isFollowAlert) {
+          lastFollowAlert = eventTime;
+          if (!alertTickerStarted) {
+            alertTickerStarted = true;
+            setInterval(tickFollowAlert, 1000);
+          }
+        }
+      }
       lastConfirmedTimer = definition?.provider === "twitch" && definition.mode === "timer" &&
         payload.data?.live?.status === "live" && payload.data.live.connected === true &&
         payload.data.live.stale === false ? payload : null;
@@ -70,6 +96,7 @@
     } catch (error) {
       // Do not keep incrementing a supposedly live timer while the source is unreachable.
       lastConfirmedTimer = null;
+      if (lastFollowAlert) { lastFollowAlert = null; stage.replaceChildren(); }
       console.error("Widget refresh failed", error);
       // Brief outages keep the last frame; prolonged outages must not show stale data indefinitely.
       if (!stopped && ++consecutiveFailures >= maxStaleFailures) stage.replaceChildren();
