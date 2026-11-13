@@ -29,6 +29,7 @@ import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/univ
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
 import { saveCutProjectAndClips } from "./src/cut-project-save.js";
+import { createCutProject, saveCutProject, archiveCutProject } from "./src/cut-project-crud.js";
 import { getStreamStudioState, saveStreamStudioState } from "./src/stream-studio-state.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
 import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
@@ -448,7 +449,7 @@ async function handle(req, res) {
     return result.error?json(res,result.status,{error:result.error}):json(res,200,result);
   }
   if(url.pathname==="/api/creator/cut-studio/projects"&&method==="GET"){const result=await listToolProjects(req,"cut");return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
-  if(url.pathname==="/api/creator/cut-studio/projects"&&method==="POST"){const result=await saveToolProject(req,"cut",null,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
+  if(url.pathname==="/api/creator/cut-studio/projects"&&method==="POST"){const result=await createCutProject(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,201,result);}
   const cutSave=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/save$/);
   if(cutSave&&method==="PUT"){
     const result=await saveCutProjectAndClips(req,decodeURIComponent(cutSave[1]),await readJson(req));
@@ -462,7 +463,7 @@ async function handle(req, res) {
   const clipItem=url.pathname.match(/^\/api\/creator\/cut-studio\/projects\/([^/]+)\/clips\/([^/]+)$/);
   if(clipItem){const projectId=decodeURIComponent(clipItem[1]),clipId=decodeURIComponent(clipItem[2]);const result=method==="PUT"?await updateClip(req,projectId,clipId,await readJson(req)):method==="DELETE"?await deleteClip(req,projectId,clipId,await readJson(req)):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const toolProject=url.pathname.match(/^\/api\/creator\/(stream-studio|cut-studio)\/projects\/([^/]+)$/);
-  if(toolProject){const kind=toolProject[1]==="stream-studio"?"stream":"cut",id=decodeURIComponent(toolProject[2]);const result=method==="GET"?await getToolProject(req,kind,id):method==="PUT"?await saveToolProject(req,kind,id,await readJson(req)):method==="DELETE"?await deleteToolProject(req,kind,id):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(toolProject){const kind=toolProject[1]==="stream-studio"?"stream":"cut",id=decodeURIComponent(toolProject[2]);const result=method==="GET"?await getToolProject(req,kind,id):method==="PUT"?(kind==="cut"?await saveCutProject(req,id,await readJson(req)):await saveToolProject(req,kind,id,await readJson(req))):method==="DELETE"?(kind==="cut"?await archiveCutProject(req,id,await readJson(req)):await deleteToolProject(req,kind,id)):{error:"METHOD_NOT_ALLOWED",status:405};return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/cut-studio/jobs"&&method==="GET"){const result=await listJobs(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   const mediaList=url.pathname.match(/^\/api\/creator\/media\/(videos|clips)$/);
   if(mediaList&&method==="GET"){const result=await listUserMedia(req,mediaList[1]);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
