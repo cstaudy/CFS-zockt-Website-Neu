@@ -161,7 +161,7 @@ export async function deleteMakerBundle(req, id, body) {
   if (!row) return { error: "STREAM_MAKER_NOT_FOUND", status: 404 };
   if (row.data.shop_published) return { error: "UNPUBLISH_STREAM_MAKER_FIRST", status: 409 };
   const done = await getPool().query(
-    "update creator_projects set status='archived', version=version+1,updated_at=now() where id=$1 and account_id=$2 and kind='stream' and data->>'type'='stream_maker' and status <> 'archived' and version=$3 returning id",
+    "update creator_projects set status='archived', version=version+1,updated_at=now() where id=$1 and account_id=$2 and kind='stream' and data->>'type'='stream_maker' and status <> 'archived' and coalesce(data->>'shop_published','false') <> 'true' and version=$3 returning id",
     [id, account.id, body.version]
   );
   return done.rows[0] ? { deleted: true } : { error: "STREAM_MAKER_VERSION_CONFLICT", status: 409 };
@@ -169,7 +169,9 @@ export async function deleteMakerBundle(req, id, body) {
 async function publicRow(token) {
   const match = TOKEN.exec(String(token || ""));
   if (!match || !process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 16) return null;
-  const found = await getPool().query(
+  const pool = getPool();
+  if (!pool) return null;
+  const found = await pool.query(
     "select id, account_id, data, status from creator_projects where id=$1 and kind='stream' and data->>'type'='stream_maker' and status <> 'archived'",
     [match[1]]
   );
@@ -199,9 +201,9 @@ export async function listMakerShop(req) {
   const account = await owner(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
   const found = await getPool().query(
-    "select id,data from creator_projects where kind='stream' and data->>'type'='stream_maker' and data->>'shop_published'='true' and status <> 'archived' order by updated_at desc limit 100"
+    "select id,data from creator_projects where kind='stream' and data->>'type'='stream_maker' and data->>'shop_published'='true' and data ? 'shop_config' and status <> 'archived' order by updated_at desc limit 100"
   );
-  return { templates: found.rows.map(row => ({ id: row.id, config: maker.sanitize(row.data.config) })) };
+  return { templates: found.rows.map(row => ({ id: row.id, config: maker.sanitize(row.data.shop_config) })) };
 }
 export async function publishMakerShop(req, id, body, publish = true) {
   const account = await owner(req);
@@ -213,21 +215,25 @@ export async function publishMakerShop(req, id, body, publish = true) {
   const config = maker.sanitize(row.data.config);
   if (publish && [config.source, ...config.variants.map(v => v.source)].some(value => value.startsWith("/assets/uploads/")))
     return { error: "TEMPLATE_ASSETS_NOT_SHAREABLE", status: 409 };
+  // Shop exposure is a frozen, explicit snapshot, not an editable OBS draft.
+  const data = { ...row.data, shop_published: publish, ...(publish ? { shop_config: config } : {}) };
+  const serialized = JSON.stringify(data);
+  if (Buffer.byteLength(serialized, "utf8") > MAX_BYTES) return { error: "STREAM_MAKER_TOO_LARGE", status: 413 };
   const updated = await getPool().query(
-    "update creator_projects set data=jsonb_set(data,'{shop_published}',to_jsonb($3::boolean),true),version=version+1,updated_at=now() where id=$1 and account_id=$2 and kind='stream' and data->>'type'='stream_maker' and status <> 'archived' returning id,data,version,updated_at",
-    [id, account.id, publish]
+    "update creator_projects set data=$3::jsonb,version=version+1,updated_at=now() where id=$1 and account_id=$2 and kind='stream' and data->>'type'='stream_maker' and status <> 'archived' and version=$4 returning id,data,version,updated_at",
+    [id, account.id, serialized, row.version]
   );
-  return updated.rows[0] ? { bundle: bundleView(updated.rows[0]) } : { error: "STREAM_MAKER_NOT_FOUND", status: 404 };
+  return updated.rows[0] ? { bundle: bundleView(updated.rows[0]) } : { error: "STREAM_MAKER_VERSION_CONFLICT", status: 409 };
 }
 export async function copyMakerShop(req, id) {
   const account = await owner(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
   const found = await getPool().query(
-    "select data from creator_projects where id=$1 and kind='stream' and data->>'type'='stream_maker' and data->>'shop_published'='true' and status <> 'archived'",
+    "select data from creator_projects where id=$1 and kind='stream' and data->>'type'='stream_maker' and data->>'shop_published'='true' and data ? 'shop_config' and status <> 'archived'",
     [UUID.test(String(id)) ? id : "00000000-0000-4000-8000-000000000000"]
   );
   if (!found.rows[0]) return { error: "STREAM_MAKER_TEMPLATE_NOT_FOUND", status: 404 };
-  const config = maker.sanitize(found.rows[0].data.config);
+  const config = maker.sanitize(found.rows[0].data.shop_config);
   if ([config.source, ...config.variants.map(v => v.source)].some(value => value.startsWith("/assets/uploads/")))
     return { error: "TEMPLATE_ASSETS_NOT_SHAREABLE", status: 409 };
   return { config, assets: [] };
