@@ -5,6 +5,9 @@ import { totpCode } from '../src/totp.js';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
+import { access } from 'node:fs/promises';
+import { join, basename } from 'node:path';
+import { uploadRoot } from '../src/upload-storage.js';
 
 // Never run destructive acceptance tests on a production or staging DB.
 const databaseUrl = process.env.DATABASE_URL || '';
@@ -751,6 +754,41 @@ try {
       }
     }
   }
+
+  const extraMedia = await upload('/api/creator/media/clips', 'video/webm', 'delete-me-ci.webm',
+    Buffer.from('removable-private-video-ci'));
+  assert.equal(extraMedia.status, 201, `Media cleanup upload failed: ${JSON.stringify(extraMedia.data)}`);
+  const extraMediaUrl = extraMedia.data.media.url;
+  const extraMediaId = extraMedia.data.media.id;
+  assert.equal((await request('DELETE','/api/creator/media/clips/' + extraMediaId, {
+    cookie:mediaOtherCookie
+  })).status,404,'Foreign creator cannot remove another account\'s media');
+  assert.equal((await fetch(base + extraMediaUrl,{headers:{cookie:login.cookie}})).status,200,
+    'Foreign deletion attempts cannot remove the owner\'s media bytes');
+  assert.equal((await request('DELETE','/api/creator/media/clips/not-a-uuid',{
+    cookie:login.cookie
+  })).status,404,'Invalid media ID must return 404 rather than a database error');
+  assert.equal((await request('DELETE','/api/creator/media/clips/' + extraMediaId,{
+    cookie:login.cookie
+  })).status,200,'Creator can delete their own uploaded clip');
+  assert.equal((await fetch(base + extraMediaUrl,{headers:{cookie:login.cookie}})).status,404,
+    'Deleted media cannot be served even to its former owner');
+  await assert.rejects(
+    access(join(uploadRoot,basename(extraMediaUrl))),
+    {code:'ENOENT'},'Deleting media must also erase its stored file'
+  );
+  assert.equal((await request('GET','/api/creator/media/clips',{
+    cookie:login.cookie
+  })).data.media.some(item=>item.id===extraMediaId),false,
+  'Deleted media must disappear from the creator library');
+  const badDurationMedia = await fetch(base + '/api/creator/media/clips',{
+    method:'POST',headers:{
+      origin:base,cookie:login.cookie,'content-type':'video/mp4',
+      'x-cfs-file-name':encodeURIComponent('negative-duration.mp4'),
+      'x-cfs-duration-ms':'-400'
+    },body:Buffer.from('bad-duration-ci'),signal:AbortSignal.timeout(8000)
+  });
+  assert.equal(badDurationMedia.status,400,'Negative media durations must not be persisted');
 
   // OBS images use a source-specific capability instead of exposing private uploads globally.
   const makerWithImage = await request('POST', '/api/creator/stream-maker', {
