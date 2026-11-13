@@ -29,6 +29,7 @@ import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/univ
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
 import { saveCutProjectAndClips } from "./src/cut-project-save.js";
+import { listMakerBundles, saveMakerBundle, controlMakerBundle, rotateMakerToken, deleteMakerBundle } from "./src/stream-maker.js";
 import { createCutProject, saveCutProject, archiveCutProject } from "./src/cut-project-crud.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
 import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
@@ -355,6 +356,31 @@ async function handle(req, res) {
   if(url.pathname==="/api/creator/public-live-control"&&(method==="GET"||method==="POST")){const result=await publicLiveControl(req,method==="POST"?await readJson(req):null);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/creator/stream-studio/runtime"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const devices=(await getPool().query("select machine_name,client_version,status,obs_connected,obs_version,last_seen_at from launcher_devices where account_id=$1 and status='active' order by updated_at desc",[account.id])).rows;const d=devices[0]||null;return json(res,200,{ok:true,runtime:{connected:Boolean(d),launcher:d?{machine_name:d.machine_name,client_version:d.client_version}:null,obs_connected:Boolean(d?.obs_connected),status:d?.obs_connected?"ready":d?"launcher_only":"offline"}});}
   if(url.pathname==="/api/creator/universal-builder/live-readiness"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,ready:false,providers:{tiktok:tiktokConfigured(),twitch:twitchConfigured()},message:"Live-Daten erscheinen nach Provider-Verbindung und Veröffentlichung des Widgets."});}
+  // Creator's private Stream Maker workspace only. Public OBS token serving and
+  // template/shop publication remain disabled pending separate acceptance.
+  if (url.pathname === "/api/creator/stream-maker" && method === "GET") {
+    const result = await listMakerBundles(req);
+    return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result);
+  }
+  if (url.pathname === "/api/creator/stream-maker" && method === "POST") {
+    const result = await saveMakerBundle(req,await readJson(req));
+    return result.error ? json(res,result.status,{error:result.error}) : json(res,201,result);
+  }
+  const privateMakerMatch = url.pathname.match(/^\/api\/creator\/stream-maker\/([^/]+)(?:\/(control|rotate-token))?$/);
+  if (privateMakerMatch) {
+    const makerId=decodeURIComponent(privateMakerMatch[1]);
+    const action=privateMakerMatch[2]||"";
+    const result=action==="control"&&method==="POST"
+      ?await controlMakerBundle(req,makerId,await readJson(req))
+      :action==="rotate-token"&&method==="POST"
+        ?await rotateMakerToken(req,makerId,await readJson(req))
+        :!action&&method==="PUT"
+          ?await saveMakerBundle(req,await readJson(req),makerId)
+          :!action&&method==="DELETE"
+            ?await deleteMakerBundle(req,makerId,await readJson(req))
+            :{error:"METHOD_NOT_ALLOWED",status:405};
+    return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result);
+  }
   if(url.pathname==="/api/creator/stream-maker-shop"&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});return json(res,200,{ok:true,enabled:false,templates:[],message:"Noch keine veröffentlichten Maker-Vorlagen vorhanden."});}
   if(url.pathname.startsWith("/api/creator/cfson/")&&method==="GET"){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});if(url.pathname.endsWith("/status"))return json(res,200,{ok:true,mode:"private_alpha",integration:"ui_preview_only",version:"Alpha",enabled:false,message:"CFSON ist nur als lokaler, lesender Diagnosetest vorbereitet."});return json(res,503,{ok:false,state:"disabled",error:"CFSON_NOT_CONNECTED",liveIngestDisabled:true,message:"Kein CFSON-Dienst verbunden. Es werden keine Konto-, Medien- oder Live-Daten freigegeben."});}
   if(url.pathname.startsWith("/api/creator/cfs-ai/")&&(method==="GET"||method==="POST")){const account=await currentAccount(req);if(!account)return json(res,401,{error:"AUTHENTICATION_REQUIRED"});const enabled=Boolean(process.env.CFS_AI_ENABLED&&process.env.CFS_AI_BRIDGE_TOKEN);if(url.pathname.endsWith("/status"))return json(res,200,{ok:true,enabled,configured:enabled,provider:null,status:enabled?"configured":"disabled",message:enabled?"AI-Bridge konfiguriert.":"CFS-AI ist aktuell nicht konfiguriert."});if(url.pathname.endsWith("/bridge"))return json(res,200,{ok:true,enabled,connected:false,provider:null,message:"Keine AI-Bridge verbunden."});if(url.pathname.endsWith("/knowledge"))return json(res,200,{ok:true,enabled,items:[]});if(url.pathname.endsWith("/roadmap"))return json(res,200,{ok:true,enabled,items:[]});if(url.pathname.endsWith("/proposals"))return json(res,200,{ok:true,enabled,proposals:[]});return json(res,enabled?501:503,{error:enabled?"AI_BRIDGE_NOT_IMPLEMENTED":"AI_NOT_CONFIGURED",message:"Dieser optionale AI-Bereich ist derzeit deaktiviert."});}
