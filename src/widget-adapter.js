@@ -31,6 +31,7 @@ export async function createWidget(req, body) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
   if (!body || typeof body !== "object" || Array.isArray(body)) return { error: "INVALID_WIDGET_REQUEST", status: 400 };
+  if (body.widget_type !== undefined && !registry.some(item => item.key === body.widget_type)) return { error: "INVALID_WIDGET_TYPE", status: 400 };
   const type = registry.some(item => item.key === body.widget_type) ? body.widget_type : "follower_goal";
   const spec = registry.find(item => item.key === type);
   if (body.name !== undefined && (typeof body.name !== "string" || !body.name.trim() || body.name.length > 160)) return { error: "INVALID_WIDGET_NAME", status: 400 };
