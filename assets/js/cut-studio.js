@@ -247,7 +247,7 @@ async function saveAllCutChanges({quiet=false}={}){
   cutSaving=true;updateCutSaveState();
   try{
     const clips=readVisibleClips();
-    const project={...projectPayload(),base_updated_at:state.project.updated_at};
+    const project={...projectPayload(),base_updated_at:state.project.updated_at,expected_version:state.project.version};
     const data=await CFS.json(`/api/creator/cut-studio/projects/${encodeURIComponent(state.project.id)}/save`,{
       method:"PUT",body:JSON.stringify({project,clips})
     });
