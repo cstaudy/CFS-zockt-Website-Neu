@@ -134,4 +134,36 @@ assert.equal(hungCalls, 2);
 timeoutCallback();
 await retry;
 assert.equal(aborts, 2);
+// A mismatched or malformed API response must never overwrite the last valid OBS frame.
+for (const invalidPayload of [
+  { widget: { ...payload.widget, id: "123e4567-e89b-42d3-a456-426614174001" }, data: payload.data },
+  { widget: { id: row.id, config: null }, data: payload.data },
+  null
+]) {
+  let poll;
+  const guardedStage = { style: {}, dataset: {}, innerHTML: "previous-frame", replaceChildren() { this.innerHTML = ""; } };
+  runInNewContext(runtimeSource, {
+    console: { error() {} }, URLSearchParams, AbortController, setTimeout, clearTimeout,
+    location: { search: "?widget=" + row.id },
+    document: { getElementById(id) { return id === "cfsScene" ? { style: {}, dataset: {} } : id === "cfsWidgetStage" ? guardedStage : null; } },
+    CFSWidgetRenderer: renderer,
+    fetch: async () => ({ ok: true, json: async () => invalidPayload }),
+    setInterval(fn) { poll = fn; }
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(guardedStage.innerHTML, "previous-frame");
+  await poll();
+  assert.equal(guardedStage.innerHTML, "previous-frame");
+}
+// Invalid identifiers must be rejected before any public API request.
+let invalidCalls = 0;
+runInNewContext(runtimeSource, {
+  console: { error() {} }, URLSearchParams, AbortController, setTimeout, clearTimeout,
+  location: { search: "?widget=------------------------------------" },
+  document: { getElementById(id) { return id === "cfsScene" ? { style: {}, dataset: {} } : id === "cfsWidgetStage" ? { style: {}, dataset: {} } : null; } },
+  CFSWidgetRenderer: renderer,
+  fetch: async () => { invalidCalls++; },
+  setInterval() {}
+});
+assert.equal(invalidCalls, 0);
 console.log("OBS output pipeline tests passed: published projection, manual value, vertical browser render and polling.");
