@@ -37,14 +37,23 @@ oder Twitch-Chat-Events werden aus diesen Daten abgeleitet.
   Message-ID + Timestamp + Body. Browser-Cookies und Origin sind hierfür
   keine Authentifizierungsfaktoren.
 - Die Subscription-ID und Broadcaster-ID müssen dem aktuell verknüpften
-  Creator gehören. Wiederholungen derselben Message-ID werden in PostgreSQL
-  nicht erneut als Follow gespeichert.
+  Creator gehören. Nur mit bestätigter EventSub-Callback-Verifizierung und
+  weiterhin erteilter Follow-Berechtigung werden Benachrichtigungen angenommen.
+  Wiederholungen derselben Message-ID werden in PostgreSQL nicht erneut als
+  Follow gespeichert.
 - Auch wenn die Challenge **vor** der Antwort der Subscription-API eingeht,
   wird die Verifizierung serverseitig vermerkt.
 - Bei neuen Follow-Nachrichten werden Einträge älter als 30 Tage sowie
-  Einträge oberhalb von 500 pro Konto bereinigt. Bei längerer Inaktivität
-  ist eine zusätzliche regelmäßige Löschroutine für die Aufbewahrungsfrist
-  noch nachzurüsten. Der öffentliche OBS-Endpunkt stellt nur den bestätigten
+  Einträge oberhalb von 500 pro Konto bereinigt. Zusätzlich startet der
+  Webserver nach einer Minute einen datenschutzorientierten
+  Aufbewahrungs-Sweep und wiederholt diesen stündlich. Je Sweep werden
+  bis zu 1.000 abgelaufene Datensätze mit `FOR UPDATE SKIP LOCKED`
+  gelöscht, auch wenn inaktiv gewordene Kanäle keine neuen Follows erhalten.
+  Größere Rückstände werden schrittweise abgebaut; bei hoher Altlast kann
+  die Bereinigung über mehrere Durchläufe reichen. Die isolierte
+  PostgreSQL-CI prüft, dass alte Followernamen verschwinden und aktuelle
+  Ereignisse erhalten bleiben.
+- Der öffentliche OBS-Endpunkt stellt nur den bestätigten
   Follower-Anzeigenamen und Ereigniszeitpunkt bereit, niemals OAuth-Tokens.
 - `Latest Follower` verwendet den neuesten bestätigten Follow.
   `Follow Alert` erscheint nur innerhalb des kurzen Ereignisfensters
