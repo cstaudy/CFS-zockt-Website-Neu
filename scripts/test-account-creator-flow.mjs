@@ -412,6 +412,11 @@ try {
   assert.equal((await request('GET', `/api/public/scenes/${sceneId}`)).data.scene.items[0].widget_id, widgetId,
     'Rejected cross-account publication must retain the previously approved OBS scene');
   // Widget package conversion must reuse validated widget creation and owner quotas.
+  assert.equal((await request('GET', '/api/creator/widget-studio/packages')).status, 401,
+    'Anonymous visitors must not read Creator packages');
+  assert.equal((await request('POST', '/api/creator/widget-studio/packages', {
+    body: { name: 'Anonymous package' }
+  })).status, 401, 'Anonymous visitors must not create Creator packages');
   assert.equal((await request('POST', '/api/creator/widget-studio/packages', {
     cookie: otherCookie, body: null
   })).status, 400, 'Malformed package payloads cannot crash');
