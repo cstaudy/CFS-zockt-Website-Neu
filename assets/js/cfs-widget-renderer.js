@@ -141,7 +141,11 @@ function runtimeData(payload={},event=null){
               ?"CREATOR SUITE"
               :(live.connected&&!live.stale
                 ?(live.provider==="simulator"?"SIMULATOR":live.provider==="twitch"?"TWITCH LIVE":"LIVE")
-                :(bridge.online?"BRIDGE READY":"OFFLINE / STALE")),
+                :(live.provider==="twitch" && live.status==="unknown"
+                ?"STATUS OFFEN"
+                :live.provider==="twitch" && live.status==="offline"
+                  ?"TWITCH OFFLINE"
+                  :(bridge.online?"BRIDGE READY":"OFFLINE / STALE"))),
     timer:formatTimer(current),
     actor:staticMode?"Creator":(e.actor_name||"Creator"),
     actorAvatar:staticMode?"":(e.actor_avatar||""),
