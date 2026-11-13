@@ -184,6 +184,10 @@ try {
     ] } }
   });
   assert.equal(makerCreated.status, 201, `Stream Maker create failed: ${JSON.stringify(makerCreated.data)}`);
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie: created.cookie,
+    body: { kind: 'stream', name: 'Reserved maker type', data: { type: 'stream_maker' } }
+  })).status, 409, 'Reserved maker projects require the dedicated endpoint');
   const makerId = makerCreated.data.bundle.id;
   const makerToken = makerCreated.data.bundle.public_token;
   assert.match(makerToken, /^[0-9a-f-]{36}[A-Za-z0-9_-]{43}$/i);
