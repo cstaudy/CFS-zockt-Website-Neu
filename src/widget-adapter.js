@@ -83,6 +83,7 @@ export async function updateWidget(req, id, body, publish = false) {
     if (body.config.widgetType !== undefined && !registry.some(item => item.key === body.config.widgetType)) return { error: "INVALID_WIDGET_TYPE", status: 400 };
     if (body.config.elements !== undefined && (!Array.isArray(body.config.elements) || body.config.elements.length > 100)) return { error: "INVALID_WIDGET_ELEMENTS", status: 400 };
     if (Array.isArray(body.config.elements) && body.config.elements.some(element => !element || typeof element !== "object" || Array.isArray(element) || typeof element.type !== "string" || !/^[a-z][a-z0-9_-]{0,63}$/i.test(element.type))) return { error: "INVALID_WIDGET_ELEMENT", status: 400 };
+    if (Array.isArray(body.config.elements) && body.config.elements.some(element => ["position", "size", "style", "data"].some(key => element[key] !== undefined && (!element[key] || typeof element[key] !== "object" || Array.isArray(element[key]))))) return { error: "INVALID_WIDGET_ELEMENT_PROPERTIES", status: 400 };
     if (body.config.canvas !== undefined && (!body.config.canvas || typeof body.config.canvas !== "object" || Array.isArray(body.config.canvas))) return { error: "INVALID_WIDGET_CANVAS", status: 400 };
     if (body.config.settings !== undefined && (!body.config.settings || typeof body.config.settings !== "object" || Array.isArray(body.config.settings))) return { error: "INVALID_WIDGET_SETTINGS", status: 400 };
     if (Buffer.byteLength(JSON.stringify(body.config), "utf8") > 512 * 1024) return { error: "WIDGET_CONFIG_TOO_LARGE", status: 413 };
