@@ -27,7 +27,7 @@ const scene = { style: {}, dataset: {} };
 const requested = [];
 let ticks;
 const context = {
-  console, URLSearchParams, location: { search: "?widget=" + row.id + "&profile=tiktok_vertical" },
+  console, URLSearchParams, AbortController, setTimeout, clearTimeout, location: { search: "?widget=" + row.id + "&profile=tiktok_vertical" },
   document: { getElementById(id) { return id === "cfsScene" ? scene : id === "cfsWidgetStage" ? stage : null; } },
   CFSWidgetRenderer: renderer,
   fetch: async (url, options) => {
@@ -51,7 +51,7 @@ let notFoundCalls = 0;
 const missingStage = { style: {}, dataset: {}, innerHTML: "stale", replaceChildren() { this.innerHTML = ""; } };
 let missingTick;
 const missingContext = {
-  console: { error() {} }, URLSearchParams,
+  console: { error() {} }, URLSearchParams, AbortController, setTimeout, clearTimeout,
   location: { search: "?widget=" + row.id },
   document: { getElementById(id) { return id === "cfsScene" ? { style: {}, dataset: {} } : id === "cfsWidgetStage" ? missingStage : null; } },
   CFSWidgetRenderer: renderer,
@@ -69,7 +69,7 @@ for (const status of [403, 410]) {
   const revokedStage = { style: {}, dataset: {}, innerHTML: "previously-published", replaceChildren() { this.innerHTML = ""; } };
   let nextTick;
   runInNewContext(runtimeSource, {
-    console: { error() {} }, URLSearchParams,
+    console: { error() {} }, URLSearchParams, AbortController, setTimeout, clearTimeout,
     location: { search: "?widget=" + row.id },
     document: { getElementById(id) { return id === "cfsScene" ? { style: {}, dataset: {} } : id === "cfsWidgetStage" ? revokedStage : null; } },
     CFSWidgetRenderer: renderer,
@@ -87,7 +87,7 @@ let outageTick;
 const outageStage = { style: {}, dataset: {}, innerHTML: "last-known-frame", replaceChildren() { this.innerHTML = ""; } };
 const outageScene = { style: {}, dataset: {} };
 runInNewContext(runtimeSource, {
-  console: { error() {} }, URLSearchParams,
+  console: { error() {} }, URLSearchParams, AbortController, setTimeout, clearTimeout,
   location: { search: "?widget=" + row.id },
   document: { getElementById(id) { return id === "cfsScene" ? outageScene : id === "cfsWidgetStage" ? outageStage : null; } },
   CFSWidgetRenderer: renderer,
@@ -104,4 +104,34 @@ assert.equal(outageStage.innerHTML, "");
 offline = false;
 await outageTick();
 assert.ok(outageStage.innerHTML.includes("42"));
+// A hung request must be aborted, freeing the polling loop for a later retry.
+let timeoutCallback;
+let aborts = 0;
+let hungCalls = 0;
+let hungTick;
+const timeoutStage = { style: {}, dataset: {}, innerHTML: "last-known-frame", replaceChildren() { this.innerHTML = ""; } };
+runInNewContext(runtimeSource, {
+  console: { error() {} }, URLSearchParams, AbortController,
+  location: { search: "?widget=" + row.id },
+  document: { getElementById(id) { return id === "cfsScene" ? { style: {}, dataset: {} } : id === "cfsWidgetStage" ? timeoutStage : null; } },
+  CFSWidgetRenderer: renderer,
+  fetch: async (_url, options) => {
+    hungCalls++;
+    return new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => { aborts++; reject(new Error("aborted")); }, { once: true });
+    });
+  },
+  setTimeout(fn, ms) { assert.equal(ms, 10000); timeoutCallback = fn; return 1; },
+  clearTimeout() {},
+  setInterval(fn) { hungTick = fn; }
+});
+timeoutCallback();
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(aborts, 1);
+assert.equal(timeoutStage.innerHTML, "last-known-frame");
+const retry = hungTick();
+assert.equal(hungCalls, 2);
+timeoutCallback();
+await retry;
+assert.equal(aborts, 2);
 console.log("OBS output pipeline tests passed: published projection, manual value, vertical browser render and polling.");
