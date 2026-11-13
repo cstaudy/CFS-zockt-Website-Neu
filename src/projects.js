@@ -44,6 +44,7 @@ export async function listProjects(req, url) {
 export async function createProject(req, body) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+  if (!validData(body)) return { error: "INVALID_PROJECT_REQUEST", status: 400 };
   const kind = String(body.kind || "");
   const name = String(body.name || "").trim();
   if (!kinds.has(kind)) return { error: "INVALID_PROJECT_KIND", status: 400 };
@@ -57,6 +58,7 @@ export async function createProject(req, body) {
 export async function updateProject(req, id, body) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+  if (!validData(body)) return { error: "INVALID_PROJECT_REQUEST", status: 400 };
   const fields = [];
   const values = [id, account.id];
   if (body.name !== undefined) { const name = String(body.name).trim(); if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 }; values.push(name); fields.push(`name = $${values.length}`); }
