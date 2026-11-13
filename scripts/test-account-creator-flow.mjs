@@ -255,6 +255,12 @@ try {
   assert.equal((await request('DELETE', '/api/creator/projects/' + makerId, {
     cookie: created.cookie
   })).status, 409, 'Maker deletion follows dedicated revision checks');
+  for (const method of ['GET', 'PUT', 'DELETE']) {
+    const guarded = await request(method, '/api/creator/stream-studio/projects/' + makerId, {
+      cookie: created.cookie, ...(method === 'PUT' ? { body: { title:'Tampered', config:{} } } : {})
+    });
+    assert.equal(guarded.status, 404, 'Generic stream project API must not mutate a Maker bundle');
+  }
   const makerToken = makerCreated.data.bundle.public_token;
   assert.match(makerToken, /^[0-9a-f-]{36}[A-Za-z0-9_-]{43}$/i);
   const makerPublic = await request('GET', '/api/public/stream-maker/' + makerToken);
@@ -444,6 +450,13 @@ try {
   const streamRows = (await request('GET', '/api/creator/projects?kind=stream', { cookie:created.cookie }))
     .data.projects.filter(item => item.data?.type === 'stream_studio');
   assert.equal(streamRows.length, 1, 'Repeated Stream Studio saves must not create duplicate projects');
+  for (const method of ['GET', 'PUT', 'DELETE']) {
+    const guarded = await request(method, '/api/creator/stream-studio/projects/' + streamRows[0].id, {
+      cookie: created.cookie, ...(method === 'PUT' ? { body: { title:'Tampered', config:{} } } : {})
+    });
+    assert.equal(guarded.status, 404, 'Generic stream project API must not mutate the Stream Studio state');
+  }
+
 
   const archived = await request('DELETE', `/api/creator/projects/${encodeURIComponent(projectId)}`, { cookie: created.cookie });
   assert.equal(archived.status, 200, 'Owner must be able to archive their project');
