@@ -42,7 +42,8 @@ docker exec -i "$container" pg_restore -U cfs_ci -d "$restore_db" \
 sql="select count(*) from public.schema_migrations"
 source_migrations="$(docker exec "$container" psql -U cfs_ci -d cfs_ci -At -v ON_ERROR_STOP=1 -c "$sql")"
 restored_migrations="$(docker exec "$container" psql -U cfs_ci -d "$restore_db" -At -v ON_ERROR_STOP=1 -c "$sql")"
-[[ "$source_migrations" == "25" && "$restored_migrations" == "25" ]] || {
+expected_migrations="$(node --input-type=module -e 'import { migrationFiles } from "./src/migrations.js"; process.stdout.write(String(migrationFiles.length))')"
+[[ "$source_migrations" == "$expected_migrations" && "$restored_migrations" == "$expected_migrations" ]] || {
   echo "Migrations ledger did not survive restore." >&2
   exit 1
 }
@@ -70,5 +71,5 @@ restore_catalog="$(docker exec "$container" psql -U cfs_ci -d "$restore_db" -At 
   exit 1
 }
 
-echo "PostgreSQL 18 CI backup verified: pg_dump archive, SHA-256, clean pg_restore, 25 migrations, application rows and schema."
+echo "PostgreSQL 18 CI backup verified: pg_dump archive, SHA-256, clean pg_restore, ${expected_migrations} migrations, application rows and schema."
 echo "Only disposable CI data was used; temporary archive and restore DB will be deleted."
