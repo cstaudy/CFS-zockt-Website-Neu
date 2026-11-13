@@ -495,8 +495,9 @@ async function save(){
   updateSaveFeedback("pending");
   let status="failure";
   try{
-    const data=await CFS.json("/api/creator/stream-studio",{method:"PUT",body:JSON.stringify({config:JSON.parse(submittedConfig)})});
+    const data=await CFS.json("/api/creator/stream-studio",{method:"PUT",body:JSON.stringify({config:JSON.parse(submittedConfig),expected_version:state.streamVersion??null})});
     const changedDuringSave=JSON.stringify(state.config)!==submittedConfig;
+    state.streamVersion=data.version;
     const confirmedConfig=normalizeConfig(data.config);
     state.lastSavedConfig=JSON.stringify(confirmedConfig);
     if(!changedDuringSave)state.config=confirmedConfig;
@@ -662,7 +663,7 @@ async function init(){
   bind();
   try{
     const data=await CFS.json("/api/creator/stream-studio");
-    state.data=data;state.runtime=data.runtime||null;state.settings=data.settings||{};state.multistreamLimit=Math.max(1,Number(data.multistream?.max_destinations||1));state.maxScenes=Math.max(0,Number(data.access?.entitlements?.max_scenes||0));state.config=normalizeConfig(data.config);normalizeSceneOrder();
+    state.data=data;state.streamVersion=data.version??null;state.runtime=data.runtime||null;state.settings=data.settings||{};state.multistreamLimit=Math.max(1,Number(data.multistream?.max_destinations||1));state.maxScenes=Math.max(0,Number(data.access?.entitlements?.max_scenes||0));state.config=normalizeConfig(data.config);normalizeSceneOrder();
     if(!state.config.preview_scene_id){const first=(data.scenes||[]).find(scene=>scene.status==="live");if(first)state.config.preview_scene_id=String(first.id)}
     state.lastSavedConfig=JSON.stringify(state.config);
     const firstComposer=sceneById(state.config.preview_scene_id)||(orderedScenes()[0]||null);if(firstComposer){state.composerSceneId=String(firstComposer.id);state.composerLayout=firstComposer.profile==="tiktok_vertical"?"tiktok_vertical":"landscape";state.composerConfig=normalizeComposerConfig(firstComposer.draft_config||firstComposer.published_config||sceneDefaults(firstComposer.profile),firstComposer.profile);syncComposerActiveLayout();state.composerZoom=state.composerLayout==="tiktok_vertical"?.32:.35}
