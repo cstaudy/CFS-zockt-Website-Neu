@@ -45,4 +45,22 @@ assert.ok(stage.innerHTML.includes("42"));
 assert.equal(ticks.ms, 15000);
 await ticks.fn();
 assert.equal(requested.length, 2);
+
+// A missing/unpublished widget must clear the frame and stop polling.
+let notFoundCalls = 0;
+const missingStage = { style: {}, dataset: {}, innerHTML: "stale", replaceChildren() { this.innerHTML = ""; } };
+let missingTick;
+const missingContext = {
+  console: { error() {} }, URLSearchParams,
+  location: { search: "?widget=" + row.id },
+  document: { getElementById(id) { return id === "cfsScene" ? { style: {}, dataset: {} } : id === "cfsWidgetStage" ? missingStage : null; } },
+  CFSWidgetRenderer: renderer,
+  fetch: async () => { notFoundCalls++; return { ok: false, status: 404 }; },
+  setInterval(fn) { missingTick = fn; }
+};
+runInNewContext(runtimeSource, missingContext);
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(missingStage.innerHTML, "");
+await missingTick();
+assert.equal(notFoundCalls, 1);
 console.log("OBS output pipeline tests passed: published projection, manual value, vertical browser render and polling.");
