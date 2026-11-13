@@ -24,6 +24,7 @@ const port = await new Promise((resolve, reject) => {
   });
 });
 const base = `http://127.0.0.1:${port}`;
+const ciLauncherSecret = 'ci-bridge-secret-local-disposable-test-2026';
 const server = spawn(process.execPath, ['scripts/start.js'], {
   cwd: root,
   env: {
@@ -31,7 +32,8 @@ const server = spawn(process.execPath, ['scripts/start.js'], {
     HOST: '127.0.0.1',
     PORT: String(port),
     MIGRATION_BASELINE_ON_START: 'no',
-    CFS_LOGIN_THROTTLE_SOCKET_MODE: 'enabled'
+    CFS_LOGIN_THROTTLE_SOCKET_MODE: 'enabled',
+    LAUNCHER_BRIDGE_SECRET: ciLauncherSecret
   },
   stdio: ['ignore', 'pipe', 'pipe']
 });
@@ -40,8 +42,8 @@ for (const pipe of [server.stdout, server.stderr]) {
   pipe.on('data', chunk => { output = (output + chunk.toString()).slice(-6000); });
 }
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-async function request(method, path, { body, cookie } = {}) {
-  const headers = { origin: base };
+async function request(method, path, { body, cookie, headers: extraHeaders } = {}) {
+  const headers = { origin: base, ...(extraHeaders || {}) };
   if (cookie) headers.cookie = cookie;
   if (body !== undefined) headers['content-type'] = 'application/json';
   const response = await fetch(base + path, {
@@ -520,6 +522,88 @@ try {
       clip_base_updated_at:updatedClip.data.clip.updated_at}
   });
   assert.equal(cutDeletedClip.status,200);
+  // Export queue is quota-bound under contention, private to the creator and
+  // only writable by a launcher paired with that same creator account.
+  const bridgeHeaders = deviceId => ({
+    'x-cfs-launcher-secret': ciLauncherSecret,
+    'x-cfs-device-id': deviceId
+  });
+  async function pairTestLauncher(cookie, name) {
+    const registered = await request('POST', '/api/launcher/devices/register', {
+      headers: bridgeHeaders('00000000-0000-4000-8000-000000000000'),
+      body: { machine_name: name, client_version: 'ci-1.0' }
+    });
+    assert.equal(registered.status, 201, `Test launcher registration failed: ${JSON.stringify(registered.data)}`);
+    const linked = await request('POST', '/api/creator/launcher/device-link/confirm', {
+      cookie, body: { user_code: registered.data.device.user_code }
+    });
+    assert.equal(linked.status, 200, `Device linking failed: ${JSON.stringify(linked.data)}`);
+    return registered.data.device.id;
+  }
+  const deviceA = await pairTestLauncher(created.cookie, 'Creator A test launcher');
+  const deviceB = await pairTestLauncher(otherCookie, 'Creator B test launcher');
+  assert.equal((await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
+    body: {}
+  })).status, 401, 'Anonymous visitors cannot queue exports');
+  assert.equal((await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
+    cookie: otherCookie, body: {}
+  })).status, 404, 'Foreign creators cannot queue another account\'s export');
+  assert.equal((await request('POST', '/api/creator/cut-studio/projects/not-a-uuid/export-jobs', {
+    cookie: created.cookie, body: {}
+  })).status, 404, 'Bad project IDs cannot crash export queue');
+  assert.equal((await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
+    cookie: created.cookie, body: []
+  })).status, 400, 'Malformed export payloads must be rejected');
+  const queued = await Promise.all(Array.from({ length: 4 }, () =>
+    request('POST', '/api/creator/cut-studio/projects/' + cutId + '/export-jobs', {
+      cookie: created.cookie, body: {}
+    })));
+  assert.deepEqual(queued.map(job => job.status).sort((a,b)=>a-b), [202,202,202,429],
+    'Concurrent exports cannot exceed three pending jobs');
+  const jobIds = queued.filter(job => job.status === 202).map(job => job.data.job.id);
+  assert.equal((await request('GET', '/api/creator/cut-studio/jobs', {
+    cookie: otherCookie
+  })).data.jobs.some(job => jobIds.includes(job.id)), false,
+  'Export jobs must stay private to their owner');
+  assert.equal((await request('POST', '/api/creator/cut-studio/jobs/' + jobIds[0] + '/cancel', {
+    cookie: otherCookie, body: {}
+  })).status, 409, 'Foreign creators cannot cancel another account\'s export');
+  const foreignClaim = await request('GET', '/api/launcher/jobs', {
+    headers: bridgeHeaders(deviceB)
+  });
+  assert.equal(foreignClaim.status, 200);
+  assert.deepEqual(foreignClaim.data.jobs, [], 'An unrelated launcher cannot claim another creator\'s job');
+  const claimed = await request('GET', '/api/launcher/jobs', {
+    headers: bridgeHeaders(deviceA)
+  });
+  assert.equal(claimed.status, 200, `Claim failed: ${JSON.stringify(claimed.data)}`);
+  assert.equal(claimed.data.jobs.length, 1);
+  const claimedId = claimed.data.jobs[0].id;
+  assert(jobIds.includes(claimedId));
+  assert.equal((await request('PUT', '/api/launcher/jobs/' + claimedId, {
+    headers: bridgeHeaders(deviceB),
+    body: { status: 'completed', result: { output: 'foreign.mp4' } }
+  })).status, 409, 'Foreign launcher devices must not modify claimed jobs');
+  assert.equal((await request('PUT', '/api/launcher/jobs/' + claimedId, {
+    headers: bridgeHeaders(deviceA), body: { status: 'unrecognized' }
+  })).status, 400, 'Invalid launcher transitions must be rejected');
+  const completed = await request('PUT', '/api/launcher/jobs/' + claimedId, {
+    headers: bridgeHeaders(deviceA), body: { status: 'completed', result: { output: 'ci.mp4' } }
+  });
+  assert.equal(completed.status, 200, `Owner launcher completion failed: ${JSON.stringify(completed.data)}`);
+  assert.equal(completed.data.job.status, 'completed');
+  assert.equal((await request('PUT', '/api/launcher/jobs/' + claimedId, {
+    headers: bridgeHeaders(deviceA), body: { status: 'failed', error: 'Changed after completion' }
+  })).status, 409, 'Finished jobs cannot be rewritten');
+  assert.equal((await request('POST', '/api/creator/cut-studio/jobs/' + claimedId + '/cancel', {
+    cookie: created.cookie, body: {}
+  })).status, 409, 'Completed exports must not be canceled');
+  for (const id of jobIds.filter(id => id !== claimedId)) {
+    assert.equal((await request('POST', '/api/creator/cut-studio/jobs/' + id + '/cancel', {
+      cookie: created.cookie, body: {}
+    })).status, 200);
+  }
+
   const cutBeforeArchive = await request('GET','/api/creator/cut-studio/projects/' + cutId,{
     cookie:created.cookie
   });
