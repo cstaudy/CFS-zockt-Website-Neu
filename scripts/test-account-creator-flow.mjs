@@ -189,6 +189,12 @@ try {
     body: { kind: 'stream', name: 'Reserved maker type', data: { type: 'stream_maker' } }
   })).status, 409, 'Reserved maker projects require the dedicated endpoint');
   const makerId = makerCreated.data.bundle.id;
+  assert.equal((await request('PATCH', '/api/creator/projects/' + makerId, {
+    cookie: created.cookie, body: { data: { type: 'stream_maker', config: {} } }
+  })).status, 409, 'Maker changes require its own API');
+  assert.equal((await request('DELETE', '/api/creator/projects/' + makerId, {
+    cookie: created.cookie
+  })).status, 409, 'Maker deletion follows dedicated revision checks');
   const makerToken = makerCreated.data.bundle.public_token;
   assert.match(makerToken, /^[0-9a-f-]{36}[A-Za-z0-9_-]{43}$/i);
   const makerPublic = await request('GET', '/api/public/stream-maker/' + makerToken);
