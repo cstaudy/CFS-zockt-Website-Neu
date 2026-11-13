@@ -81,10 +81,13 @@
         <div class="card-actions">
           <a class="btn primary" id="twitchConnect" href="/api/integrations/twitch/start">TWITCH VERBINDEN</a>
           <button class="btn ghost" id="twitchSync" type="button" hidden>PROFIL SYNCHRONISIEREN</button>
+          <button class="btn ghost" id="twitchFollowEnable" type="button" hidden>FOLLOW-EVENTS AKTIVIEREN</button>
+          <a class="btn ghost" id="twitchFollowReconnect" href="/api/integrations/twitch/start" hidden>BERECHTIGUNG ERNEUERN</a>
           <button class="btn ghost" id="twitchDisconnect" type="button" hidden>VERBINDUNG TRENNEN</button>
           <button class="btn ghost" id="twitchRetry" type="button" hidden>STATUS ERNEUT PRÜFEN</button>
         </div>
-        <details class="r117-details r117-tech-note"><summary>Technische Hinweise</summary><p class="muted small">OAuth, Token-Lifecycle, LIVE-Events und Chat sind implementiert. Der Streaming-Key wird nur bei bewusster Launcher-Anfrage bezogen und nicht dauerhaft in der Cloud gespeichert.</p></details>
+        <p id="twitchFollowStatus" class="muted small" role="status" aria-live="polite">Twitch-Follow-Events werden geprüft. Die Freigabe erfolgt gesondert.</p>
+        <details class="r117-details r117-tech-note"><summary>Technische Hinweise</summary><p class="muted small">Twitch-Profil, LIVE-Status und Follow-Events sind getrennte Datenquellen. Follow-Events benötigen moderator:read:followers, eine EventSub-Bestätigung von Twitch und eine gesonderte Aktivierung. TikTok-LIVE-Events und Twitch-Chat sind noch nicht als bestätigte Widget-Ereignisquelle angebunden.</p></details>
       </article>
 
       </div>
