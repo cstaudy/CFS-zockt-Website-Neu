@@ -57,19 +57,6 @@ export async function createProject(req, body) {
 export async function updateProject(req, id, body) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
-  // Widget publication must only happen through the versioned Widget Studio API.
-  // The generic project endpoint must never overwrite a published snapshot.
-  if (body.data !== undefined || body.status !== undefined) {
-    const existing = (await getPool().query(
-      "select kind from creator_projects where id=$1 and account_id=$2",
-      [id, account.id]
-    )).rows[0];
-    if (!existing) return { error: "PROJECT_NOT_FOUND", status: 404 };
-    if (existing.kind === "widget" &&
-        (body.data !== undefined || (body.status !== undefined && body.status !== "archived"))) {
-      return { error: "USE_WIDGET_STUDIO_API", status: 409 };
-    }
-  }
   const fields = [];
   const values = [id, account.id];
   if (body.name !== undefined) { const name = String(body.name).trim(); if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 }; values.push(name); fields.push(`name = $${values.length}`); }
@@ -77,8 +64,16 @@ export async function updateProject(req, id, body) {
   if (body.status !== undefined) { if (!statuses.has(String(body.status))) return { error: "INVALID_PROJECT_STATUS", status: 400 }; values.push(String(body.status)); fields.push(`status = $${values.length}`); }
   if (!fields.length) return { error: "NO_CHANGES", status: 400 };
   fields.push("updated_at = now()");
-  const result = await getPool().query(`update creator_projects set ${fields.join(", ")} where id = $1 and account_id = $2 returning id, kind, name, data, status, created_at, updated_at`, values);
-  return result.rows[0] ? { project: result.rows[0] } : { error: "PROJECT_NOT_FOUND", status: 404 };
+  // Enforce the widget restriction in the UPDATE itself to prevent a check/write race.
+  const widgetRestricted = body.data !== undefined || (body.status !== undefined && body.status !== "archived");
+  const restriction = widgetRestricted ? " and kind <> 'widget'" : "";
+  const result = await getPool().query(`update creator_projects set ${fields.join(", ")} where id = $1 and account_id = $2${restriction} returning id, kind, name, data, status, created_at, updated_at`, values);
+  if (result.rows[0]) return { project: result.rows[0] };
+  if (widgetRestricted) {
+    const existing = (await getPool().query("select kind from creator_projects where id=$1 and account_id=$2", [id, account.id])).rows[0];
+    if (existing?.kind === "widget") return { error: "USE_WIDGET_STUDIO_API", status: 409 };
+  }
+  return { error: "PROJECT_NOT_FOUND", status: 404 };
 }
 
 export async function deleteProject(req, id) {
