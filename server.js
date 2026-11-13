@@ -87,7 +87,9 @@ function securityHeaders(res) {
 }
 
 function requestId(req) {
-  return req.headers["x-request-id"] || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const supplied = req.headers["x-request-id"];
+  if (typeof supplied === "string" && /^[a-zA-Z0-9._:-]{1,96}$/.test(supplied)) return supplied;
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function requestOriginAllowed(req) {
