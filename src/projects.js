@@ -57,6 +57,19 @@ export async function createProject(req, body) {
 export async function updateProject(req, id, body) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+  // Widget publication must only happen through the versioned Widget Studio API.
+  // The generic project endpoint must never overwrite a published snapshot.
+  if (body.data !== undefined || body.status !== undefined) {
+    const existing = (await getPool().query(
+      "select kind from creator_projects where id=$1 and account_id=$2",
+      [id, account.id]
+    )).rows[0];
+    if (!existing) return { error: "PROJECT_NOT_FOUND", status: 404 };
+    if (existing.kind === "widget" &&
+        (body.data !== undefined || (body.status !== undefined && body.status !== "archived"))) {
+      return { error: "USE_WIDGET_STUDIO_API", status: 409 };
+    }
+  }
   const fields = [];
   const values = [id, account.id];
   if (body.name !== undefined) { const name = String(body.name).trim(); if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 }; values.push(name); fields.push(`name = $${values.length}`); }
