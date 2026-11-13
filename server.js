@@ -93,6 +93,10 @@ function requestId(req) {
 }
 
 function requestOriginAllowed(req) {
+  // Browser Fetch Metadata is independent of Origin/Referer and blocks
+  // cross-site writes even when those optional headers are absent.
+  const fetchSite = req.headers["sec-fetch-site"];
+  if (typeof fetchSite === "string" && !["same-origin", "none"].includes(fetchSite)) return false;
   const origin = String(req.headers.origin || "").trim();
   // Some clients omit Origin; validate Referer when it is available instead.
   const referer = String(req.headers.referer || "").trim();
