@@ -1,12 +1,13 @@
 import { getPool } from "./db.js";
-import { currentAccount, isAdminEmail } from "./auth.js";
+import { currentAccount } from "./auth.js";
+import { isAdminAccount } from "./admin-access.js";
 
 const kinds = new Set(["widget", "scene", "stream", "cut", "audio", "design"]);
 const statuses = new Set(["draft", "private", "published", "archived"]);
 
 function accountView(account) {
   if (!account) return null;
-  return { ...account, admin: isAdminEmail(account.email), email_verified: Boolean(account.email_verified_at) };
+  return { ...account, admin: isAdminAccount(account), email_verified: Boolean(account.email_verified_at) };
 }
 
 export async function requireAccount(req) {
