@@ -325,6 +325,34 @@ try {
     }
   }
 
+  // OBS images use a source-specific capability instead of exposing private uploads globally.
+  const makerWithImage = await request('POST', '/api/creator/stream-maker', {
+    cookie: login.cookie, body: { config: {
+      name: 'Private image OBS source', source: asset.data.asset.url,
+      elements: [{ id: 'ci_image', template: 'camera' }]
+    } }
+  });
+  assert.equal(makerWithImage.status, 201, `Maker image setup failed: ${JSON.stringify(makerWithImage.data)}`);
+  const imageToken = makerWithImage.data.bundle.public_token;
+  const scopedImageUrl = base + asset.data.asset.url + '?source_token=' + imageToken;
+  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
+    'Private image remains inaccessible without a valid source capability');
+  const scopedImage = await fetch(scopedImageUrl);
+  assert.equal(scopedImage.status, 200, 'A valid OBS source can load its own referenced image');
+  assert.deepEqual(Buffer.from(await scopedImage.arrayBuffer()), privateImage);
+  const imageRotated = await request('POST', '/api/creator/stream-maker/' + makerWithImage.data.bundle.id + '/rotate-token', {
+    cookie: login.cookie, body: { version: makerWithImage.data.bundle.version }
+  });
+  assert.equal(imageRotated.status, 200);
+  assert.equal((await fetch(scopedImageUrl)).status, 401,
+    'Rotated OBS source tokens cannot continue accessing a private image');
+  assert.equal((await fetch(base + asset.data.asset.url + '?source_token=' + imageRotated.data.bundle.public_token)).status, 200);
+  assert.equal((await request('DELETE', '/api/creator/stream-maker/' + makerWithImage.data.bundle.id, {
+    cookie: login.cookie, body: { version: imageRotated.data.bundle.version }
+  })).status, 200);
+  assert.equal((await fetch(base + asset.data.asset.url + '?source_token=' + imageRotated.data.bundle.public_token)).status, 401,
+    'Deleted OBS sources cannot continue accessing private images');
+
   // A public project's image reference allows OBS to fetch JUST that image.
   // A different creator cannot publish someone else's asset by referencing its URL.
   // Widget publication must use its dedicated, versioned API. Generic writes cannot bypass it.
