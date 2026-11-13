@@ -280,7 +280,9 @@
     const current = session?.current_game?.name ? session.current_game : null;
     const fallback = latestRecentGames[0] || null;
     const displayedGame = current?.name || fallback?.name || "Aktuell kein Game erkannt";
-    const platform = current?.platform ? platformLabel(current.platform) : (fallback?.platform ? platformLabel(fallback.platform) : "");
+    const platform = current
+      ? (current.platform && current.platform !== "unknown" ? platformLabel(current.platform) : "")
+      : (fallback?.platform && fallback.platform !== "unknown" ? platformLabel(fallback.platform) : "");
     const lastLiveAt = session.last_live_at || twitchChannel.last_live_at || tiktokChannel.last_live_at || null;
 
     const badge = document.getElementById("liveStatusBadge");
@@ -362,7 +364,7 @@
       if (isLive) {
         const service = isMulti ? "Twitch und TikTok" : (isTwitch ? "Twitch" : (isTikTok ? "TikTok" : "dem Stream"));
         statusText.textContent = current
-          ? `cfs_zockt ist gerade auf ${service} live und spielt ${current.name}${platform && !["TWITCH","TIKTOK"].includes(platform) ? ` auf ${platform}` : ""}.`
+          ? `cfs_zockt ist gerade auf ${service} live. Gemeldete Stream-Kategorie: ${current.name}.`
           : `cfs_zockt ist gerade auf ${service} live. Das aktuelle Game wird noch abgeglichen.`;
       } else if (isOffline) {
         statusText.textContent = lastLiveAt
@@ -399,8 +401,8 @@
 
     if (previewImage) {
       const remoteCover = current ? liveCoverForGame(current.name) : "";
-      const fallbackCover = /^https:\/\//i.test(String(fallback?.image_url || "")) ? String(fallback.image_url) : "";
-      const nextSrc = remoteCover || (isLive ? fallbackCover : "");
+      // Historical covers cannot be used to represent a different live category.
+      const nextSrc = isLive ? remoteCover : "";
       if (nextSrc) {
         if (previewImage.getAttribute("src") !== nextSrc) previewImage.src = nextSrc;
         previewImage.alt = `${current?.name || fallback?.name || "Aktuelles Game"} Cover`;
