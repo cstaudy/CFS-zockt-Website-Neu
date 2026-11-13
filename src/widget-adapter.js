@@ -15,7 +15,8 @@ function widget(row) {
   const data = row.data || {};
   const { draft, published, changed } = widgetConfigs(data, row.status);
   const config = Object.keys(draft).length ? draft : { widgetType: data.widget_type || "follower_goal", canvas: { width: 620, height: 132 }, elements: [], settings: {}, data: {} };
-  return { id: row.id, name: row.name, widget_type: data.widget_type || config.widgetType || "follower_goal", status: row.status === "published" ? "live" : "draft", version: row.version || 1, draft_config: config, published_config: published, has_unpublished_changes: changed, source_url: row.status === "published" ? `/widgets/output.html?widget=${encodeURIComponent(row.id)}` : "", source_urls: row.status === "published" ? { obs: `/widgets/output.html?widget=${encodeURIComponent(row.id)}` } : {}, created_at: row.created_at, updated_at: row.updated_at };
+  const hasPublicSnapshot = row.status === "published" && published && typeof published === "object" && !Array.isArray(published);
+  return { id: row.id, name: row.name, widget_type: data.widget_type || config.widgetType || "follower_goal", status: hasPublicSnapshot ? "live" : "draft", version: row.version || 1, draft_config: config, published_config: published, has_unpublished_changes: changed, source_url: hasPublicSnapshot ? `/widgets/output.html?widget=${encodeURIComponent(row.id)}` : "", source_urls: hasPublicSnapshot ? { obs: `/widgets/output.html?widget=${encodeURIComponent(row.id)}` } : {}, created_at: row.created_at, updated_at: row.updated_at };
 }
 
 export async function listWidgets(req) {
