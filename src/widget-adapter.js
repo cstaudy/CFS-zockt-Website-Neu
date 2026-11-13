@@ -74,6 +74,13 @@ export async function getWidget(req, id) {
 export async function updateWidget(req, id, body, publish = false) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { error: "INVALID_WIDGET_REQUEST", status: 400 };
+  if (body.name !== undefined && (typeof body.name !== "string" || !body.name.trim() || body.name.length > 160)) return { error: "INVALID_WIDGET_NAME", status: 400 };
+  if (body.config !== undefined) {
+    if (!body.config || typeof body.config !== "object" || Array.isArray(body.config)) return { error: "INVALID_WIDGET_CONFIG", status: 400 };
+    if (Buffer.byteLength(JSON.stringify(body.config), "utf8") > 512 * 1024) return { error: "WIDGET_CONFIG_TOO_LARGE", status: 413 };
+  }
+  if (body.expected_version !== undefined && (!Number.isSafeInteger(body.expected_version) || body.expected_version < 1)) return { error: "INVALID_WIDGET_VERSION", status: 400 };
   const pool = getPool();
   const found = await pool.query("select id, name, data, status, version, created_at, updated_at from creator_projects where id = $1 and account_id = $2 and kind = 'widget' and status <> 'archived'", [id, account.id]);
   const row = found.rows[0];
