@@ -27,6 +27,7 @@
   };
 
   const compactNumber = value => {
+    if (value === null || value === undefined || value === "") return "—";
     const n = Number(value);
     if (!Number.isFinite(n) || n < 0) return "—";
     if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} Mio.+`;
@@ -264,7 +265,8 @@
   function renderLiveSession(payload) {
     latestLiveSession = payload && typeof payload === "object" ? payload : null;
     const session = latestLiveSession || {};
-    const liveStatus = session.live === true ? "live" : String(session.status || "unknown");
+    const liveStatus = session.live === true && session.status === "live" ? "live"
+      : session.live !== true && session.status === "offline" ? "offline" : "unknown";
     const isLive = liveStatus === "live";
     const isOffline = liveStatus === "offline";
     const provider = String(session.provider || "none").toLowerCase();
@@ -350,10 +352,10 @@
       liveDot.classList.toggle("is-offline", isOffline);
       liveDot.classList.toggle("is-unknown", !isLive && !isOffline);
     }
-    if (game) game.textContent = isLive && current ? current.name : (isLive ? "LIVE · Game wird gerade erkannt" : displayedGame);
+    if (game) game.textContent = isLive && current ? current.name : (isLive ? "LIVE · Game wird gerade erkannt" : (fallback ? `Zuletzt gespielt: ${fallback.name}` : "Aktuell kein Game erkannt"));
     if (previewGame) {
       const service = isMulti ? "Twitch & TikTok" : (isTwitch ? "Twitch" : (isTikTok ? "TikTok" : "Stream"));
-      previewGame.textContent = isLive && current ? current.name : (isLive ? `LIVE auf ${service}` : displayedGame);
+      previewGame.textContent = isLive && current ? current.name : (isLive ? `LIVE auf ${service}` : (fallback ? `Zuletzt gespielt: ${fallback.name}` : "Aktuell kein Game erkannt"));
     }
 
     if (statusText) {
@@ -383,7 +385,7 @@
       else if (isOffline) providerText = "LIVE · beendet";
       const left = element("span", "", providerText);
       const right = element("span", "", isLive
-        ? (current ? `${platform || "Game"} · ${formatElapsed(current.elapsed_seconds)}` : "Session aktiv")
+        ? (current ? `${platform || "Game"} · ${current.elapsed_seconds !== null && current.elapsed_seconds !== undefined && Number.isFinite(Number(current.elapsed_seconds)) ? formatElapsed(current.elapsed_seconds) : "Dauer offen"}` : "Session aktiv")
         : (lastLiveAt ? `Zuletzt live: ${formatLastPlayed(lastLiveAt)}` : (fallback?.last_played_at ? `Zuletzt aktiv: ${formatLastPlayed(fallback.last_played_at)}` : "Noch kein letzter LIVE-Zeitpunkt gespeichert")));
       meta.append(left, right);
     }
@@ -493,13 +495,45 @@
     if (!latestLiveSession) renderLiveSession({ live:false, status:"unknown" });
   }
 
+  // The real public live API reports Twitch directly. Never interpret a
+  // missing provider result as an offline signal or infer TikTok-LIVE status.
+  function adaptTwitchLive(data) {
+    const verified = data?.source === "twitch" && data?.ok === true;
+    const live = verified && data?.live === true && data?.status === "live";
+    const offline = verified && data?.live === false && data?.status === "offline";
+    const status = live ? "live" : offline ? "offline" : "unknown";
+    const channel = /^[a-z0-9_]{3,25}$/i.test(String(data?.channel || ""))
+      ? String(data.channel).toLowerCase() : "cfs_zockt";
+    const viewers = live && data.viewer_count !== null && data.viewer_count !== undefined
+      && Number.isSafeInteger(Number(data.viewer_count)) && Number(data.viewer_count) >= 0
+      ? Number(data.viewer_count) : null;
+    const startTime = live && data.started_at && Number.isFinite(Date.parse(data.started_at))
+      && Date.parse(data.started_at) <= Date.now() ? data.started_at : null;
+    const game = live && typeof data.game === "string" && data.game.trim()
+      ? { name: data.game.trim(), platform: "unknown",
+          elapsed_seconds: startTime ? Math.floor((Date.now() - Date.parse(startTime)) / 1000) : null }
+      : null;
+    return {
+      ok: data?.ok === true, live, status, provider: "twitch", source: verified ? "twitch" : "fallback",
+      title: live && typeof data.title === "string" ? data.title : "",
+      started_at: startTime, viewers, likes: null, shares: null,
+      current_game: game,
+      channels: {
+        twitch: { status, connected: verified, url: `https://www.twitch.tv/${channel}` },
+        tiktok: { status: "unknown", connected: false }
+      }
+    };
+  }
+
   async function loadLiveSession() {
     try {
-      const response = await fetch("/api/public/live-session", { headers: { Accept: "application/json" }, cache: "no-store" });
+      const response = await fetch("/api/public/live-session", {
+        headers: { Accept: "application/json" }, cache: "no-store", credentials: "omit"
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      renderLiveSession(await response.json());
+      renderLiveSession(adaptTwitchLive(await response.json()));
     } catch {
-      renderLiveSession({ live:false, status:"unknown" });
+      renderLiveSession(adaptTwitchLive(null));
     }
   }
 
@@ -513,73 +547,8 @@
     }
   }
 
-  function adaptCreatorState(state) {
-    const current = state?.game?.current || null;
-    return {
-      liveSession:{
-        ok:state?.ok === true,
-        live:state?.live?.active === true,
-        status:state?.live?.status || "unknown",
-        live_source:state?.live?.source || "none",
-        provider:state?.live?.provider || "none",
-        title:state?.live?.title || "",
-        profile_name:state?.creator?.name || "cfs_zockt",
-        profile_url:state?.creator?.profile_url || "",
-        channels:state?.creator?.channels || {},
-        viewers:Number(state?.live?.viewers || 0),
-        likes:Number(state?.live?.likes || 0),
-        shares:Number(state?.live?.shares || 0),
-        followers_gained:Number(state?.live?.followers_gained || 0),
-        started_at:state?.live?.started_at || null,
-        updated_at:state?.live?.updated_at || null,
-        last_live_at:state?.live?.last_live_at || null,
-        last_live_started_at:state?.live?.last_live_started_at || null,
-        last_live_provider:state?.live?.last_live_provider || "",
-        signal:state?.live?.signal || {},
-        current_game:current ? {
-          name:current.name || "",
-          platform:current.platform || "unknown",
-          source:current.source || "",
-          started_at:current.started_at || null,
-          elapsed_seconds:Number(current.elapsed_seconds || 0)
-        } : null
-      },
-      community:{
-        ok:state?.ok === true,
-        generated_at:state?.generated_at || null,
-        refresh_seconds:Number(state?.refresh_seconds || 0),
-        tiktok:state?.social?.tiktok || { available:false, followers:null },
-        discord:state?.social?.discord || { available:false, members:null, online:null },
-        recent_games:{
-          available:Array.isArray(state?.game?.recent) && state.game.recent.length > 0,
-          source:state?.game?.source || "",
-          playtime_scope:state?.game?.playtime_scope || "",
-          window_days:state?.game?.window_days ?? null,
-          updated_at:state?.game?.updated_at || null,
-          active:current ? {
-            game_name:current.name || "",
-            platform:current.platform || "unknown",
-            source:current.source || "",
-            started_at:current.started_at || null,
-            elapsed_seconds:Number(current.elapsed_seconds || 0)
-          } : null,
-          recent:Array.isArray(state?.game?.recent) ? state.game.recent : [],
-          games:Array.isArray(state?.game?.games) ? state.game.games : []
-        }
-      }
-    };
-  }
-
-  async function loadCreatorState() {
-    try {
-      const response = await fetch("/api/public/creator-state", { headers: { Accept: "application/json" }, cache: "no-store" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const adapted = adaptCreatorState(await response.json());
-      applyCommunityStats(adapted.community);
-      renderLiveSession(adapted.liveSession);
-    } catch {
-      await Promise.allSettled([loadCommunityStats(), loadLiveSession()]);
-    }
+  async function loadPublicFeeds() {
+    await Promise.allSettled([loadCommunityStats(), loadLiveSession()]);
   }
 
   function initSectionNavigation() {
@@ -603,9 +572,9 @@
   }
 
   function init() {
-    loadCreatorState();
+    loadPublicFeeds();
     loadPublicGames();
-    window.setInterval(loadCreatorState, 15000);
+    window.setInterval(loadPublicFeeds, 30000);
     window.setInterval(loadPublicGames, 60000);
     initSectionNavigation();
   }
