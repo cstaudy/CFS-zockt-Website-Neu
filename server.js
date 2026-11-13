@@ -29,7 +29,7 @@ import { builderState, saveBundle, renameBundle, deleteBundle } from "./src/univ
 import { listDevices, getDeviceLink, confirmDevice, revokeDevice, registerDevice, launcherHeartbeat } from "./src/launcher.js";
 import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, listClips, createClip, updateClip, deleteClip, orderClips } from "./src/tool-projects.js";
 import { saveCutProjectAndClips } from "./src/cut-project-save.js";
-import { listMakerBundles, saveMakerBundle, controlMakerBundle, rotateMakerToken, deleteMakerBundle } from "./src/stream-maker.js";
+import { listMakerBundles, saveMakerBundle, controlMakerBundle, rotateMakerToken, deleteMakerBundle, getPublicMakerBundle } from "./src/stream-maker.js";
 import { createCutProject, saveCutProject, archiveCutProject } from "./src/cut-project-crud.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
 import { listUserMedia, uploadUserMedia, deleteUserMedia } from "./src/user-media.js";
@@ -286,6 +286,15 @@ async function handle(req, res) {
   }
   if (url.pathname === "/api/public/playstation" && ["GET", "HEAD"].includes(method)) {
     return json(res, 200, await publicPlayStationState());
+  }
+  // Signed capability: no cookie required, no raw project/account metadata.
+  const publicMakerMatch = url.pathname.match(/^\/api\/public\/stream-maker\/([^/]+)$/);
+  if (publicMakerMatch && ["GET", "HEAD"].includes(method)) {
+    const result = await getPublicMakerBundle(publicMakerMatch[1]);
+    res.setHeader("cache-control", "no-store");
+    return result.error
+      ? json(res,result.status,{error:result.error})
+      : json(res,200,result);
   }
   const publicWidgetMatch = url.pathname.match(/^\/api\/public\/widgets\/([^/]+)$/);
   if (publicWidgetMatch && ["GET", "HEAD"].includes(method)) {
