@@ -51,10 +51,27 @@ oder Twitch-Chat-Events werden aus diesen Daten abgeleitet.
   (45 Sekunden) und wird anschließend auch ohne Netzwerkaufruf ausgeblendet.
 - Ein Follow **beweist keinen laufenden Twitch-Stream**.
   Twitch-Live-Timer verwenden weiterhin die separate Live-Statusquelle.
-- Bei Widerruf oder Kontotrennung wird die öffentliche Event-Ausgabe gesperrt;
-  beim Trennen werden lokale Subscription-Zuordnungen und gespeicherte
-  Followernamen gelöscht. Eine vollständige providerseitige Abmeldung
-  muss bei der realen Inbetriebnahme separat bestätigt werden.
+- Bei einer Twitch-Revocation werden gespeicherte Followernamen sofort
+  gelöscht und die öffentliche Widget-Ausgabe gesperrt.
+- **Verbindungen → Follow-Events deaktivieren** ruft
+  `POST /api/creator/twitch/follow-events/disable` auf: Die lokal
+  vertrauenswürdige Subscription wird sofort deaktiviert und Followernamen
+  werden gelöscht. Der Server versucht außerdem mit einem Twitch-App-Token
+  `DELETE /helix/eventsub/subscriptions?id=...` auszuführen.
+- Twitch antwortet im Erfolgsfall mit 204; eine bereits gelöschte Subscription
+  (404) wird für erneute Bereinigungsversuche ebenfalls als erledigt
+  behandelt. Bei Provider-Ausfall bleibt die Subscription **lokal widerrufen**
+  und ihre ID für einen späteren Bereinigungsversuch gespeichert.
+  Die Creator-Seite zeigt dafür „TWITCH-LÖSCHUNG ERNEUT VERSUCHEN“.
+- Das Trennen der Twitch-Verbindung blockiert die lokale Event-Ausgabe und
+  entfernt den OAuth-Zugang auch dann, wenn die externe Löschung gerade
+  scheitert. Der noch offene providerseitige Bereinigungsauftrag bleibt
+  mit `cleanup_pending` sichtbar und ist nach Anmeldung erneut ausführbar.
+  Auch ein neuer Aktivierungsversuch muss ihn zuerst erfolgreich erledigen.
+- Dieser zweistufige Ablauf verhindert, dass ein fehlgeschlagener
+  Anbieter-Aufruf den Widerruf der lokalen Eventanzeige verhindert.
+  Die reale providerseitige Löschung muss bei der Endabnahme nachgewiesen
+  werden; ein CI-Mock beweist sie nicht.
 
 ## Ausstehende echte Abnahmetests
 
