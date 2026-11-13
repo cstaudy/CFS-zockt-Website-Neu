@@ -194,7 +194,7 @@
 
     // recent = chronological provider history; games = other confirmed titles.
     // Some older APIs return three or fewer recent games but provide more in games.
-    const confirmed=r107SortGames([...(payload?.recent||[]), ...(payload?.games||[])]);
+    const confirmed=r107SortGames([...(payload?.recent||[]), ...(payload?.games||[])].filter(game => game?.last_played_at && Number.isFinite(Date.parse(game.last_played_at))));
     const recent=confirmed.slice(0,4);
     const other=confirmed.slice(4);
     const active=payload?.active?.game_name ? payload.active : null;
@@ -204,7 +204,7 @@
     if(grid){
       grid.replaceChildren();
       if(recent.length) recent.forEach((game,index)=>grid.append(renderRecentGameCard({...game,playtime_scope:playtimeScope},index,windowDays)));
-      else grid.append(element("p", "r107-games-empty", "Noch keine bestätigten Spiele. Verbinde PlayStation oder aktiviere die Spielaktivität im CFS Launcher."));
+      else grid.append(element("p", "r107-games-empty", "Noch keine bestätigte Spielaktivität. Verbinde den CFS Launcher und synchronisiere deine zuletzt gespielten Titel."));
       grid.setAttribute("aria-busy", "false");
     }
     if(more&&moreGrid){
@@ -219,7 +219,7 @@
       if(active){meta.textContent=`JETZT AKTIV · ${active.game_name} · ${platformLabel(active.platform)} · ${formatElapsed(active.elapsed_seconds)}`; meta.classList.add("is-active");}
       else if(recent.length){
         const source=payload?.source==="playstation_network"?"PlayStation Network":"CFS Launcher · PlayStation-Historie";
-        meta.textContent=`${source} · ${recent.length} zuletzt gespielt${payload?.stale?" · Daten möglicherweise veraltet":""}`;
+        meta.textContent=`${source} · ${recent.length} zuletzt gespielt${payload?.sync_state==="offline"?" · Launcher offline":payload?.stale?" · Daten veraltet":""}`;
         meta.classList.remove("is-active");
       } else {meta.textContent="Noch keine bestätigte Spielaktivität";meta.classList.remove("is-active");}
     }
@@ -443,7 +443,7 @@
     const gameTimeLabel = document.getElementById("statGameTimeLabel");
     const latestGameLabel = document.getElementById("statLatestGameLabel");
     const games = Array.isArray(payload?.games) ? payload.games : [];
-    const recent = r107SortGames([...(Array.isArray(payload?.recent) ? payload.recent : []), ...games]).slice(0, 4);
+    const recent = r107SortGames([...(Array.isArray(payload?.recent) ? payload.recent : []), ...games].filter(game => game?.last_played_at && Number.isFinite(Date.parse(game.last_played_at)))).slice(0, 4);
     latestRecentGames = recent;
     if (footerRecentGames) footerRecentGames.textContent = recent.length ? String(recent.length) : "—";
     const timed = recent.filter(game => game.minutes !== undefined && game.minutes !== null && Number.isFinite(Number(game.minutes)));
