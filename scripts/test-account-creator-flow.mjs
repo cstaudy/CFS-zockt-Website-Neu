@@ -95,7 +95,7 @@ try {
 
   const saved = await request('POST', '/api/creator/projects', {
     cookie: created.cookie,
-    body: { kind: 'widget', name: 'CI Widget', data: { headline: 'Saved creator content' } }
+    body: { kind: 'design', name: 'CI Design', data: { headline: 'Saved creator content' } }
   });
   assert.equal(saved.status, 201, `Creator save failed: ${JSON.stringify(saved.data)}`);
   const projectId = saved.data.project?.id;
@@ -266,31 +266,54 @@ try {
 
   // A public project's image reference allows OBS to fetch JUST that image.
   // A different creator cannot publish someone else's asset by referencing its URL.
-  const attackerProject = await request('POST', '/api/creator/projects', {
-    cookie: mediaOtherCookie,
-    body: { kind: 'widget', name: 'Foreign URL reference', data: { image: asset.data.asset.url } }
-  });
-  assert.equal(attackerProject.status, 201);
-  assert.equal((await request('PATCH', `/api/creator/projects/${attackerProject.data.project.id}`, {
-    cookie: mediaOtherCookie, body: { status: 'published' }
-  })).status, 200);
+  // Widget publication must use its dedicated, versioned API. Generic writes cannot bypass it.
+  assert.equal((await request('POST', '/api/creator/projects', {
+    cookie: login.cookie, body: { kind: 'widget', name: 'Forbidden generic widget', data: {} }
+  })).status, 409, 'Generic project creation must not bypass widget quotas');
+  async function publishedImageWidget(cookie, name, imageUrl) {
+    const createdWidget = await request('POST', '/api/creator/widget-studio/widgets', {
+      cookie, body: { name, widget_type: 'obs_overlay' }
+    });
+    assert.equal(createdWidget.status, 201, JSON.stringify(createdWidget.data));
+    const id = createdWidget.data.widget.id;
+    const draft = await request('PUT', `/api/creator/widget-studio/widgets/${id}/draft`, {
+      cookie,
+      body: { expected_version: createdWidget.data.widget.version, config: {
+        widgetType: 'obs_overlay', canvas: { width: 1920, height: 1080 },
+        elements: [{ id: 'media-image', type: 'image', position: { x: 0, y: 0 },
+          size: { width: 300, height: 300 }, data: { src: imageUrl } }], settings: {}
+      } }
+    });
+    assert.equal(draft.status, 200, JSON.stringify(draft.data));
+    const published = await request('POST', `/api/creator/widget-studio/widgets/${id}/publish`, {
+      cookie, body: { expected_version: draft.data.widget.version }
+    });
+    assert.equal(published.status, 200, JSON.stringify(published.data));
+    return { id, version: published.data.widget.version };
+  }
+  await publishedImageWidget(mediaOtherCookie, 'Foreign reference attempt', asset.data.asset.url);
   assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
     'A published reference from a foreign creator must not expose the private image');
 
-  const ownerProject = await request('POST', '/api/creator/projects', {
-    cookie: login.cookie,
-    body: {
-      kind: 'widget',
-      name: 'Owner OBS overlay',
-      data: { config: { elements: [{ type: 'image', data: { src: asset.data.asset.url } }] } }
-    }
+  const ownerWidget = await request('POST', '/api/creator/widget-studio/widgets', {
+    cookie: login.cookie, body: { name: 'Owner OBS overlay', widget_type: 'obs_overlay' }
   });
-  assert.equal(ownerProject.status, 201);
+  assert.equal(ownerWidget.status, 201);
+  const ownerId = ownerWidget.data.widget.id;
+  const ownerDraft = await request('PUT', `/api/creator/widget-studio/widgets/${ownerId}/draft`, {
+    cookie: login.cookie,
+    body: { expected_version: ownerWidget.data.widget.version, config: {
+      widgetType: 'obs_overlay', canvas: { width: 1920, height: 1080 },
+      elements: [{ id: 'image', type: 'image', data: { src: asset.data.asset.url } }]
+    } }
+  });
+  assert.equal(ownerDraft.status, 200);
   assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
     'A draft image reference must not grant public access');
-  assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
-    cookie: login.cookie, body: { status: 'published' }
-  })).status, 200);
+  const ownerPublished = await request('POST', `/api/creator/widget-studio/widgets/${ownerId}/publish`, {
+    cookie: login.cookie, body: { expected_version: ownerDraft.data.widget.version }
+  });
+  assert.equal(ownerPublished.status, 200);
   for (const method of ['GET', 'HEAD']) {
     const response = await fetch(base + asset.data.asset.url, { method });
     assert.equal(response.status, 200, 'Published OBS image must be accessible without a login');
@@ -300,11 +323,11 @@ try {
   }
   assert.equal((await fetch(base + media.data.media.url)).status, 401,
     'Public overlay reference must not expose private videos');
-  assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
-    cookie: login.cookie, body: { status: 'private' }
-  })).status, 200);
+  assert.equal((await request('DELETE', `/api/creator/projects/${ownerId}`, {
+    cookie: login.cookie
+  })).status, 200, 'Archiving a published widget must revoke its public assets');
   assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
-    'Unpublishing the owner widget must immediately revoke anonymous access');
+    'Archiving the owner widget must immediately revoke anonymous access');
   const deleted = await request('DELETE', `/api/creator/media/videos/${media.data.media.id}`, {
     cookie: login.cookie
   });
