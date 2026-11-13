@@ -848,6 +848,136 @@ try {
     const deviceOne = await pairDevice(psCookie, 'PostgreSQL PlayStation A');
     const deviceTwo = await pairDevice(psCookie, 'PostgreSQL PlayStation B');
     const foreignDevice = await pairDevice(otherCookie, 'PostgreSQL PlayStation Foreign');
+    // Export job acceptance is confined to this disposable PostgreSQL DB.
+    // Until separately approved migration 026, jobs are account-bound, not
+    // restricted to the exact device that claimed them.
+    const exportProjectA = await request('POST', '/api/creator/cut-studio/projects', {
+      cookie: psCookie, body: { title: 'Creator A cut export' }
+    });
+    const exportProjectB = await request('POST', '/api/creator/cut-studio/projects', {
+      cookie: otherCookie, body: { title: 'Creator B cut export' }
+    });
+    assert.equal(exportProjectA.status, 201);
+    assert.equal(exportProjectB.status, 201);
+    const exportIdA = exportProjectA.data.project.id;
+    const exportIdB = exportProjectB.data.project.id;
+    const exportPathA = '/api/creator/cut-studio/projects/' + exportIdA + '/export-jobs';
+    const exportPathB = '/api/creator/cut-studio/projects/' + exportIdB + '/export-jobs';
+    assert.equal((await request('POST', exportPathA, { body: {} })).status, 401,
+      'Anonymous users cannot queue exports');
+    assert.equal((await request('GET', '/api/creator/cut-studio/jobs')).status, 401,
+      'Anonymous visitors cannot read export job payloads');
+    assert.equal((await request('POST', exportPathA, {
+      cookie: otherCookie, body: {}
+    })).status, 404, 'Other creators may not enqueue a foreign export');
+    assert.equal((await request('POST', '/api/creator/cut-studio/projects/not-a-uuid/export-jobs', {
+      cookie: psCookie, body: {}
+    })).status, 404, 'Malformed project UUIDs must fail closed');
+    assert.equal((await request('POST', exportPathA, {
+      cookie: psCookie, body: null
+    })).status, 400, 'Null export payload must fail validation');
+    assert.equal((await request('POST', exportPathA, {
+      cookie: psCookie, body: { data: 'x'.repeat(70000) }
+    })).status, 413, 'Export JSON must be bounded');
+    const exportCreate = await Promise.all(Array.from({ length: 4 }, (_, i) =>
+      request('POST', exportPathA, {
+        cookie: psCookie, body: { format: 'mp4', ordinal: i }
+      })
+    ));
+    assert.deepEqual(exportCreate.map(x => x.status).sort((a, b) => a - b),
+      [202, 202, 202, 429],
+      'Concurrent exports must never bypass the per-account queue limit');
+    const exportJobsA = exportCreate.filter(x => x.status === 202).map(x => x.data.job.id);
+    assert.equal((await request('GET', '/api/creator/cut-studio/jobs', {
+      cookie: otherCookie
+    })).data.jobs.some(job => exportJobsA.includes(job.id)), false,
+    'Creator B cannot read Creator A export queue');
+    const queuedB = await request('POST', exportPathB, {
+      cookie: otherCookie, body: { format: 'webm' }
+    });
+    assert.equal(queuedB.status, 202);
+    const exportJobB = queuedB.data.job.id;
+    assert.equal((await request('GET', '/api/launcher/jobs', {
+      extraHeaders: { 'x-cfs-device-id': foreignDevice }
+    })).status, 401, 'Launcher must include the configured bridge credential');
+    assert.equal((await request('GET', '/api/launcher/jobs', {
+      extraHeaders: bridge('not-a-uuid')
+    })).status, 400, 'Malformed launcher IDs must not reach PostgreSQL');
+    const foreignClaim = await request('GET', '/api/launcher/jobs', {
+      extraHeaders: bridge(foreignDevice)
+    });
+    assert.equal(foreignClaim.status, 200);
+    assert.deepEqual(foreignClaim.data.jobs.map(job => job.id), [exportJobB],
+      'Foreign launcher can claim only its own account export');
+    const ownClaim = await request('GET', '/api/launcher/jobs', {
+      extraHeaders: bridge(deviceOne)
+    });
+    assert.equal(ownClaim.status, 200);
+    assert.equal(ownClaim.data.jobs.length, 1);
+    const claimedA = ownClaim.data.jobs[0].id;
+    assert(exportJobsA.includes(claimedA));
+    const statusPathA = '/api/launcher/jobs/' + claimedA;
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(foreignDevice), body: { status: 'completed', result: {} }
+    })).status, 409, 'Active foreign-device credentials cannot complete other-account exports');
+    assert.equal((await request('PUT', '/api/launcher/jobs/' + exportJobB, {
+      extraHeaders: bridge(deviceOne), body: { status: 'failed' }
+    })).status, 409, 'Creator A launcher cannot modify Creator B claimed export');
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge('bad-device'), body: { status: 'completed' }
+    })).status, 400);
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: { 'x-cfs-device-id': deviceOne }, body: { status: 'completed' }
+    })).status, 401);
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceOne), body: null
+    })).status, 400, 'Missing status is never silently defaulted to processing');
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceOne), body: { status: 'not-a-status' }
+    })).status, 400);
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceOne), body: { status: 'processing', result: [] }
+    })).status, 400, 'A result payload cannot be an array');
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceOne),
+      body: { status: 'completed', result: { data: 'x'.repeat(70000) } }
+    })).status, 413, 'Launcher result JSON has a byte limit');
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceOne), body: { status: 'processing' }
+    })).status, 200, 'Owning launcher can start its claimed export');
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceOne), body: { status: 'processing' }
+    })).status, 409, 'Duplicate in-progress transition must be rejected');
+    const completedExport = await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceOne), body: { status: 'completed', result: { filename: 'ci-result.mp4' } }
+    });
+    assert.equal(completedExport.status, 200);
+    assert.equal(completedExport.data.job.status, 'completed');
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceOne), body: { status: 'failed' }
+    })).status, 409, 'Completed jobs cannot transition backwards');
+    assert.equal((await request('POST', '/api/creator/cut-studio/jobs/' + claimedA + '/cancel', {
+      cookie: psCookie
+    })).status, 409, 'Completed jobs cannot be canceled');
+    for (const id of exportJobsA.filter(x => x !== claimedA)) {
+      assert.equal((await request('POST', '/api/creator/cut-studio/jobs/' + id + '/cancel', {
+        cookie: otherCookie
+      })).status, 409, 'Foreign creator cannot cancel jobs');
+      assert.equal((await request('POST', '/api/creator/cut-studio/jobs/' + id + '/cancel', {
+        cookie: psCookie
+      })).status, 200, 'Owner can cancel an unclaimed job');
+    }
+    const recreatedExport = await request('POST', exportPathA, {
+      cookie: psCookie, body: { format: 'mp4' }
+    });
+    assert.equal(recreatedExport.status, 202,
+      'Completed and canceled exports must release queue capacity');
+    assert.equal((await request('POST', '/api/creator/cut-studio/jobs/' +
+      recreatedExport.data.job.id + '/cancel', { cookie: psCookie })).status, 200);
+    assert.equal((await request('PUT', '/api/launcher/jobs/' + exportJobB, {
+      extraHeaders: bridge(foreignDevice), body: { status: 'completed', result: {} }
+    })).status, 200, 'Other creator own device can complete its own export');
+
     assert.equal((await request('POST', '/api/launcher/playstation/sync', {
       body: { games: [] }
     })).status, 401, 'Unauthenticated device must not synchronize');
