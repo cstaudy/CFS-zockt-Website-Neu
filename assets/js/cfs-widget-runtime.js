@@ -19,7 +19,8 @@
         credentials: "omit", cache: "no-store"
       });
       if (!response.ok) {
-        if (response.status === 404) { stopped = true; stage.replaceChildren(); }
+        // Permanent removal or access revocation must never leave a stale OBS frame visible.
+        if ([403, 404, 410].includes(response.status)) { stopped = true; stage.replaceChildren(); }
         throw new Error("Widget unavailable: " + response.status);
       }
       const payload = await response.json();
