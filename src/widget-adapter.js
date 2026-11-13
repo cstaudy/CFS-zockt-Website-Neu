@@ -29,16 +29,39 @@ export async function listWidgets(req) {
 export async function createWidget(req, body) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
-  const pool = getPool();
-  const countResult = await pool.query("select count(*)::int as count from creator_projects where account_id = $1 and kind = 'widget' and status <> 'archived'", [account.id]);
-  const maxWidgets = account.plan === "free" ? 3 : account.plan === "creator" ? 25 : 100;
-  if (Number(countResult.rows[0]?.count || 0) >= maxWidgets) return { error: "WIDGET_LIMIT_REACHED", message: `Dein ${account.plan || "free"} Plan erlaubt maximal ${maxWidgets} Widgets.`, status: 402, limits: { max_widgets: maxWidgets }, entitlements: { plan: account.plan || "free" } };
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { error: "INVALID_WIDGET_REQUEST", status: 400 };
   const type = registry.some(item => item.key === body.widget_type) ? body.widget_type : "follower_goal";
   const spec = registry.find(item => item.key === type);
+  if (body.name !== undefined && (typeof body.name !== "string" || !body.name.trim() || body.name.length > 160)) return { error: "INVALID_WIDGET_NAME", status: 400 };
+  if (body.template_key !== undefined && (typeof body.template_key !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(body.template_key))) return { error: "INVALID_WIDGET_TEMPLATE", status: 400 };
   const config = { widgetType: type, templateKey: body.template_key || "cfs-standard", canvas: spec.canvas, elements: [], settings: {}, data: {} };
-  const name = String(body.name || `${spec.label} · Entwurf`).trim().slice(0, 160);
-  const result = await pool.query("insert into creator_projects (account_id, kind, name, data) values ($1, 'widget', $2, $3::jsonb) returning id, name, data, status, version, created_at, updated_at", [account.id, name, JSON.stringify({ widget_type: type, config })]);
-  return { widget: widget(result.rows[0]), registry, tiktok: { connected: false }, live: { connected: false } };
+  const name = (body.name || `${spec.label} · Entwurf`).trim();
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // Serialize widget creation per account so parallel requests cannot exceed plan limits.
+    const locked = (await client.query("select plan from accounts where id=$1 for update", [account.id])).rows[0];
+    if (!locked) {
+      await client.query("ROLLBACK");
+      return { error: "AUTHENTICATION_REQUIRED", status: 401 };
+    }
+    const plan = locked.plan || "free";
+    const maxWidgets = plan === "free" ? 3 : plan === "creator" ? 25 : 100;
+    const countResult = await client.query("select count(*)::int as count from creator_projects where account_id = $1 and kind = 'widget' and status <> 'archived'", [account.id]);
+    if (Number(countResult.rows[0]?.count || 0) >= maxWidgets) {
+      await client.query("ROLLBACK");
+      return { error: "WIDGET_LIMIT_REACHED", message: `Dein ${plan} Plan erlaubt maximal ${maxWidgets} Widgets.`, status: 402, limits: { max_widgets: maxWidgets }, entitlements: { plan } };
+    }
+    const result = await client.query("insert into creator_projects (account_id, kind, name, data) values ($1, 'widget', $2, $3::jsonb) returning id, name, data, status, version, created_at, updated_at", [account.id, name, JSON.stringify({ widget_type: type, config })]);
+    await client.query("COMMIT");
+    return { widget: widget(result.rows[0]), registry, tiktok: { connected: false }, live: { connected: false } };
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function getWidget(req, id) {
