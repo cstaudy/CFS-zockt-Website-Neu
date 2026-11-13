@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHmac } from 'node:crypto';
 import pg from 'pg';
 import { totpCode } from '../src/totp.js';
 import { spawn } from 'node:child_process';
@@ -28,6 +28,7 @@ const port = await new Promise((resolve, reject) => {
 });
 const base = `http://127.0.0.1:${port}`;
 const ciLauncherSecret = 'ci-bridge-secret-local-disposable-test-2026';
+const ciTwitchEventSubSecret = 'ci-twitch-eventsub-local-only-secret-2026-11-13';
 const server = spawn(process.execPath, ['scripts/start.js'], {
   cwd: root,
   env: {
@@ -36,7 +37,8 @@ const server = spawn(process.execPath, ['scripts/start.js'], {
     PORT: String(port),
     MIGRATION_BASELINE_ON_START: 'no',
     CFS_LOGIN_THROTTLE_SOCKET_MODE: 'enabled',
-    LAUNCHER_BRIDGE_SECRET: ciLauncherSecret
+    LAUNCHER_BRIDGE_SECRET: ciLauncherSecret,
+    TWITCH_EVENTSUB_SECRET: ciTwitchEventSubSecret
   },
   stdio: ['ignore', 'pipe', 'pipe']
 });
@@ -262,6 +264,160 @@ try {
   assert.equal(otherTimerPublic.data.data.live.started_at, null);
   assert.equal(JSON.stringify(otherTimerPublic.data).includes('access_token'), false,
     'Public OBS output cannot disclose provider credentials');
+
+  // The webhook is authenticated by Twitch's HMAC, not by browser cookies.
+  // These direct DB fixtures exist ONLY in the disposable local PostgreSQL CI DB.
+  const followPool = new pg.Pool({ connectionString: databaseUrl, ssl: false });
+  try {
+    const broadcasterId = '2026001';
+    const subscriptionId = randomUUID();
+    const before = await request('GET', '/api/creator/twitch/follow-events/status', {
+      cookie: otherCookie
+    });
+    assert.equal(before.status, 200);
+    assert.equal(before.data.connected, false);
+    assert.equal((await request('GET', '/api/creator/twitch/follow-events/status')).status, 401);
+    const noFollow = await request('POST', '/api/creator/twitch/follow-events/enable', {
+      cookie: otherCookie, body: {}
+    });
+    assert.equal(noFollow.status, 503,
+      'Follow-event subscriptions cannot be enabled without an HTTPS callback and provider credentials');
+    await followPool.query(
+      `insert into twitch_connections(account_id,twitch_user_id,login,display_name,access_token,scope)
+       values($1,$2,'ci_follow_creator','CI Follow Creator','ci-not-a-real-token','user:read:email moderator:read:followers')`,
+      [second.data.account.id, broadcasterId]
+    );
+    const subscription = { id:subscriptionId, type:'channel.follow',version:'2',
+      condition:{broadcaster_user_id:broadcasterId,moderator_user_id:broadcasterId} };
+    let messageSeq = 0;
+    async function deliverEventSub(type, body, { id = null, tamper = false, timestamp = null } = {}) {
+      const bytes = JSON.stringify(body);
+      const messageId = id || 'ci-eventsub-' + (++messageSeq);
+      const sentAt = timestamp || new Date().toISOString();
+      const signature = 'sha256=' + createHmac('sha256',ciTwitchEventSubSecret)
+        .update(messageId).update(sentAt).update(Buffer.from(bytes)).digest('hex');
+      return fetch(base + '/api/webhooks/twitch/eventsub', {
+        method:'POST',headers:{
+          'content-type':'application/json',
+          'origin':'https://external-twitch-webhook.example',
+          'twitch-eventsub-message-id':messageId,
+          'twitch-eventsub-message-timestamp':sentAt,
+          'twitch-eventsub-message-signature':tamper ? 'sha256='+'0'.repeat(64):signature,
+          'twitch-eventsub-message-type':type,
+          'twitch-eventsub-subscription-type':'channel.follow',
+          'twitch-eventsub-subscription-version':'2'
+        },body:bytes,signal:AbortSignal.timeout(8000)
+      });
+    }
+    const challenge = await deliverEventSub('webhook_callback_verification',{
+      subscription,challenge:'ci-eventsub-challenge-123'
+    });
+    assert.equal(challenge.status,200,'Authentic Twitch callback challenges bypass browser origin checks');
+    assert.equal(await challenge.text(),'ci-eventsub-challenge-123');
+    await followPool.query(
+      `insert into twitch_follow_subscriptions
+       (account_id,subscription_id,broadcaster_user_id,status)
+       values($1,$2,$3,'pending')`,
+      [second.data.account.id,subscriptionId,broadcasterId]
+    );
+    const followPayload = {
+      subscription, event:{
+        user_id:'123456',user_name:'CI-Follower',
+        broadcaster_user_id:broadcasterId,
+        followed_at:new Date(Date.now()-5000).toISOString()
+      }
+    };
+    assert.equal((await deliverEventSub('notification',followPayload,{tamper:true})).status,403,
+      'Tampered Twitch events must never be persisted');
+    const unknownSubscription = { ...subscription,id:randomUUID() };
+    assert.equal((await deliverEventSub('notification',{
+      ...followPayload,subscription:unknownSubscription
+    })).status,403,'Signed callbacks for an unknown EventSub subscription cannot inject follows');
+    const validMessageId='ci-valid-twitch-follow-' + randomUUID();
+    const firstFollow=await deliverEventSub('notification',followPayload,{id:validMessageId});
+    assert.equal(firstFollow.status,204,'Authenticated follow notification accepted');
+    const replayFollow=await deliverEventSub('notification',followPayload,{id:validMessageId});
+    assert.equal(replayFollow.status,204,'Repeated Twitch delivery is idempotent');
+    const count=await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    );
+    assert.equal(count.rows[0].n,1,
+      'Replayed webhook messages cannot duplicate the follow alert');
+    const oldTimestamp=new Date(Date.now()-11*60*1000).toISOString();
+    assert.equal((await deliverEventSub('notification',followPayload,{
+      timestamp:oldTimestamp
+    })).status,403,'Authentic but old webhook messages must be rejected');
+    const followStatus=await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:otherCookie
+    });
+    assert.equal(followStatus.data.enabled,true);
+    assert.equal(followStatus.data.permissions_granted,true);
+    assert.equal((await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:created.cookie
+    })).data.connected,false,
+    'One creator must never inherit another creator\'s follow-event subscription');
+
+    for (const [kind,expectedMode] of [
+      ['twitch_latest_follower','latest'],['twitch_follow_alert','alert']
+    ]) {
+      const createdWidget=await request('POST','/api/creator/widget-studio/widgets',{
+        cookie:otherCookie,body:{widget_type:kind,name:'CI '+kind}
+      });
+      assert.equal(createdWidget.status,201,`CI follow widget failed: ${JSON.stringify(createdWidget.data)}`);
+      const widgetId=createdWidget.data.widget.id;
+      const config={widgetType:kind,canvas:{width:620,height:132},
+        elements:[{id:'ci-follower',type:'text',data:{text:'Follower: {{actor}}'}}],
+        settings:{offlineBehavior:'zero'}};
+      const draft=await request('PUT','/api/creator/widget-studio/widgets/'+widgetId+'/draft',{
+        cookie:otherCookie,body:{expected_version:createdWidget.data.widget.version,config}
+      });
+      assert.equal(draft.status,200,`Follow draft failed: ${JSON.stringify(draft.data)}`);
+      const published=await request('POST','/api/creator/widget-studio/widgets/'+widgetId+'/publish',{
+        cookie:otherCookie,body:{expected_version:draft.data.widget.version}
+      });
+      assert.equal(published.status,200);
+      const publicWidget=await request('GET','/api/public/widgets/'+widgetId);
+      assert.equal(publicWidget.status,200);
+      assert.equal(publicWidget.data.widget.definition.provider,'twitch_follow');
+      assert.equal(publicWidget.data.widget.definition.mode,expectedMode);
+      assert.equal(publicWidget.data.events.length,1);
+      assert.equal(publicWidget.data.events[0].actor_name,'CI-Follower');
+      assert.equal(publicWidget.data.data.live.connected,false,
+        'A confirmed follow is not proof of a live stream');
+      assert(!JSON.stringify(publicWidget.data).includes('ci-not-a-real-token'),
+        'OBS output must never expose OAuth credentials');
+      assert.equal((await request('GET','/api/creator/widget-studio/widgets/'+widgetId,{
+        cookie:created.cookie
+      })).status,404,
+      'Follow widget ownership is isolated');
+    }
+    const revoked=await deliverEventSub('revocation',{
+      subscription,subscription_status:'authorization_revoked'
+    });
+    assert.equal(revoked.status,204);
+    assert.equal((await request('GET','/api/creator/twitch/follow-events/status',{
+      cookie:otherCookie
+    })).data.enabled,false);
+    const savedWidgets=(await request('GET','/api/creator/widget-studio/widgets',{
+      cookie:otherCookie
+    })).data.widgets;
+    const followerWidget=savedWidgets.find(w=>w.widget_type==='twitch_latest_follower');
+    const afterRevoke=await request('GET','/api/public/widgets/'+followerWidget.id);
+    assert.deepEqual(afterRevoke.data.events,[],
+      'Revoked EventSub subscriptions cannot continue exposing follower events');
+    assert.equal((await request('POST','/api/creator/twitch/disconnect',{
+      cookie:otherCookie,body:{}
+    })).status,200);
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_events where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,0,'Disconnect removes saved follower names');
+    assert.equal((await followPool.query(
+      'select count(*)::int as n from twitch_follow_subscriptions where account_id=$1',
+      [second.data.account.id]
+    )).rows[0].n,0,'Disconnect revokes local trusted subscription mapping');
+  } finally { await followPool.end(); }
 
   // Scene Studio must own its creation, publication and optimistic revisions.
   assert.equal((await request('POST', '/api/creator/projects', {
