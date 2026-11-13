@@ -52,6 +52,7 @@ export async function createProject(req, body) {
   // Widgets require the dedicated API, which enforces plan quotas and initializes their schema.
   if (kind === "widget") return { error: "USE_WIDGET_STUDIO_API", status: 409 };
   if (kind === "scene") return { error: "USE_SCENE_STUDIO_API", status: 409 };
+  if (kind === "cut") return { error: "USE_CUT_STUDIO_API", status: 409 };
   if (kind === "stream" && body.data?.type === "stream_maker") return { error: "USE_STREAM_MAKER_API", status: 409 };
   if (kind === "design" && ["universal_bundle", "widget_package"].includes(body.data?.type)) return { error: "USE_DESIGN_STUDIO_API", status: 409 };
   if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 };
@@ -77,7 +78,7 @@ export async function updateProject(req, id, body) {
   // Enforce the widget restriction in the UPDATE itself to prevent a check/write race.
   const widgetRestricted = body.data !== undefined || (body.status !== undefined && body.status !== "archived");
   const sceneRestricted = body.name !== undefined || body.data !== undefined || (body.status !== undefined && body.status !== "archived");
-  const restriction = (widgetRestricted ? " and kind <> 'widget'" : "") +
+  const restriction = " and kind <> 'cut'" + (widgetRestricted ? " and kind <> 'widget'" : "") +
     (sceneRestricted ? " and kind <> 'scene'" : "") +
     " and not (kind = 'stream' and coalesce(data->>'type','') = 'stream_maker')" +
     " and not (kind = 'design' and coalesce(data->>'type','') = 'universal_bundle')" +
@@ -85,6 +86,7 @@ export async function updateProject(req, id, body) {
   const result = await getPool().query(`update creator_projects set ${fields.join(", ")} where id = $1 and account_id = $2${restriction} returning id, kind, name, data, status, created_at, updated_at`, values);
   if (result.rows[0]) return { project: result.rows[0] };
   const existing = (await getPool().query("select kind, data->>'type' as project_type from creator_projects where id=$1 and account_id=$2", [id, account.id])).rows[0];
+  if (existing?.kind === "cut") return { error: "USE_CUT_STUDIO_API", status: 409 };
   if (existing?.kind === "stream" && existing.project_type === "stream_maker") return { error: "USE_STREAM_MAKER_API", status: 409 };
   if (existing?.kind === "design" && (existing.project_type === "universal_bundle" || (existing.project_type === "widget_package" && widgetRestricted))) return { error: "USE_DESIGN_STUDIO_API", status: 409 };
   if (widgetRestricted && existing?.kind === "widget") return { error: "USE_WIDGET_STUDIO_API", status: 409 };
