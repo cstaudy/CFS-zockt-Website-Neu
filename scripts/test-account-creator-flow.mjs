@@ -238,6 +238,31 @@ try {
     cookie: created.cookie
   })).status, 200, 'Owner must still access their own widget');
 
+  // Public Twitch timers are explicitly owner-linked. Unlinked creators
+  // must receive an unknown provider state, never the site's global channel.
+  const otherTimerCreated = await request('POST', '/api/creator/widget-studio/widgets', {
+    cookie: otherCookie, body: { name: 'Unlinked Twitch Timer', widget_type: 'twitch_live_timer' }
+  });
+  assert.equal(otherTimerCreated.status, 201);
+  const otherTimerId = otherTimerCreated.data.widget.id;
+  const otherTimerPublished = await request('POST',
+    '/api/creator/widget-studio/widgets/' + otherTimerId + '/publish', {
+      cookie: otherCookie,
+      body: { expected_version: otherTimerCreated.data.widget.version }
+    });
+  assert.equal(otherTimerPublished.status, 200);
+  const otherTimerPublic = await request('GET', '/api/public/widgets/' + otherTimerId);
+  assert.equal(otherTimerPublic.status, 200);
+  assert.equal(otherTimerPublic.data.widget.definition.mode, 'timer');
+  assert.equal(otherTimerPublic.data.widget.definition.source_kind, 'live_provider');
+  assert.equal(otherTimerPublic.data.widget.definition.provider, 'twitch');
+  assert.equal(otherTimerPublic.data.data.live.status, 'unknown',
+    'A timer with no linked Twitch account must not use the global Twitch channel');
+  assert.equal(otherTimerPublic.data.data.live.connected, false);
+  assert.equal(otherTimerPublic.data.data.live.started_at, null);
+  assert.equal(JSON.stringify(otherTimerPublic.data).includes('access_token'), false,
+    'Public OBS output cannot disclose provider credentials');
+
   // Scene Studio must own its creation, publication and optimistic revisions.
   assert.equal((await request('POST', '/api/creator/projects', {
     cookie: created.cookie, body: { kind: 'scene', name: 'Shortcut Scene', data: {} }
