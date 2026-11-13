@@ -531,8 +531,14 @@ async function handle(req, res) {
     const result = await uploadAsset(req, await readRaw(req));
     return result.error ? json(res, result.status, { error: result.error }) : json(res, 201, result);
   }
-  if (url.pathname === "/api/creator/widget-studio/packages" && method === "GET") return json(res, 200, await listPackages(req));
-  if (url.pathname === "/api/creator/widget-studio/packages" && method === "POST") return json(res, 201, await createPackage(req, await readJson(req)));
+  if (url.pathname === "/api/creator/widget-studio/packages" && method === "GET") {
+    const result = await listPackages(req);
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result);
+  }
+  if (url.pathname === "/api/creator/widget-studio/packages" && method === "POST") {
+    const result = await createPackage(req, await readJson(req));
+    return result.error ? json(res, result.status, { error: result.error }) : json(res, 201, result);
+  }
   if (url.pathname === "/api/creator/shop/catalog" && method === "GET") { const result = await listShopCatalog(req); return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result); }
   const shopBundleMatch = url.pathname.match(/^\/api\/creator\/shop\/bundles\/([^/]+)\/convert$/);
   if (shopBundleMatch && method === "POST") { const result = await convertBundle(req, decodeURIComponent(shopBundleMatch[1])); return result.error ? json(res, result.status, { error: result.error }) : json(res, 200, result); }
