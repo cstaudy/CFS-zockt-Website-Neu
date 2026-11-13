@@ -53,6 +53,7 @@ export async function createProject(req, body) {
   if (kind === "widget") return { error: "USE_WIDGET_STUDIO_API", status: 409 };
   if (kind === "scene") return { error: "USE_SCENE_STUDIO_API", status: 409 };
   if (kind === "stream" && body.data?.type === "stream_maker") return { error: "USE_STREAM_MAKER_API", status: 409 };
+  if (kind === "design" && ["universal_bundle", "widget_package"].includes(body.data?.type)) return { error: "USE_DESIGN_STUDIO_API", status: 409 };
   if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 };
   const data = projectData(body.data ?? {});
   if (data === null) return { error: "INVALID_PROJECT_DATA", status: 400 };
@@ -68,6 +69,7 @@ export async function updateProject(req, id, body) {
   const values = [id, account.id];
   if (body.name !== undefined) { const name = String(body.name).trim(); if (!name || name.length > 160) return { error: "INVALID_PROJECT_NAME", status: 400 }; values.push(name); fields.push(`name = $${values.length}`); }
   if (body.data !== undefined && body.data?.type === "stream_maker") return { error: "USE_STREAM_MAKER_API", status: 409 };
+  if (body.data !== undefined && ["universal_bundle", "widget_package"].includes(body.data?.type)) return { error: "USE_DESIGN_STUDIO_API", status: 409 };
   if (body.data !== undefined) { const data = projectData(body.data); if (data === null) return { error: "INVALID_PROJECT_DATA", status: 400 }; values.push(data); fields.push(`data = $${values.length}::jsonb`); }
   if (body.status !== undefined) { if (!statuses.has(String(body.status))) return { error: "INVALID_PROJECT_STATUS", status: 400 }; values.push(String(body.status)); fields.push(`status = $${values.length}`); }
   if (!fields.length) return { error: "NO_CHANGES", status: 400 };
@@ -77,11 +79,14 @@ export async function updateProject(req, id, body) {
   const sceneRestricted = body.name !== undefined || body.data !== undefined || (body.status !== undefined && body.status !== "archived");
   const restriction = (widgetRestricted ? " and kind <> 'widget'" : "") +
     (sceneRestricted ? " and kind <> 'scene'" : "") +
-    " and not (kind = 'stream' and data->>'type' = 'stream_maker')";
+    " and not (kind = 'stream' and data->>'type' = 'stream_maker')" +
+    " and not (kind = 'design' and data->>'type' = 'universal_bundle')" +
+    (widgetRestricted ? " and not (kind = 'design' and data->>'type' = 'widget_package')" : "");
   const result = await getPool().query(`update creator_projects set ${fields.join(", ")} where id = $1 and account_id = $2${restriction} returning id, kind, name, data, status, created_at, updated_at`, values);
   if (result.rows[0]) return { project: result.rows[0] };
   const existing = (await getPool().query("select kind, data->>'type' as project_type from creator_projects where id=$1 and account_id=$2", [id, account.id])).rows[0];
   if (existing?.kind === "stream" && existing.project_type === "stream_maker") return { error: "USE_STREAM_MAKER_API", status: 409 };
+  if (existing?.kind === "design" && (existing.project_type === "universal_bundle" || (existing.project_type === "widget_package" && widgetRestricted))) return { error: "USE_DESIGN_STUDIO_API", status: 409 };
   if (widgetRestricted && existing?.kind === "widget") return { error: "USE_WIDGET_STUDIO_API", status: 409 };
   if (sceneRestricted && existing?.kind === "scene") return { error: "USE_SCENE_STUDIO_API", status: 409 };
   return { error: "PROJECT_NOT_FOUND", status: 404 };
