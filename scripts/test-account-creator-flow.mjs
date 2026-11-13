@@ -673,7 +673,7 @@ try {
   assert.equal(psOwner.data.launcher_online, true);
   assert.equal(psOwner.data.active_game, null,
     'Historical game activity must not fabricate a currently active game');
-  assert.match(psOwner.data.last_synced_at, /^\\d{4}-\\d{2}-\\d{2}T/);
+  assert.match(psOwner.data.last_synced_at, /^\d{4}-\d{2}-\d{2}T/);
 
   assert.equal(psOwner.data.profile.platform, 'PS5');
   assert.equal(psOwner.data.game_catalog.length, 1);
