@@ -1084,6 +1084,165 @@ try {
     assert.equal((await request('PUT', saveUrl, {
       cookie: psCookie, body: raceSnapshot
     })).status, 409, 'Atomic endpoint must not overwrite an intervening legacy clip edit');
+    // Cut Studio browser contract: full editor metadata, clip rows and exact
+    // PostgreSQL versions are visible and kept in sync across structural edits.
+    const editorLoaded = await request('GET', cutUrl, { cookie: psCookie });
+    assert.equal(editorLoaded.status, 200);
+    assert.equal(editorLoaded.data.project.version, 5);
+    assert.equal(editorLoaded.data.project.notes, 'new project note',
+      'Editor needs its project metadata at the top level');
+    assert.equal(editorLoaded.data.clips.length, 1,
+      'Editor must receive clips as a top-level response array');
+    assert.equal((await request('POST', cutUrl + '/clips', {
+      cookie: psCookie, body: {
+        label: 'Stale UI create', in_ms: 0, out_ms: 1000,
+        base_updated_at: afterAtomic.updated_at
+      }
+    })).status, 409, 'Stale browser revisions must not create a clip');
+    assert.equal((await request('POST', cutUrl + '/clips', {
+      cookie: psCookie, body: {
+        label: 'Invalid clip range', in_ms: 1600, out_ms: 1400
+      }
+    })).status, 400, 'Invalid browser clip range must be rejected');
+    const secondCutClip = await request('POST', cutUrl + '/clips', {
+      cookie: psCookie, body: {
+        label: 'Outro', id: firstClip.id, updated_at: '1970-01-01T00:00:00Z',
+        base_updated_at: editorLoaded.data.project.updated_at,
+        in_ms: 0, out_ms: 3000
+      }
+    });
+    assert.equal(secondCutClip.status, 201,
+      'Adding another valid clip must succeed: ' + JSON.stringify(secondCutClip.data));
+    assert.notEqual(secondCutClip.data.clip.id, firstClip.id,
+      'Client cannot spoof a clip UUID or duplicate a clip');
+    assert.notEqual(secondCutClip.data.clip.updated_at, '1970-01-01T00:00:00Z',
+      'Clip revision must be server-generated');
+    assert.equal(secondCutClip.data.project_version, 6);
+    const twoClips = (await request('GET', cutUrl, { cookie: psCookie })).data;
+    assert.equal(twoClips.project.version, secondCutClip.data.project_version);
+    assert.equal(Date.parse(twoClips.project.updated_at),
+      Date.parse(secondCutClip.data.project_updated_at),
+      'Client must receive the real database update timestamp');
+    assert.equal(twoClips.clips.length, 2);
+    assert.equal((await request('PUT', cutUrl + '/clips/order', {
+      cookie: psCookie, body: { clip_ids: [firstClip.id, firstClip.id] }
+    })).status, 400, 'Duplicate ordering IDs cannot delete a clip');
+    assert.equal((await request('PUT', cutUrl + '/clips/order', {
+      cookie: psCookie, body: {
+        clip_ids: twoClips.clips.map(x => x.id),
+        base_updated_at: editorLoaded.data.project.updated_at
+      }
+    })).status, 409, 'Stale reorder requests must not overwrite the timeline');
+    const reorderClipIds = twoClips.clips.map(x => x.id).reverse();
+    const reorderedCut = await request('PUT', cutUrl + '/clips/order', {
+      cookie: psCookie, body: {
+        clip_ids: reorderClipIds,
+        base_updated_at: twoClips.project.updated_at
+      }
+    });
+    assert.equal(reorderedCut.status, 200);
+    assert.equal(reorderedCut.data.project_version, 7);
+    assert.deepEqual(reorderedCut.data.clips.map(x => x.id), reorderClipIds);
+    const afterOrder = (await request('GET', cutUrl, { cookie: psCookie })).data;
+    assert.equal(afterOrder.project.version, 7);
+    const selectedClip = afterOrder.clips[0];
+    assert.equal((await request('PUT', cutUrl + '/clips/' + selectedClip.id, {
+      cookie: psCookie, body: {
+        project_base_updated_at: afterOrder.project.updated_at,
+        clip_base_updated_at: selectedClip.updated_at,
+        in_ms: 4000, out_ms: 3000
+      }
+    })).status, 400);
+    const updatedCutClip = await request('PUT', cutUrl + '/clips/' + selectedClip.id, {
+      cookie: psCookie, body: {
+        project_base_updated_at: afterOrder.project.updated_at,
+        clip_base_updated_at: selectedClip.updated_at,
+        caption: 'Reviewed new caption'
+      }
+    });
+    assert.equal(updatedCutClip.status, 200);
+    assert.equal(updatedCutClip.data.project_version, 8);
+    assert.equal(updatedCutClip.data.clip.caption, 'Reviewed new caption');
+    const afterClipUpdate = (await request('GET', cutUrl, { cookie: psCookie })).data;
+    assert.equal((await request('DELETE', cutUrl + '/clips/' + selectedClip.id, {
+      cookie: psCookie, body: {
+        project_base_updated_at: afterClipUpdate.project.updated_at,
+        clip_base_updated_at: selectedClip.updated_at
+      }
+    })).status, 409, 'Deleting an edited clip needs its latest clip revision');
+    const deletedCutClip = await request('DELETE', cutUrl + '/clips/' + selectedClip.id, {
+      cookie: psCookie, body: {
+        project_base_updated_at: afterClipUpdate.project.updated_at,
+        clip_base_updated_at: updatedCutClip.data.clip.updated_at
+      }
+    });
+    assert.equal(deletedCutClip.status, 200);
+    assert.equal(deletedCutClip.data.project_version, 9);
+    const afterDelete = (await request('GET', cutUrl, { cookie: psCookie })).data;
+    assert.equal(afterDelete.clips.length, 1);
+    assert.equal(afterDelete.project.version, 9);
+    const concurrentCutAdds = await Promise.all(['Parallel A', 'Parallel B'].map(label =>
+      request('POST', cutUrl + '/clips', {
+        cookie: psCookie,
+        body: { label, in_ms: 0, out_ms: 1000,
+          base_updated_at: afterDelete.project.updated_at }
+      })
+    ));
+    assert.deepEqual(concurrentCutAdds.map(x => x.status).sort((a, b) => a - b),
+      [201, 409], 'Parallel clip creates cannot both overwrite the same project revision');
+    const afterAdds = (await request('GET', cutUrl, { cookie: psCookie })).data;
+    assert.equal(afterAdds.clips.length, 2);
+    assert.equal(afterAdds.project.version, 10);
+    // Project settings use the dedicated API; they must never drop timeline
+    // clips or bypass the same revision guard through generic CRUD.
+    assert.equal((await request('POST', '/api/creator/projects', {
+      cookie: psCookie, body: { kind: 'cut', name: 'Generic bypass', data: {} }
+    })).status, 409, 'Cut projects cannot be created through generic project APIs');
+    assert.equal((await request('PATCH', '/api/creator/projects/' + atomicCutId, {
+      cookie: psCookie, body: { data: { clips: [] } }
+    })).status, 409, 'Generic updates cannot silently remove existing cut clips');
+    assert.equal((await request('DELETE', '/api/creator/projects/' + atomicCutId, {
+      cookie: psCookie
+    })).status, 409, 'Generic delete cannot bypass Cut revision checks');
+    assert.equal((await request('PUT', cutUrl, {
+      cookie: psCookie,
+      body: { title: 'No clips allowed', base_updated_at: afterAdds.project.updated_at,
+        clips: [] }
+    })).status, 409, 'Project settings updates must not accept a replacement clip list');
+    assert.equal((await request('PUT', cutUrl, {
+      cookie: otherCookie,
+      body: { title: 'Foreign settings', base_updated_at: afterAdds.project.updated_at }
+    })).status, 404, 'Foreign creator cannot update settings');
+    const settingsSave = await request('PUT', cutUrl, {
+      cookie: psCookie, body: {
+        title: 'Cut UI settings saved', notes: 'settings-only edit',
+        base_updated_at: afterAdds.project.updated_at,
+        expected_version: afterAdds.project.version
+      }
+    });
+    assert.equal(settingsSave.status, 200,
+      'Dedicated settings save failed: ' + JSON.stringify(settingsSave.data));
+    assert.equal(settingsSave.data.project.version, 11);
+    const afterSettings = (await request('GET', cutUrl, { cookie: psCookie })).data;
+    assert.equal(afterSettings.project.name, 'Cut UI settings saved');
+    assert.equal(afterSettings.project.notes, 'settings-only edit');
+    assert.equal(afterSettings.clips.length, 2,
+      'Saving settings must preserve all existing timeline clips');
+    assert.equal((await request('PUT', cutUrl, {
+      cookie: psCookie,
+      body: { title: 'Stale settings', base_updated_at: afterAdds.project.updated_at }
+    })).status, 409, 'Stale project settings must not overwrite recent timeline work');
+    assert.equal((await request('DELETE', cutUrl, {
+      cookie: psCookie, body: { base_updated_at: afterAdds.project.updated_at }
+    })).status, 409, 'Stale archive must not delete a newly edited Cut project');
+    assert.equal((await request('DELETE', cutUrl, {
+      cookie: psCookie, body: { base_updated_at: afterSettings.project.updated_at,
+        expected_version: afterSettings.project.version }
+    })).status, 200, 'Project owner can archive after confirming current revision');
+    assert.equal((await request('GET', cutUrl, { cookie: psCookie })).status, 404,
+      'Archived Cut project must disappear from owner access');
+
+
 
 
     assert.equal((await request('POST', '/api/launcher/playstation/sync', {
