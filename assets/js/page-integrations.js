@@ -40,6 +40,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   } catch (_) {}
 
+  const followStatus = document.getElementById("twitchFollowStatus");
+  const followEnable = document.getElementById("twitchFollowEnable");
+  const followReconnect = document.getElementById("twitchFollowReconnect");
+
+  async function checkTwitchFollowEvents(connected) {
+    if (followEnable) followEnable.hidden = true;
+    if (followReconnect) followReconnect.hidden = true;
+    if (!followStatus) return;
+    if (!connected) {
+      followStatus.textContent = "Follow-Events nicht aktiv: zuerst Twitch verbinden.";
+      return;
+    }
+    try {
+      const state = await CFS.json("/api/creator/twitch/follow-events/status");
+      if (state.needs_reauthorization) {
+        followStatus.textContent = "Twitch muss die Berechtigung moderator:read:followers erst bestätigen.";
+        if (followReconnect) followReconnect.hidden = false;
+      } else if (!state.configured) {
+        followStatus.textContent = "Follow-Events sind serverseitig noch nicht konfiguriert.";
+      } else if (state.subscription_status === "enabled") {
+        followStatus.textContent = "Twitch-Follow-Events bestätigt. Nur echte, signierte Follow-Nachrichten werden an Widgets weitergegeben.";
+      } else if (state.subscription_status === "pending") {
+        followStatus.textContent = "EventSub-Verifizierung bei Twitch ausstehend. Noch keine Live-Follow-Events verfügbar.";
+      } else {
+        followStatus.textContent = "Noch keine bestätigte EventSub-Subscription. Follow-Events können gesondert aktiviert werden.";
+        if (followEnable) followEnable.hidden = false;
+      }
+    } catch (_) {
+      followStatus.textContent = "Follow-Event-Status kann derzeit nicht geprüft werden.";
+    }
+  }
+  if (followEnable) followEnable.addEventListener("click", async () => {
+    followEnable.disabled = true;
+    try {
+      await CFS.json("/api/creator/twitch/follow-events/enable", { method: "POST", body: "{}" });
+      await checkTwitchFollowEvents(true);
+    } catch(error) {
+      actionError(error, "Twitch-Follow-Subscription konnte nicht eingerichtet werden");
+    } finally {
+      followEnable.disabled = false;
+    }
+  });
+
   const twitchRetryButton = document.getElementById("twitchRetry");
   let checkingTwitch = false;
   async function checkTwitchStatus() {
@@ -66,6 +109,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (twitchConnect) twitchConnect.hidden = betaBlocked || tw.connected || !tw.configured;
     if (twitchSync) twitchSync.hidden = betaBlocked || !tw.connected;
     if (twitchDisconnect) twitchDisconnect.hidden = !tw.connected;
+    await checkTwitchFollowEvents(tw.connected && !betaBlocked);
     if (twitchSync) twitchSync.onclick = async () => {
       twitchSync.disabled = true;
       try { await CFS.json("/api/creator/twitch/sync",{method:"POST",body:"{}"}); location.reload(); }
@@ -80,6 +124,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch(error) {
       if (twitchIntegrationStatus) twitchIntegrationStatus.textContent = "Twitch-Status derzeit nicht prüfbar. Keine Verbindung wurde geändert. Bitte erneut prüfen.";
       if (twitchIntegrationBadge) twitchIntegrationBadge.textContent = "NICHT ERREICHBAR";
+      if (followEnable) followEnable.hidden = true;
+      if (followReconnect) followReconnect.hidden = true;
+      if (followStatus) followStatus.textContent = "Twitch-Follow-Status derzeit nicht erreichbar.";
       if (twitchRetryButton) twitchRetryButton.hidden = false;
     } finally {
       checkingTwitch = false;
