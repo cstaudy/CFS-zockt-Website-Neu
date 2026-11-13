@@ -119,7 +119,7 @@ export async function login({ email, password }) {
   const token = randomBytes(32).toString("base64url");
   await pool.query("insert into sessions (account_id, token_hash, expires_at) values ($1, $2, now() + ($3 || ' days')::interval)", [account.id, tokenHash(token), String(sessionDays)]);
   delete account.password_hash;
-  account.role = isAdminEmail(account.email) ? "admin" : "creator";
+  account.role = account.email_verified_at && isAdminEmail(account.email) ? "admin" : "creator";
   return { account, token, maxAge: sessionDays * 86400 };
 }
 
@@ -131,7 +131,7 @@ export async function currentAccount(req) {
   if (!result.rows[0]) return null;
   await pool.query("update sessions set last_seen_at = now() where token_hash = $1", [tokenHash(token)]);
   const account = result.rows[0];
-  account.role = isAdminEmail(account.email) ? "admin" : "creator";
+  account.role = account.email_verified_at && isAdminEmail(account.email) ? "admin" : "creator";
   return account;
 }
 
