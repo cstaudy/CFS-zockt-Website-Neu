@@ -375,9 +375,14 @@ try {
     cookie: otherCookie
   })).status, 404, 'Foreign account cannot read a Cut timeline');
   const newClip = await request('POST', '/api/creator/cut-studio/projects/' + cutId + '/clips', {
-    cookie: created.cookie, body: { label: 'First Clip', in_ms: 0, out_ms: 15000 }
+    cookie: created.cookie, body: { label: 'First Clip', in_ms: 0, out_ms: 15000, id: 'attacker-defined-id', updated_at: '2000-01-01T00:00:00.000Z' }
   });
   assert.equal(newClip.status, 201, `Cut clip create failed: ${JSON.stringify(newClip.data)}`);
+  assert.match(newClip.data.clip.id, /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i, "Cut clip IDs must be server-generated");
+  assert.notEqual(newClip.data.clip.updated_at, "2000-01-01T00:00:00.000Z", "Client timestamps cannot replace server clip revisions");
+  assert.equal((await request("POST", "/api/creator/cut-studio/projects/" + cutId + "/clips", {
+    cookie: created.cookie, body: { label:"Bad negative clip", in_ms:-1, out_ms:5000 }
+  })).status, 400, "Clip bounds must be checked server-side");
   const cutAfterClip = await request('GET', '/api/creator/cut-studio/projects/' + cutId, {
     cookie: created.cookie
   });
