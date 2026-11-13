@@ -85,6 +85,29 @@ export async function handleTwitchEventSub(req, rawBody) {
       [broadcasterId]
     );
     if (!found.rows[0]) return { error: "EVENTSUB_BROADCASTER_NOT_LINKED", status: 403 };
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `insert into twitch_follow_challenges (subscription_id,broadcaster_user_id)
+         values($1,$2)
+         on conflict(subscription_id) do update set verified_at=now()
+         where twitch_follow_challenges.broadcaster_user_id=excluded.broadcaster_user_id`,
+        [subscription.id, broadcasterId]
+      );
+      await client.query(
+        `update twitch_follow_subscriptions set status='enabled',updated_at=now()
+         where subscription_id=$1 and broadcaster_user_id=$2 and status='pending'`,
+        [subscription.id, broadcasterId]
+      );
+      await client.query(
+        "delete from twitch_follow_challenges where verified_at < now()-interval '7 days'"
+      );
+      await client.query("COMMIT");
+    } catch(error) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw error;
+    } finally { client.release(); }
     return { challenge: payload.challenge, status: 200 };
   }
   if (type === "revocation") {
