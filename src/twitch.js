@@ -1,6 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { getPool } from "./db.js";
 import { currentAccount, cookie } from "./auth.js";
+import { disableTwitchFollowForAccount } from "./twitch-follow-subscriptions.js";
 
 const redirectUri=()=>process.env.TWITCH_REDIRECT_URI||`${process.env.APP_BASE_URL||"https://cfs-zockt.de"}/auth/twitch/callback`;
 const key=()=>process.env.SESSION_SECRET?createHash("sha256").update(process.env.SESSION_SECRET).digest():null;
@@ -15,13 +16,13 @@ export async function disconnectTwitch(req){
   try {
     await client.query("BEGIN");
     await client.query("select id from accounts where id=$1 for update",[account.id]);
-    // Remove locally trusted subscriptions and personal follow history
-    // before removing the provider credential. Old Twitch callbacks fail closed.
-    await client.query("delete from twitch_follow_events where account_id=$1",[account.id]);
-    await client.query("delete from twitch_follow_subscriptions where account_id=$1",[account.id]);
+    // Stop local follow output even when Twitch is unreachable. Failed
+    // provider deletion remains a revoked record so it can be retried.
+    const cleanup=await disableTwitchFollowForAccount(client,account.id);
     const result=await client.query("delete from twitch_connections where account_id=$1 returning account_id",[account.id]);
     await client.query("COMMIT");
-    return {ok:true,disconnected:Boolean(result.rowCount)};
+    return {ok:true,disconnected:Boolean(result.rowCount),
+      follow_events_disabled:true,provider_cleanup_pending:cleanup.cleanup_pending};
   } catch(error) {
     await client.query("ROLLBACK").catch(()=>{});
     throw error;
