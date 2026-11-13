@@ -8,7 +8,7 @@ const ALLOWED_SETTINGS = new Set(["goal", "manualValue", "offlineBehavior"]);
 const safeNumber = (value, fallback, min, max) => Number.isFinite(Number(value)) ? Math.max(min, Math.min(max, Number(value))) : fallback;
 const safeColor = value => typeof value === "string" && /^(?:#[0-9a-f]{3,8}|transparent|rgba?\([0-9., %]+\))$/i.test(value) ? value : "transparent";
 function safeElement(e) {
-  const st = e.style || {};
+  const st = e.style && typeof e.style === "object" && !Array.isArray(e.style) ? e.style : {};
   return {
     id: String(e.id ?? "").slice(0, 80), type: e.type, visible: e.visible !== false,
     position: { x: safeNumber(e.position?.x, 0, -4000, 4000), y: safeNumber(e.position?.y, 0, -4000, 4000) },
@@ -34,10 +34,10 @@ export function publicWidgetPayload(row) {
       width: safeNumber(published.canvas.width, 620, 1, 4000), height: safeNumber(published.canvas.height, 132, 1, 4000), background: safeColor(published.canvas.background)
     } : {},
     elements: Array.isArray(published.elements)
-      ? published.elements.filter(e => e && ALLOWED_ELEMENTS.has(e.type)).slice(0, 100).map(safeElement)
+      ? published.elements.filter(e => e && typeof e === "object" && !Array.isArray(e) && ALLOWED_ELEMENTS.has(e.type)).slice(0, 100).map(safeElement)
       : [],
     outputs: {}, // placement settings require a separate validated schema
-    settings: Object.fromEntries(Object.entries(published.settings && typeof published.settings === "object" ? published.settings : {}).filter(([key]) => ALLOWED_SETTINGS.has(key)).map(([key, value]) => [key, key === "offlineBehavior" ? (value === "zero" ? "zero" : "hold") : safeNumber(value, 0, 0, 1000000000)]))
+    settings: Object.fromEntries(Object.entries(published.settings && typeof published.settings === "object" && !Array.isArray(published.settings) ? published.settings : {}).filter(([key]) => ALLOWED_SETTINGS.has(key)).map(([key, value]) => [key, key === "offlineBehavior" ? (value === "zero" ? "zero" : "hold") : safeNumber(value, 0, 0, 1000000000)]))
   };
   return { widget: { id: row.id, config, definition: { source_kind: published.widgetType === "manual_counter" ? "manual" : "static", mode: published.widgetType === "manual_counter" ? "manual_counter" : "static" } }, data: { profile: {}, live: {}, bridge: {} } };
 }
