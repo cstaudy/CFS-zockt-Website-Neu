@@ -595,6 +595,12 @@ try {
       cookie: psCookie
     })).data;
     assert.equal(firstState.connected, true);
+    assert.equal(firstState.online, true,
+      'A just-synced active launcher should be presented as online');
+    assert.equal(firstState.sync_state, 'current',
+      'Recently synced PlayStation data must be reported current');
+    assert.equal(firstState.active_game, null,
+      'Previously recorded game history cannot prove a live game');
     assert.equal(firstState.game_catalog.length, 1);
     assert.equal(firstState.videos.length, 1);
     const initialVideoId = firstState.videos[0].id;
@@ -665,6 +671,41 @@ try {
     assert.equal((await request('POST', '/api/launcher/playstation/sync', {
       extraHeaders: bridge(deviceTwo), body: { profile: { display_name: 'Still connected' } }
     })).status, 200, 'A separate active paired device may continue syncing');
+    const currentPs = (await request('GET', '/api/creator/playstation', {
+      cookie: psCookie
+    })).data;
+    assert.equal(currentPs.sync_state, 'current');
+    assert.equal(currentPs.online, true);
+    // These mutations target only the locally disposable CI database.
+    // Historical account activity must never be misrepresented as live status.
+    await testPool.query(
+      "update launcher_devices set last_seen_at=now()-interval '5 minutes' where id=$1",
+      [deviceTwo]
+    );
+    const offlinePs = (await request('GET', '/api/creator/playstation', {
+      cookie: psCookie
+    })).data;
+    assert.equal(offlinePs.sync_state, 'offline');
+    assert.equal(offlinePs.online, false);
+    assert.equal(offlinePs.active_game, null);
+    assert.equal(offlinePs.game_catalog.length, 1,
+      'Going offline preserves historical games');
+    await testPool.query(
+      "update launcher_devices set last_seen_at=now() where id=$1",
+      [deviceTwo]
+    );
+    await testPool.query(
+      "update creator_playstation_profiles set updated_at=now()-interval '15 minutes' where account_id=$1",
+      [created.data.account.id]
+    );
+    const stalePs = (await request('GET', '/api/creator/playstation', {
+      cookie: psCookie
+    })).data;
+    assert.equal(stalePs.sync_state, 'stale');
+    assert.equal(stalePs.launcher_online, true);
+    assert.equal(stalePs.online, false);
+    assert.equal(stalePs.last_synced_at !== null, true);
+    assert.equal(stalePs.active_game, null);
 
   } finally {
     await testPool.end();
