@@ -104,11 +104,21 @@
 
     const facts = element("div", "gaming-game-facts");
     facts.appendChild(element("span", "", platformLabel(game?.platform)));
-    const lifetimePlaytime = game?.source === "playstation_network" || game?.playtime_scope === "lifetime";
-    facts.appendChild(element("span", "", lifetimePlaytime ? `GESAMT · ${formatMinutes(game?.minutes)}` : `${formatMinutes(game?.minutes)} · ${windowDays} TAGE`));
-    const sessions = Math.max(0, Math.round(Number(game?.sessions) || 0));
-    const sessionLabel = game?.source === "playstation_network" ? (sessions === 1 ? "Start" : "Starts") : (sessions === 1 ? "Session" : "Sessions");
-    facts.appendChild(element("span", "", `${sessions} ${sessionLabel}`));
+    const hasMinutes = game?.minutes !== undefined && game?.minutes !== null &&
+      Number.isFinite(Number(game.minutes)) && Number(game.minutes) >= 0;
+    const hasSessions = game?.sessions !== undefined && game?.sessions !== null &&
+      Number.isFinite(Number(game.sessions)) && Number(game.sessions) >= 0;
+    if (hasMinutes) {
+      const lifetimePlaytime = game?.source === "playstation_network" || game?.playtime_scope === "lifetime";
+      facts.appendChild(element("span", "", lifetimePlaytime
+        ? `GESAMT · ${formatMinutes(game.minutes)}`
+        : `${formatMinutes(game.minutes)} · ${windowDays} TAGE`));
+    }
+    if (hasSessions) {
+      const sessions = Math.max(0, Math.round(Number(game.sessions)));
+      const sessionLabel = game?.source === "playstation_network" ? (sessions === 1 ? "Start" : "Starts") : (sessions === 1 ? "Session" : "Sessions");
+      facts.appendChild(element("span", "", `${sessions} ${sessionLabel}`));
+    }
     copy.appendChild(facts);
 
     const last = element("p", "gaming-game-last");
@@ -169,9 +179,13 @@
     } else cover.append(element("span", "", initialsForGame(game.name)));
     const description=element("div", "r107-other-description");
     description.append(element("strong", "", game.name));
-    description.append(element("small", "", `${platformLabel(game.platform)} · Zuletzt ${formatLastPlayed(game.last_played_at)}`));
+    description.append(element("small", "", game.last_played_at && Number.isFinite(Date.parse(game.last_played_at))
+      ? `${platformLabel(game.platform)} · Zuletzt ${formatLastPlayed(game.last_played_at)}`
+      : `${platformLabel(game.platform)} · Im Katalog (kein Spielzeitpunkt bekannt)`));
     row.append(cover, description);
-    if (Number.isFinite(Number(game.minutes))) row.append(element("span", "r107-other-time", formatMinutes(game.minutes)));
+    if (game.minutes !== undefined && game.minutes !== null &&
+        Number.isFinite(Number(game.minutes)) && Number(game.minutes) >= 0)
+      row.append(element("span", "r107-other-time", formatMinutes(game.minutes)));
     return row;
   }
 
@@ -188,8 +202,10 @@
     // recent = chronological provider history; games = other confirmed titles.
     // Some older APIs return three or fewer recent games but provide more in games.
     const confirmed=r107SortGames([...(payload?.recent||[]), ...(payload?.games||[])]);
-    const recent=confirmed.slice(0,4);
-    const other=confirmed.slice(4);
+    const dated=confirmed.filter(game => game.last_played_at && Number.isFinite(Date.parse(game.last_played_at)));
+    const recent=dated.slice(0,4);
+    const recentKeys=new Set(recent.map(r107GameIdentity));
+    const other=confirmed.filter(game => !recentKeys.has(r107GameIdentity(game)));
     const active=payload?.active?.game_name ? payload.active : null;
     const playtimeScope=String(payload?.playtime_scope || "rolling_window");
     const windowDays=Math.max(1,Math.round(Number(payload?.window_days)||14));
@@ -211,14 +227,21 @@
     if(meta){
       if(active){meta.textContent=`JETZT AKTIV · ${active.game_name} · ${platformLabel(active.platform)} · ${formatElapsed(active.elapsed_seconds)}`; meta.classList.add("is-active");}
       else if(recent.length){
-        const source=payload?.source==="playstation_network"?"PlayStation Network":"CFS Launcher";
-        meta.textContent=`${source} · ${recent.length} zuletzt gespielt${payload?.stale?" · Daten möglicherweise veraltet":""}`;
+        const source=payload?.source==="playstation_network"?"PlayStation Network"
+          : payload?.source==="launcher_playstation"?"PlayStation / CFS Launcher":"CFS Launcher";
+        const freshness=payload?.sync_state==="offline"?" · Launcher offline"
+          : payload?.sync_state==="stale"?" · Daten veraltet"
+          : payload?.sync_state==="unavailable"?" · Aktualität nicht bestätigt"
+          : payload?.stale?" · Daten möglicherweise veraltet":"";
+        meta.textContent=`${source} · ${recent.length} zuletzt gespielt${freshness}`;
         meta.classList.remove("is-active");
       } else {meta.textContent="Noch keine bestätigte Spielaktivität";meta.classList.remove("is-active");}
     }
-    if(note){note.textContent=payload?.source==="playstation_network"
-      ? "PlayStation: verbundene Titel mit letzter Aktivität. Weitere Spiele erscheinen, soweit von der Schnittstelle geliefert."
-      : `CFS Launcher: erfasste Sessions der letzten ${windowDays} Tage. Nicht erkannte Spiele werden nicht erfunden.`;}
+    if(note){note.textContent=payload?.source==="launcher_playstation"
+      ? "PlayStation / Launcher: nur gespeicherte Historie, keine bestätigte Live-Aktivität oder Spielzeit."
+      : payload?.source==="playstation_network"
+        ? "PlayStation: verbundene Titel mit letzter Aktivität. Weitere Spiele erscheinen, soweit von der Schnittstelle geliefert."
+        : `CFS Launcher: erfasste Sessions der letzten ${windowDays} Tage. Nicht erkannte Spiele werden nicht erfunden.`;}
   }
 
   function renderGamesError() {
@@ -533,6 +556,34 @@
     };
   }
 
+  function applyPublicGames(data) {
+    if (!data || data.ok !== true) { renderGamesError(); return; }
+    renderRecentGames(data);
+    const dated = r107SortGames([...(data.recent || []), ...(data.games || [])])
+      .filter(game => game.last_played_at && Number.isFinite(Date.parse(game.last_played_at)));
+    const latestGame = document.getElementById("statLatestGame");
+    const latestGameLabel = document.getElementById("statLatestGameLabel");
+    const gameTime = document.getElementById("statGameTime");
+    const gameTimeLabel = document.getElementById("statGameTimeLabel");
+    const footerRecentGames = document.getElementById("footerRecentGames");
+    if (gameTime) gameTime.textContent = "—";
+    if (gameTimeLabel) gameTimeLabel.textContent = "Spielzeit nicht erfasst";
+    if (latestGame) latestGame.textContent = dated[0]?.name || "—";
+    if (latestGameLabel) latestGameLabel.textContent = dated.length ? "zuletzt gespielt" : "noch keine Aktivität";
+    if (footerRecentGames) footerRecentGames.textContent = dated.length ? String(Math.min(dated.length, 4)) : "—";
+    if (latestLiveSession) renderLiveSession(latestLiveSession);
+  }
+
+  async function loadPublicGames() {
+    try {
+      const response = await fetch("/api/public/games", { headers: { Accept: "application/json" }, cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      applyPublicGames(await response.json());
+    } catch {
+      renderGamesError();
+    }
+  }
+
   async function loadCreatorState() {
     try {
       const response = await fetch("/api/public/creator-state", { headers: { Accept: "application/json" }, cache: "no-store" });
@@ -565,9 +616,14 @@
     sections.forEach(item => observer.observe(item.section));
   }
 
+  async function refreshPublicData() {
+    await loadCreatorState();
+    await loadPublicGames();
+  }
+
   function init() {
-    loadCreatorState();
-    window.setInterval(loadCreatorState, 15000);
+    refreshPublicData();
+    window.setInterval(refreshPublicData, 15000);
     initSectionNavigation();
   }
 
