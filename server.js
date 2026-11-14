@@ -188,9 +188,18 @@ async function serveStatic(req, res) {
   try {
     const info = await stat(filePath);
     if (!info.isFile()) return json(res, 404, { error: "NOT_FOUND" });
+    // The Stream Maker OBS page carries a revocable signed bearer capability
+    // in its URL query. Never send that URL as a Referer even to same-origin
+    // CSS/JS/image requests, and never persist the page in browser caches.
+    const signedObsPage = pathname === "/widgets/stream-maker.html";
+    if (signedObsPage) {
+      res.setHeader("referrer-policy", "no-referrer");
+      res.setHeader("x-robots-tag", "noindex, nofollow, noarchive");
+    }
     res.writeHead(200, {
       "content-type": mimeTypes[extname(filePath).toLowerCase()] || "application/octet-stream",
-      "cache-control": isUpload ? "private, no-store" : extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
+      "cache-control": signedObsPage ? "no-store" :
+        isUpload ? "private, no-store" : extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
     });
     if (req.method === "HEAD") return res.end();
     createReadStream(filePath).pipe(res);
