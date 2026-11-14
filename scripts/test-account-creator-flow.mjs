@@ -797,6 +797,32 @@ try {
   assert.equal(assetsAfterEmpty.data.assets.length, assetsBeforeEmpty.data.assets.length,
     'Rejected empty asset upload must not insert metadata');
 
+  // No Content-Length: exercise the actual authenticated server route using
+  // Transfer-Encoding: chunked. The streaming parser must reject >16 MiB.
+  const filesBeforeChunked = await uploadFilesIfPresent();
+  let chunkIndex = 0;
+  const chunkSizes = [8 * 1024 * 1024, 8 * 1024 * 1024, 1];
+  const chunkedResponse = await fetch(base + '/api/creator/widget-studio/assets', {
+    method: 'POST',
+    headers: { origin: base, cookie: login.cookie, 'content-type': 'image/png' },
+    body: new ReadableStream({
+      pull(controller) {
+        if (chunkIndex === chunkSizes.length) return controller.close();
+        controller.enqueue(new Uint8Array(chunkSizes[chunkIndex++]));
+      }
+    }),
+    duplex: 'half', signal: AbortSignal.timeout(15000)
+  });
+  assert.equal(chunkedResponse.status, 413,
+    'Chunked authenticated upload beyond 16 MiB must return HTTP 413');
+  assert.deepEqual(await chunkedResponse.json(), { error: 'PAYLOAD_TOO_LARGE' });
+  assert.deepEqual(await uploadFilesIfPresent(), filesBeforeChunked,
+    'Oversized chunked upload must not create files');
+  const assetsAfterChunked = await request('GET', '/api/creator/widget-studio/assets',
+    { cookie: login.cookie });
+  assert.equal(assetsAfterChunked.data.assets.length, assetsBeforeEmpty.data.assets.length,
+    'Oversized chunked upload must not insert metadata');
+
   const asset = await upload('/api/creator/widget-studio/assets', 'image/png', 'private-ci.png', privateImage);
   assert.equal(asset.status, 201, `Asset upload failed: ${JSON.stringify(asset.data)}`);
   const media = await upload('/api/creator/media/videos', 'video/mp4',
