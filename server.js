@@ -41,6 +41,7 @@ import { paypalStatus, createPayPalOrder, capturePayPalOrder } from "./src/paypa
 import { publicLiveControl } from "./src/public-live.js";
 import { creatorSettings } from "./src/creator-settings.js";
 import { uploadRoot, persistentUploadsConfigured } from "./src/upload-storage.js";
+import { uploadDeliveryHeaders } from "./src/upload-media-policy.js";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const port = Number(process.env.PORT || 10000);
@@ -194,7 +195,8 @@ async function serveStatic(req, res) {
       res.setHeader("x-robots-tag", "noindex, nofollow, noarchive");
     }
     res.writeHead(200, {
-      "content-type": mimeTypes[extname(filePath).toLowerCase()] || "application/octet-stream",
+      ...(isUpload ? uploadDeliveryHeaders(filePath) :
+        { "content-type": mimeTypes[extname(filePath).toLowerCase()] || "application/octet-stream" }),
       "cache-control": signedObsPage ? "no-store" :
         isUpload ? "private, no-store" : extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600"
     });

@@ -6,6 +6,9 @@ import { totpCode } from '../src/totp.js';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
+import { writeFile, unlink } from 'node:fs/promises';
+import { join } from 'node:path';
+import { uploadRoot } from '../src/upload-storage.js';
 
 // Never run destructive acceptance tests on a production or staging DB.
 const databaseUrl = process.env.DATABASE_URL || '';
@@ -765,6 +768,35 @@ try {
   assert.equal(asset.status, 201, `Asset upload failed: ${JSON.stringify(asset.data)}`);
   const media = await upload('/api/creator/media/videos', 'video/mp4', 'private-ci.mp4', privateVideo);
   assert.equal(media.status, 201, `Media upload failed: ${JSON.stringify(media.data)}`);
+  // The claimed MIME, not an attacker-controlled original suffix, must
+  // determine how new upload bytes can be served by the static handler.
+  const htmlPayload = Buffer.from('<!doctype html><script>alert("upload-xss")</script>');
+  for (const [path, mime, filename, suffix, property] of [
+    ['/api/creator/widget-studio/assets', 'image/png', 'masquerading.html', '.png', 'asset'],
+    ['/api/creator/media/videos', 'video/mp4', 'masquerading.html', '.mp4', 'media']
+  ]) {
+    const disguised = await upload(path, mime, filename, htmlPayload);
+    assert.equal(disguised.status, 201, 'MIME-derived upload filename must remain supported');
+    assert.equal(disguised.data[property].name, filename,
+      'Original name is retained only as display metadata');
+    const safeUrl = disguised.data[property].url;
+    assert(safeUrl.endsWith(suffix), 'Stored file extension must be derived from accepted MIME');
+    assert(!safeUrl.endsWith('.html'), 'Client-supplied executable extension must never enter storage URL');
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(base + safeUrl, {
+        method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+      });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('content-type'), mime,
+        'MIME-based storage extension must prevent a same-origin HTML response');
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+      assert.equal(response.headers.get('cache-control'), 'private, no-store');
+      if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), htmlPayload);
+    }
+    assert.equal((await fetch(base + safeUrl)).status, 401,
+      'A MIME-safely stored upload must retain owner authorization checks');
+  }
+
 
   assert(!(await request('GET', '/api/creator/widget-studio/assets', { cookie: mediaOtherCookie }))
     .data.assets?.some(item => item.id === asset.data.asset.id),
@@ -866,6 +898,35 @@ try {
   // application session. Test against the isolated disposable PostgreSQL instance.
   const testPool = new pg.Pool({ connectionString: databaseUrl, ssl: false });
   try {
+    // Pre-hardening uploads may already exist with an .html extension.
+    // Keep their owner-only access, but never execute their bytes as HTML.
+    const legacyStorage = randomUUID() + '-old-upload.html';
+    const legacyBytes = Buffer.from('<!doctype html><script>alert("legacy")</script>');
+    await writeFile(join(uploadRoot, legacyStorage), legacyBytes, { flag: 'wx' });
+    try {
+      await testPool.query(
+        "insert into creator_assets(account_id,name,mime_type,size_bytes,storage_path) values($1,$2,$3,$4,$5)",
+        [created.data.account.id, 'legacy-image.html', 'image/png', legacyBytes.length, legacyStorage]
+      );
+      const legacyUrl = '/assets/uploads/' + legacyStorage;
+      assert.equal((await fetch(base + legacyUrl)).status, 401);
+      for (const method of ['GET', 'HEAD']) {
+        const response = await fetch(base + legacyUrl, {
+          method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+        });
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get('content-type'), 'application/octet-stream',
+          'Existing .html uploads must not be interpreted as HTML');
+        assert.match(response.headers.get('content-disposition') || '', /^attachment/);
+        assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+        assert.equal(response.headers.get('cache-control'), 'private, no-store');
+        if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), legacyBytes);
+      }
+    } finally {
+      await testPool.query("delete from creator_assets where storage_path=$1", [legacyStorage]);
+      await unlink(join(uploadRoot, legacyStorage));
+    }
+
     const setup = await request('POST', '/api/account/mfa/setup', {
       cookie: login.cookie, body: { password }
     });
