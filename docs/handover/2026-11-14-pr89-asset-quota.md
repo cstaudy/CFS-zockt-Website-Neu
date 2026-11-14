@@ -31,3 +31,6 @@ Bei Regression PR nicht mergen bzw. die Code-/Test-Commits revertieren; keine Sc
 Am 14.11.2026 wurde `scripts/test-asset-quota.mjs` um einen isolierten Integrationstest ergänzt: Der Test schreibt über `storeUploadWithRecord()` eine temporäre Datei, simuliert die Ablehnung bei 120 Assets bzw. überschrittenem Byte-Limit und prüft anschließend Datenbank-Rollback und leeres temporäres Upload-Verzeichnis. Kein Produktionszugriff. Commit `628c9bd`.
 
 Dieser Test ist **kein echter HTTP-End-to-End-Test**. Für den aktuellen Commit steht der CI-Nachweis noch aus; ältere grüne Läufe gelten nicht als Nachweis für diesen Commit.
+
+## Aktualisierung: anonymer HTTP-Upload
+Commit `789e6f9` ergänzt im bestehenden Server-HTTP-Test `scripts/test-static-boundary.mjs` einen POST auf `/api/creator/widget-studio/assets` ohne Sitzung. Erwartet werden HTTP 401 und `AUTHENTICATION_REQUIRED`; das temporäre Upload-Verzeichnis darf keine neue Datei enthalten. Test startet lokalen Node-Server ohne `DATABASE_URL`, keine Render- oder Produktionszugriffe. **Kein authentifizierter HTTP-Quota-Test**; der Quota- und Cleanup-Pfad wird separat im isolierten Test geprüft. CI für den neuen Commit steht aus.
