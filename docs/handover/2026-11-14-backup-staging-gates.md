@@ -34,3 +34,8 @@ Nur Dokumentationsänderungen; Branch/PR kann ohne Laufzeiteffekt verworfen werd
 - PR-Dateiliste geprüft: ausschließlich drei Operationsdokumente, datierte Übergabe, Entwicklungsplan, neuer lokaler Dokumentations-Regressionstest und dessen Aufnahme in `npm run check`. Keine Migrationsdatei, kein Server-Routing, kein Render-Manifest und keine produktiven Daten verändert.
 - Testfehler durch unpassenden Regex wurde mit `afbffac` korrigiert und ist in der vollständigen CI grün. Regressionstest liest nur Markdown und behauptet keinen echten Restore.
 - Ergebnis: Dokumentations-/Testpaket fachlich bereit für Review; **kein Merge und keine Betriebsfreigabe**. Nächster Schritt: Betreiber bestätigt kostenfreies DB-Ziel und echten Backup-/Restore-Nachweis; bis dahin Release-Gates gesperrt.
+
+## Fortsetzung – vollständige Freigabezeilen-Prüfung
+- PR #91 auf HEAD `dcf1bba` erfolgreich (GitHub Actions, grün) und review-bereit; PR #89 ebenfalls grün, beide ungemergt.
+- `scripts/test-operator-release-gates.mjs` prüft jetzt **jede** Betreiber-Nachweiszeile auf OFFEN/NEIN (außer rein informativem Render-Ablaufdatum), verlangt mindestens 20 Felder und testet selbst, dass eine simulierte `JA`-Freigabe für Produktivdeploy einen Fehler auslöst. Commits `11d84dd`, `1c1ab43`.
+- Keine echten Freigaben, Sicherungen, DB-Zugriffe oder Deployments; neue CI des erweiterten Tests abwarten.
