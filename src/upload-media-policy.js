@@ -28,9 +28,10 @@ export function uploadStorageExtension(mime) {
 export function uploadDeliveryHeaders(path) {
   const mime = deliveryTypes[extname(path).toLowerCase()];
   return mime
-    ? { "content-type": mime }
+    ? { "content-type": mime, "x-content-type-options": "nosniff" }
     : {
         "content-type": "application/octet-stream",
+        "x-content-type-options": "nosniff",
         "content-disposition": 'attachment; filename="download"'
       };
 }
