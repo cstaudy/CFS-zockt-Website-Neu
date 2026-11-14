@@ -49,3 +49,6 @@ Vorheriger PR-HEAD `6c1f24e`: vollständige GitHub-Actions-CI erfolgreich (Run `
 
 ## Aktualisierung: exakte HTTP-Upload-Grenze
 Vorheriger HEAD `4a6ad9a` vollständig grün in GitHub Actions Run `43630746966`, einschließlich authentifiziertem Chunked-413-Test. Commit `eaa8d42` ergänzt im PostgreSQL-18-E2E-Test einen authentifizierten Bild-Upload mit exakt 16 MiB. Die Bytes haben absichtlich keine gültige PNG-Signatur: Erwartet wird HTTP 415 / `INVALID_ASSET_SIGNATURE` statt 413, ohne neue Upload-Datei. Damit wird der inklusive Grenzwert des HTTP-Body-Limits geprüft, ohne eine 16-MiB-Datei zu speichern. CI für den neuen Commit ausstehend.
+
+## Aktualisierung: exakte Chunked-Grenze
+Vorheriger HEAD `79f44fc` grün (GitHub Actions Run `43630942969`). Commit `c96b1b2` ergänzt einen authentifizierten HTTP-POST ohne Content-Length mit exakt zwei 8-MiB-Streaming-Chunks. Die ungültigen PNG-Bytes müssen mit HTTP 415 / `INVALID_ASSET_SIGNATURE` statt HTTP 413 abgewiesen werden; es darf keine Datei entstehen. Zusammen mit dem vorhandenen 16-MiB-plus-ein-Byte-Chunked-Test prüft dies die inklusive Streaming-Grenze auf der echten Serverroute. CI ausstehend; nur isolierte lokale CI-PostgreSQL-18-Datenbank.
