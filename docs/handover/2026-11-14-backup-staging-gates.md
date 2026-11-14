@@ -9,3 +9,8 @@
 
 ## Rollback
 Nur Dokumentationsänderungen; Branch/PR kann ohne Laufzeiteffekt verworfen werden.
+
+## Fortsetzung – kostenfreie Fristentscheidung
+- PR #91: HEAD `a72e1a3` CI erfolgreich, Run `43631677494`; PR bleibt Draft und ungemergt.
+- Neu: `docs/operations/FREE_POSTGRES_DEADLINE_DECISION.md` (Commit `cd6639c`). Vier Optionen mit Risiken und ausdrücklich offenen Verfügbarkeits-/Kostenfragen, Planungsziele 20./25./30.11. und 04./07.12.2026, Stop-Kriterien sowie nachweisbare, geheimnisfreie Betreiberabnahme.
+- Keine Sicherung, Restore, Datenbankabfrage, Render-Änderung oder Freigabe. CI des aktualisierten PR-HEAD erneut prüfen.
