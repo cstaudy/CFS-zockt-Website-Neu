@@ -6,6 +6,7 @@ import { requireAccount } from "./projects.js";
 import { uploadRoot } from "./upload-storage.js";
 import { decodeUploadFilename } from "./upload-filename.js";
 import { uploadStorageExtension, validImageSignature } from "./upload-media-policy.js";
+import { maxBufferedUploadBytes } from "./request-raw.js";
 
 const categories = { image: "Bilder", overlay: "Overlays", frame_overlay: "Rahmen", background: "Hintergründe" };
 
@@ -28,7 +29,7 @@ export async function uploadAsset(req, body) {
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
   const mime = String(req.headers["content-type"] || "application/octet-stream").split(";")[0];
   if (!/^image\/(png|jpeg|webp|gif)$/.test(mime)) return { error: "UNSUPPORTED_MEDIA_TYPE", status: 415 };
-  if (!body?.length || body.length > 16 * 1024 * 1024) return { error: "INVALID_ASSET_SIZE", status: 400 };
+  if (!body?.length || body.length > maxBufferedUploadBytes) return { error: "INVALID_ASSET_SIZE", status: 400 };
   if (!validImageSignature(mime, body)) return { error: "INVALID_ASSET_SIGNATURE", status: 415 };
   const original = decodeUploadFilename(req.headers["x-cfs-file-name"], "upload");
   if (original === null) return { error: "INVALID_FILE_NAME", status: 400 };

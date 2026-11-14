@@ -97,4 +97,37 @@ HTTP-Test vollständig aus Test-DB und Test-Dateisystem entfernt; der
 Eigentümer erhält die Bytes nur als Attachment und anonyme Abrufe
 bleiben gesperrt.
 
+## Einheitliche Obergrenze für gepufferte Binär-Uploads
+
+Der aktuelle Node-HTTP-Server liest Bild- und Video-/Clip-Uploads
+vollständig in den Arbeitsspeicher. Bisher prüfte der frühe
+`Content-Length`-Pfad auf maximal **16 MiB**, aber der
+Chunked-Reader ohne `Content-Length` erst bei **256 MiB**.
+Diese Diskrepanz erlaubte unnötig große Speicherbelegungen.
+
+Alle vom Server vollständig gepufferten Binär-Uploads verwenden jetzt
+ein und dieselbe Obergrenze `maxBufferedUploadBytes = 16 * 1024 * 1024`
+Bytes – sowohl bei angegebener Länge als auch bei
+`Transfer-Encoding: chunked`. Ein zusätzlicher Chunk, der die Grenze
+überschreitet, führt zu `413 PAYLOAD_TOO_LARGE`, **bevor** alle
+Chunks zu einer großen Datei zusammengeführt oder auf Disk/DB
+gespeichert werden.
+
+Die bisherige `user_media`-API meldete einen Wert von **512 MiB**,
+obwohl ein normaler HTTP-Upload mit `Content-Length` schon bei
+16 MiB abgewiesen wurde. Die für Video-/Clips sichtbare
+`limits.max_file_bytes`-Angabe ist jetzt auf die tatsächlich
+verfügbare **16-MiB-Grenze** korrigiert. Bestehende Videos und ihre
+Downloadberechtigungen werden nicht verändert. Größere echte
+Videodateien benötigen einen separat entworfenen Streaming-/Storage-
+Upload mit begrenztem Speicherverbrauch und eigener Abnahme.
+Das ist eine bewusste **Benutzerfunktions-Einschränkung** gegenüber
+bisherigen chunked Uploads über 16 MiB, keine verdeckte
+512-MiB-Freigabe.
+
+Der Test `scripts/test-request-raw.mjs` prüft volle und
+überschrittene Grenzen einschließlich echter chunked HTTP-Anfragen
+ohne `Content-Length`. Die isolierte PostgreSQL-18-HTTP-E2E
+prüft die korrigierte öffentliche Creator-Video-Limitangabe.
+
 Kein Production-Backup, keine Live-Migration und kein Render-Deploy.
