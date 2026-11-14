@@ -31,6 +31,6 @@ for (const document of [gates, deadline]) {
   assert.match(document, /Staging/i);
   assert.match(document, /Freigabe/i);
 }
-assert.match(gates, /kein.*(?:Produktiv|Produktions)deploy/i);
+assert.match(gates, /Produktivdeploy erst nach allen Gates/i);
 assert.match(deadline, /Keine Änderung an Render/i);
 console.log("Operator release-gate docs: blocked defaults, deadline, backup/restore and staging controls.");
