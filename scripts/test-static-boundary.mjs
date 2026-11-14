@@ -50,6 +50,20 @@ try {
       assert.match(page, /stream-maker-output\.js/);
     }
   }
+  // The JSON endpoint also carries the capability token in its URL
+  // pathname. Direct navigation must not expose that path as a Referer.
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + '/api/public/stream-maker/' +
+      '123e4567-e89b-42d3-a456-426614174001' + 'a'.repeat(43), { method });
+    assert.equal(response.status, 404,
+      'Without configured signing secret or DB, signed API must fail closed');
+    assert.equal(response.headers.get('referrer-policy'), 'no-referrer',
+      'Bearer API path must never enter browser Referer headers');
+    assert.equal(response.headers.get('cache-control'), 'no-store',
+      'Even failed signed capability responses must not be cached');
+    assert.match(response.headers.get('x-robots-tag') || '', /noindex/,
+      'Signed API must be explicitly excluded from indexing');
+  }
   const ordinaryPage = await fetch(base + '/widgets/scene.html');
   assert.equal(ordinaryPage.headers.get('referrer-policy'),
     'strict-origin-when-cross-origin', 'Other site pages retain global referrer behavior');

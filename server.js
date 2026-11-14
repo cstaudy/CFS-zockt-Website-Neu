@@ -300,8 +300,13 @@ async function handle(req, res) {
   // Signed capability: no cookie required, no raw project/account metadata.
   const publicMakerMatch = url.pathname.match(/^\/api\/public\/stream-maker\/([^/]+)$/);
   if (publicMakerMatch && ["GET", "HEAD"].includes(method)) {
-    const result = await getPublicMakerBundle(publicMakerMatch[1]);
+    // This endpoint's path is a signed bearer capability. A direct browser
+    // navigation to it must not carry that path into future Referer headers.
+    // Set headers before any database work, including failure/404 responses.
+    res.setHeader("referrer-policy", "no-referrer");
+    res.setHeader("x-robots-tag", "noindex, nofollow, noarchive");
     res.setHeader("cache-control", "no-store");
+    const result = await getPublicMakerBundle(publicMakerMatch[1]);
     return result.error
       ? json(res,result.status,{error:result.error})
       : json(res,200,result);

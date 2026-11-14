@@ -18,6 +18,16 @@ gelten auch für HEAD-Antworten. Die öffentlichen statischen CSS-/JS-Dateien
 bleiben weiterhin normal cachebar und der bereits private API-Output
 bleibt `no-store`.
 
+Die signierte JSON-API `/api/public/stream-maker/<signed-token>` trägt
+ab jetzt dieselben Referer-/Robots-Schutzheader, **auch auf 404-Antworten**
+und bei HEAD-Aufrufen: `Referrer-Policy: no-referrer`,
+`X-Robots-Tag: noindex, nofollow, noarchive`,
+`Cache-Control: no-store`. Bei Browsernavigation auf diese
+Capability-URL dürfen weder die vollständige Quelladresse noch die
+Signatur über einen nachfolgenden Referer weitergegeben werden.
+Das API-Payload und das vorhandene Token-Berechtigungsmodell bleiben
+unverändert.
+
 **Rest-Risiko:** Das signierte Token steht weiterhin in der vollständigen
 OBS-Quelladresse und im API-Pfad; es kann deshalb im Browser-Quellkonfigurations-
 dialog, in Bildschirmaufnahmen, Reverse-Proxy-/Access-Logs oder von
