@@ -775,6 +775,12 @@ try {
   assert.equal(asset.status, 201, `Asset upload failed: ${JSON.stringify(asset.data)}`);
   const media = await upload('/api/creator/media/videos', 'video/mp4', 'private-ci.mp4', privateVideo);
   assert.equal(media.status, 201, `Media upload failed: ${JSON.stringify(media.data)}`);
+  const bufferedVideoLimits = await request('GET', '/api/creator/media/videos',
+    { cookie: login.cookie });
+  assert.equal(bufferedVideoLimits.status, 200);
+  assert.equal(bufferedVideoLimits.data.limits.max_file_bytes, 16 * 1024 * 1024,
+    'Creator video upload limit must accurately reflect the current HTTP buffering cap');
+
   // The claimed MIME, not an attacker-controlled original suffix, must
   // determine how new upload bytes can be served by the static handler.
   const htmlPayload = Buffer.from('<!doctype html><script>alert("upload-xss")</script>');
