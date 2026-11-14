@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { uploadStorageExtension, uploadDeliveryHeaders, validImageSignature } from "../src/upload-media-policy.js";
+import { uploadStorageExtension, uploadDeliveryHeaders, validImageSignature, validVideoSignature } from "../src/upload-media-policy.js";
 
 const accepted = {
   "image/png": [".png", "image/png"],
@@ -67,4 +67,50 @@ assert.equal(validImageSignature("image/png", "iVBORw0KGgo"), false,
   "Content must be binary bytes");
 assert.equal(validImageSignature("text/html", png), false,
   "Unsupported MIME types must be rejected even if bytes look like an image");
-console.log("Upload media policy: MIME-derived extensions validated image signatures and safe attachment fallback for active legacy filenames.");
+
+function ftyp(brand) {
+  const data = Buffer.alloc(20);
+  data.writeUInt32BE(20, 0);
+  data.write("ftyp", 4, "ascii");
+  data.write(brand, 8, "ascii");
+  data.write(brand, 16, "ascii");
+  return data;
+}
+// Synthetic small container headers; these do NOT claim to be decodable video.
+const videos = new Map([
+  ["video/mp4", ftyp("isom")],
+  ["video/quicktime", ftyp("qt  ")],
+  ["video/webm", Buffer.from("1a45dfa3874282847765626d", "hex")],
+  ["video/x-matroska", Buffer.from("1a45dfa38b4282886d6174726f736b61", "hex")]
+]);
+for (const [mime, bytes] of videos) {
+  assert.equal(validVideoSignature(mime, bytes), true, mime + " signature must be accepted");
+  for (const [other, otherBytes] of videos) {
+    if (other !== mime) assert.equal(validVideoSignature(mime, otherBytes), false,
+      mime + " must not accept " + other + " container header");
+  }
+  assert.equal(validVideoSignature(mime, Buffer.from("<html><script>bad()</script></html>")), false,
+    mime + " must reject HTML bytes");
+  assert.equal(validVideoSignature(mime, bytes.subarray(0, 3)), false,
+    mime + " must reject truncated container bytes");
+}
+const malformedMp4 = Buffer.from(videos.get("video/mp4"));
+malformedMp4.writeUInt32BE(4096, 0);
+assert.equal(validVideoSignature("video/mp4", malformedMp4), false,
+  "Declared ISO BMFF ftyp box must fit within uploaded bytes");
+const malformedEbml = Buffer.from(videos.get("video/webm"));
+malformedEbml[4] = 0xff;
+assert.equal(validVideoSignature("video/webm", malformedEbml), false,
+  "Unknown-size EBML header must be rejected");
+assert.equal(validVideoSignature("video/webm", Buffer.from(
+  "1a45dfa3874282846e6f7065", "hex")), false,
+  "EBML DocType must be exactly webm");
+assert.equal(validVideoSignature("video/x-matroska", Buffer.from(
+  "1a45dfa38b4282886d6174726f736b78", "hex")), false,
+  "EBML DocType must be exactly matroska");
+const oversizedEbml = Buffer.from("1a45dfa340102a4282847765626d", "hex");
+assert.equal(validVideoSignature("video/webm", oversizedEbml), false,
+  "EBML header cannot exceed the upload or bounded metadata limit");
+assert.equal(validVideoSignature("video/mp4", "ftypisom"), false);
+assert.equal(validVideoSignature("image/png", videos.get("video/mp4")), false);
+console.log("Upload media policy: MIME-derived extensions validated image and video signatures and safe attachment fallback for active legacy filenames.");

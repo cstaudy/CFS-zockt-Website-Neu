@@ -59,9 +59,22 @@ JPEG, GIF oder WebP ausgeben) erhalten `415 INVALID_ASSET_SIGNATURE`.
 Die Prüfung ist ein erster Filter und **keine** vollständige Datei-
 dekodierung, Schadsoftwareprüfung oder Garantie, dass jede Bilddatei
 fehlerfrei ist. Bereits gespeicherte Bestandsdateien werden dabei
-nicht verändert. Video-/Clip-Uploads haben weiterhin nur die
-kanonische MIME-Endung und sichere Header-Auslieferung; umfassende
-Video-Container-Validierung benötigt einen eigenen, getesteten Schritt.
+nicht verändert. Auch Video-/Clip-Uploads besitzen jetzt einen begrenzten
+Container-Header-Abgleich, **keine** vollständige Medienanalyse.
+MP4 muss einen konsistenten `ftyp`-Boxanfang mit einer nicht-QuickTime-
+Brand haben, QuickTime eine `ftyp`-Box mit `qt  `-Brand.
+WebM und Matroska müssen einen kurzen, korrekt eingegrenzten
+EBML-Header mit dem jeweiligen `DocType` (`webm` bzw. `matroska`)
+besitzen. Der EBML-Parser liest maximal 4096 Headerbytes, nicht das
+Video selbst. Ein fehlender, abgeschnittener oder unpassender
+Video-Header führt vor Datei-/DB-Schreiboperationen zu
+`415 INVALID_MEDIA_SIGNATURE`.
+
+Das schränkt **bestimmte ältere QuickTime-Dateien ohne `ftyp`-Box**
+bewusst ein; solche Dateien müssen künftig vor dem Upload in einen
+unterstützten Container umverpackt werden. Auch eine bestandene
+Signaturprüfung sagt **nichts** über korrekte Wiedergabe, Codec,
+Laufzeit, Metadaten oder Schadsoftwarefreiheit aus.
 
 Vorhandene Dateiinhalte und Datenbankzeilen werden nicht migriert.
 
@@ -73,9 +86,12 @@ kanonische Endungen und Legacy-Download-Fallbacks ab. Die bestehende,
 versucht absichtlich HTML-Bytes unter den vier unterstützten
 Bild-MIME-Typen hochzuladen: Diese werden jetzt jeweils mit **415**
 abgelehnt. Ein tatsächliches minimales PNG wird akzeptiert; die
-separaten Video-Tests überprüfen weiterhin die kanonische Endung
-`.mp4` bei einem irreführenden Originalnamen `masquerading.html`
-und das korrekte Video-`Content-Type`/`nosniff`/`no-store`. Zusätzlich wird
+separaten Video-Tests weisen nun nach, dass HTML unter **allen vier**
+Video-MIME-Typen mit `415` abgelehnt wird und synthetische passende
+Container-Header mit dem irreführenden Originalnamen
+`masquerading.html` ausschließlich private MIME-konforme
+`.mp4`-, `.mov`-, `.webm`- und `.mkv`-URLs ergeben.
+GET/HEAD behalten `nosniff` und `no-store`. Zusätzlich wird
 eine synthetische alte `.html`-Assetzeile erzeugt und nach dem
 HTTP-Test vollständig aus Test-DB und Test-Dateisystem entfernt; der
 Eigentümer erhält die Bytes nur als Attachment und anonyme Abrufe
