@@ -29,3 +29,7 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 ## Aktualisierung: Betreiber-Abnahmevorlage
 - `docs/operations/DB_BACKUP_RESTORE_EVIDENCE_TEMPLATE.md` hinzugefügt: keine Secrets, keine Dumps, alle Pflichtnachweise standardmäßig OFFEN/NEIN, Freigabestatus GESPERRT.
 - Nächster Schritt: CI auf dem neuen HEAD prüfen, anschließend Draft-PR #91 reviewen; konkrete Restore-Befehle erst für ein durch Betreiber bestätigtes Ziel erstellen. Keine Kosten-/Verfügbarkeitsannahmen und keine automatischen DB-Aktionen.
+
+## Aktualisierung: Sicherheitsregression im CI-Check
+- `npm run check` führt jetzt `scripts/test-operator-release-gates.mjs` aus. Der Test verhindert unbemerkte Änderungen der Dokumentations-Standardwerte von GESPERRT/OFFEN/NEIN auf vermeintlich freigegeben und prüft die dokumentierten Backup-/Staging-Stop-Gates.
+- Vorheriger HEAD `0bf5cd8` grün (Run `43632235907`); neue CI prüfen. Der Test ersetzt weder Betreiberentscheidung noch echten Restore.
