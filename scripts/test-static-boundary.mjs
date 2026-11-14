@@ -79,6 +79,28 @@ try {
   for (const path of ['/server.js', '/src/auth.js', '/scripts/migrate.js', '/migrations/001_initial.sql', '/package.json', '/.env.example', '/.git/config', '/codex_handover/brand/cfs-zockt-mark-clean.png', '/assets/../server.js']) {
     assert.equal((await fetch(base + path)).status, 403, `${path} should be private`);
   }
+  // X-Request-ID is untrusted. Valid correlation IDs remain stable, but
+  // arbitrary text, secrets, and overly large input must never be reflected.
+  const validRequestId = "request.ci-123";
+  const validIdResponse = await fetch(base + "/api/health", {
+    headers: { "x-request-id": validRequestId }
+  });
+  assert.equal(validIdResponse.headers.get("x-request-id"), validRequestId);
+  for (const badId of ["../private-file", "alice@example.test",
+    "<script>alert(1)</script>", "x".repeat(200)]) {
+    const response = await fetch(base + "/api/health", {
+      headers: { "x-request-id": badId }
+    });
+    assert.equal(response.status, 200,
+      "Unsafe client correlation IDs must not break normal requests");
+    const echoed = response.headers.get("x-request-id");
+    assert.match(echoed || "", /^[a-f0-9-]{36}$/i,
+      "Unsafe IDs must be replaced with a bounded server-generated UUID");
+    assert.notEqual(echoed, badId);
+  }
+  const defaultId = (await fetch(base + "/api/health")).headers.get("x-request-id");
+  assert.match(defaultId || "", /^[a-f0-9-]{36}$/i);
+
   const publicStatusResponse = await fetch(`${base}/api/public/status`);
   assert.equal(publicStatusResponse.status, 200, 'Public status endpoint must remain reachable');
   const publicStatus = await publicStatusResponse.json();
