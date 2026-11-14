@@ -38,10 +38,17 @@ function validateEvidenceRows(markdown) {
   }
 }
 validateEvidenceRows(template);
-assert.throws(() => validateEvidenceRows(template.replace(
-  "| Produktionsdeploy separat freigegeben? | NEIN |",
-  "| Produktionsdeploy separat freigegeben? | JA |"
-)), /Evidence must remain unapproved/);
+// Mutation test: a premature YES in any operator evidence row must fail.
+const evidenceLines = template.split("\n").filter(line =>
+  /^\| .+ \| .+ \|$/.test(line) &&
+  !/^\| (?:Feld|---|Render-Free-Ablauf)/.test(line));
+for (const line of evidenceLines) {
+  const label = line.slice(1, -1).split("|")[0].trim();
+  const changed = template.replace(line, `| ${label} | JA |`);
+  assert.notEqual(changed, template, `Mutation must alter evidence row: ${label}`);
+  assert.throws(() => validateEvidenceRows(changed), /Evidence must remain unapproved/,
+    `Premature approval must be rejected: ${label}`);
+}
 for (const document of [gates, deadline]) {
   assert.match(document, /09\.12\.2026/);
   assert.match(document, /Restore/i);
