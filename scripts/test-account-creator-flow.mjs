@@ -750,13 +750,14 @@ try {
   assert.equal(otherSettings.data.settings?.accountMarker, undefined,
     'Private settings from creator A must not appear in creator B session');
 
-  const upload = async (path, mimeType, filename, bytes) => {
+  const upload = async (path, mimeType, filename, bytes, extraHeaders = {}) => {
     const response = await fetch(base + path, {
       method: 'POST',
       headers: {
         origin: base, cookie: login.cookie,
         'content-type': mimeType,
-        'x-cfs-file-name': encodeURIComponent(filename)
+        'x-cfs-file-name': encodeURIComponent(filename),
+        ...extraHeaders
       },
       body: bytes, signal: AbortSignal.timeout(8000)
     });
@@ -773,13 +774,33 @@ try {
   const privateVideo = Buffer.from('000000146674797069736f6d0000000069736f6d', 'hex');
   const asset = await upload('/api/creator/widget-studio/assets', 'image/png', 'private-ci.png', privateImage);
   assert.equal(asset.status, 201, `Asset upload failed: ${JSON.stringify(asset.data)}`);
-  const media = await upload('/api/creator/media/videos', 'video/mp4', 'private-ci.mp4', privateVideo);
+  const media = await upload('/api/creator/media/videos', 'video/mp4',
+    'private-ci.mp4', privateVideo, { 'x-cfs-duration-ms': '12345' });
   assert.equal(media.status, 201, `Media upload failed: ${JSON.stringify(media.data)}`);
+  assert.equal(media.data.media.duration_ms, 12345,
+    'Valid upload duration must be persisted as an integer, not text');
   const bufferedVideoLimits = await request('GET', '/api/creator/media/videos',
     { cookie: login.cookie });
   assert.equal(bufferedVideoLimits.status, 200);
   assert.equal(bufferedVideoLimits.data.limits.max_file_bytes, 16 * 1024 * 1024,
     'Creator video upload limit must accurately reflect the current HTTP buffering cap');
+
+  const videoCountBeforeInvalidDuration = bufferedVideoLimits.data.media.length;
+  // Node's HTTP parser normalizes surrounding optional header whitespace,
+  // so test malformed on-wire values here and whitespace in the pure parser.
+  for (const duration of ['-1', '2147483648', 'Infinity', 'NaN', '1.2',
+    '1e6', '12ms', '999999999999999']) {
+    for (const folder of ['videos', 'clips']) {
+      const rejected = await upload('/api/creator/media/' + folder, 'video/mp4',
+        'duration-invalid.mp4', privateVideo, { 'x-cfs-duration-ms': duration });
+      assert.equal(rejected.status, 400,
+        'Malformed duration must be rejected before the database insert');
+      assert.equal(rejected.data.error, 'INVALID_MEDIA_DURATION');
+    }
+  }
+  assert.equal((await request('GET', '/api/creator/media/videos',
+    { cookie: login.cookie })).data.media.length, videoCountBeforeInvalidDuration,
+    'Rejected duration headers must not produce media metadata');
 
   // The claimed MIME, not an attacker-controlled original suffix, must
   // determine how new upload bytes can be served by the static handler.
