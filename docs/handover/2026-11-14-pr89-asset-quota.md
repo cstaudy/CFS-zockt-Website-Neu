@@ -40,3 +40,6 @@ Commit `73de312`: `scripts/test-account-creator-flow.mjs` prüft mit angemeldete
 
 ## CI-Fehleranalyse und Testkorrektur
 GitHub Actions Run `43628319038` scheiterte im PostgreSQL-E2E an `ENOENT` beim `readdir(assets/uploads)` in der neu eingefügten Leerupload-Prüfung. Das Verzeichnis existiert bei frischer CI-Installation noch nicht. Commit `ed7bb5a` ergänzt `uploadFilesIfPresent()`: `ENOENT` zählt als leeres Verzeichnis, andere Dateisystemfehler werden weitergeworfen. Die Korrektur betrifft ausschließlich den Test; keine Laufzeitcode-Änderung. CI des neuen HEAD ist erneut abzuwarten.
+
+## Aktualisierung: HTTP 413 für zu große Asset-Uploads
+Der vorherige HEAD `b0cb3cb` ist in GitHub Actions Run `43629217715` vollständig grün. Commit `f81cbca` ergänzt `scripts/test-static-boundary.mjs`: POST auf die Asset-Upload-Route mit 16 MiB + 1 Byte und korrektem Content-Length muss HTTP 413 / `PAYLOAD_TOO_LARGE` liefern, ohne Upload-Datei zu schreiben. Test verwendet lokalen Server ohne Datenbank. CI für den neuen HEAD ist noch offen. Chunked-413 ist bereits in `scripts/test-request-raw.mjs` für den Stream-Parser abgedeckt; eine vollständige HTTP-Routenprüfung für Chunked-Uploads bleibt als separates Ziel bestehen.
