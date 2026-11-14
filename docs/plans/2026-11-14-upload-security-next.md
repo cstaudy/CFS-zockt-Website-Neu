@@ -39,3 +39,8 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 - Bereits vorhandene PG18-CI führt echte authentifizierte HTTP-GET/HEAD-Tests mit Testkonto und Testdateien aus; Legacy-`.html` wurde schon mit `nosniff`/`attachment` geprüft. Vorherige Beschreibung als komplett fehlender HTTP-200-Test korrigiert.
 - Ergänzt: `scripts/test-account-creator-flow.mjs` prüft für normale Bild-/Video-Uploads nun auch `nosniff` und erwarteten MIME auf GET/HEAD (Commit `6a661eb`).
 - Nächster Gate: neuer CI-Lauf muss grün sein; manueller Browser-Test vor Produktionsfreigabe bleibt offen. Kein Merge/Deploy ohne Freigabe.
+
+## CI-Abnahme: authentifizierte Upload-Header
+- HTTP-Regression für Bild/Video GET+HEAD (`6a661eb`) in GitHub Actions `43639925962` **erfolgreich**, inklusive ephemerem PG18.
+- Bestehende Legacy-`.html`-GET/HEAD-Tests sichern `nosniff`, `attachment` und binäre Auslieferung ab.
+- Noch offen: Review-/Mergeentscheidung und manueller Browser-Test vor Deployment. Der nachfolgende Dokumentations-HEAD benötigt ebenfalls erfolgreiche CI.
