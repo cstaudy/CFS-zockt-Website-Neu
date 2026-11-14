@@ -43,6 +43,19 @@ try {
   assert.deepEqual((await readdir(uploadRoot)).sort(), ['probe.txt'],
     'Anonymous HTTP upload must not create files');
 
+  // HTTP boundary must reject an oversized declared body before upload
+  // storage or database access. Use the server's global Content-Length guard.
+  const oversizedUpload = await fetch(base + '/api/creator/widget-studio/assets', {
+    method: 'POST',
+    headers: { 'content-type': 'image/png' },
+    body: Buffer.alloc(16 * 1024 * 1024 + 1)
+  });
+  assert.equal(oversizedUpload.status, 413,
+    'Oversized HTTP upload must return 413 before authentication or storage');
+  assert.deepEqual(await oversizedUpload.json(), { error: 'PAYLOAD_TOO_LARGE' });
+  assert.deepEqual((await readdir(uploadRoot)).sort(), ['probe.txt'],
+    'Oversized HTTP upload must not create files');
+
   // This OBS page embeds a signed bearer token in its query string. Neither
   // static assets nor later same-origin navigation may receive that full URL
   // through Referer, and the HTML should never remain in a shared cache.
