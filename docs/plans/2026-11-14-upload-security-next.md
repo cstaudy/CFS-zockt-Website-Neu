@@ -18,3 +18,8 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Nachprüfung des bestehenden PR #90
 - HEAD `2b328c7` erfolgreich in GitHub Actions (Run `43625825079`), ohne Merge-Konflikte. Reine Headerhärtung, kein Datenbankzugriff.
 - Review kann beginnen; kein Merge ohne ausdrückliche Freigabe. Browser-E2E bleibt optionaler, vor Deployment nachzuholender Nachweis.
+
+## Review-Gate PR #90
+- CI für `5dbfbeb` grün (Run `43638853771`); PR #90 jetzt review-bereit.
+- Offene Abnahme: Reviewer bestätigt Headerverhalten; realer Browser-Test vor Deployment; explizite Mergefreigabe bleibt erforderlich.
+- Nach dieser Dokumentationsänderung neue CI prüfen. Keine weiteren Änderungen ohne Befund.
