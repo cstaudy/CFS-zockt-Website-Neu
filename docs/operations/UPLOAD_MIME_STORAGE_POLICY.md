@@ -42,10 +42,27 @@ Alte Formate außerhalb dieser Allowlist können von ihrem berechtigten
 Besitzer weiter heruntergeladen, aber nicht mehr direkt im Browser
 ausgeführt oder eingebettet werden.
 
-**Abgrenzung:** Der Fix validiert die deklarierten MIME-Typen und ihre
-Auslieferung, **nicht** die tatsächlichen Dateisignaturen oder
-vollständige Bild-/Videodekodierung. Für einen späteren Import-/Transcode-
-Workflow sind separate, isoliert getestete Dateiinhaltprüfungen nötig.
+### Bild-Signaturprüfung (Creator-Assets)
+
+Zusätzlich zum MIME-abgeleiteten Speichernamen verweigert der
+Asset-Endpunkt jetzt **vor dem Schreiben von Dateien oder
+Datenbankmetadaten** Bilder, deren Header nicht zum angegebenen
+`Content-Type` passt:
+
+- PNG: offizielle 8-Byte-Signatur und erstes `IHDR`-Chunk.
+- JPEG: `FF D8 FF`-SOI/Marker-Anfang.
+- GIF: `GIF87a` oder `GIF89a`.
+- WebP: `RIFF … WEBP` plus `VP8 `, `VP8L` oder `VP8X`.
+
+Unpassende oder verkürzte Header (etwa HTML-Dateien, die sich als PNG,
+JPEG, GIF oder WebP ausgeben) erhalten `415 INVALID_ASSET_SIGNATURE`.
+Die Prüfung ist ein erster Filter und **keine** vollständige Datei-
+dekodierung, Schadsoftwareprüfung oder Garantie, dass jede Bilddatei
+fehlerfrei ist. Bereits gespeicherte Bestandsdateien werden dabei
+nicht verändert. Video-/Clip-Uploads haben weiterhin nur die
+kanonische MIME-Endung und sichere Header-Auslieferung; umfassende
+Video-Container-Validierung benötigt einen eigenen, getesteten Schritt.
+
 Vorhandene Dateiinhalte und Datenbankzeilen werden nicht migriert.
 
 ## Sicherheitsnachweis
@@ -53,11 +70,12 @@ Vorhandene Dateiinhalte und Datenbankzeilen werden nicht migriert.
 `node scripts/test-upload-media-policy.mjs` deckt erlaubte Typen,
 kanonische Endungen und Legacy-Download-Fallbacks ab. Die bestehende,
 **nur auf lokalem Wegwerf-PostgreSQL zulässige** Creator-HTTP-E2E
-lädt absichtlich HTML-Bytes unter einem `image/png`- bzw.
-`video/mp4`-Header mit dem angegebenen Dateinamen
-`masquerading.html` hoch: Die zurückgegebenen Speicher-URLs enden
-auf `.png` bzw. `.mp4` und die Antworten bleiben `image/png` bzw.
-`video/mp4` mit `nosniff` und privatem `no-store`. Zusätzlich wird
+versucht absichtlich HTML-Bytes unter den vier unterstützten
+Bild-MIME-Typen hochzuladen: Diese werden jetzt jeweils mit **415**
+abgelehnt. Ein tatsächliches minimales PNG wird akzeptiert; die
+separaten Video-Tests überprüfen weiterhin die kanonische Endung
+`.mp4` bei einem irreführenden Originalnamen `masquerading.html`
+und das korrekte Video-`Content-Type`/`nosniff`/`no-store`. Zusätzlich wird
 eine synthetische alte `.html`-Assetzeile erzeugt und nach dem
 HTTP-Test vollständig aus Test-DB und Test-Dateisystem entfernt; der
 Eigentümer erhält die Bytes nur als Attachment und anonyme Abrufe
