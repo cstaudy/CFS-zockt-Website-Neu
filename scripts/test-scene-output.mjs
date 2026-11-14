@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { publicScenePayload } from "../src/scene-output.js";
 
 const owner = "123e4567-e89b-42d3-a456-426614174111";
@@ -37,4 +38,22 @@ const unsafe = publicScenePayload({ ...scene, data: { published_config: { ...con
 assert.equal(unsafe.scene.canvas.background, "transparent");
 assert.equal(unsafe.scene.items[0].x, 4000);
 assert.equal(unsafe.scene.items[0].scale, 1);
-console.log("Published scene projection tests passed: owner isolation, draft protection, safe placement.");
+// Run in a separate Node process without DATABASE_URL, so the test cannot
+// accidentally use a configured development or production database.
+const noDb = spawnSync(process.execPath, ["--input-type=module", "-e", `
+  import assert from "node:assert/strict";
+  import { getPublicScene } from "./src/scene-output.js";
+  for (const id of ["123e4567-e89b-42d3-a456-426614174112",
+                    "not-a-scene-uuid", "123e4567-e89b-42d3-a456-426614174199"]) {
+    const result = await getPublicScene(id);
+    assert.deepEqual(result, { error: "SCENE_NOT_FOUND", status: 404 });
+  }
+`], {
+  cwd: new URL("..", import.meta.url),
+  env: { ...process.env, DATABASE_URL: "" },
+  encoding: "utf8"
+});
+assert.equal(noDb.status, 0,
+  "Without DATABASE_URL, public scene lookup must fail with the same 404 as private and unknown scenes: " +
+  noDb.stderr.slice(0, 500));
+console.log("Published scene projection tests passed: owner isolation, draft protection, safe placement, DB-offline 404.");
