@@ -13,7 +13,7 @@ Kein zusätzlicher Render-Tarif, kein neuer kostenpflichtiger Dienst, keine Prod
 | P0 | Vorhandene Render-Produktions-DB nur lesend auf Migrationsstand prüfen | Kein Ledger / MFA-Challenges nachgewiesen, keine Schreibzugriffe | Blocker bestätigt |
 | P0 | Reales verschlüsseltes Produktionsbackup und isolierter Restore durch autorisierten Betreiber | Wiederherstellung dokumentiert, keine Secrets im Repo | Blockiert: nicht nachgewiesen |
 | P1 | Migrations- und Restore-Pfade kostenlos in GitHub Actions PostgreSQL 18 testen | `npm run check`, Creator-E2E, Legacy-Upgrade, Dump/Restore, Read-only Preflight | Vorhandene CI grün auf `main`; weiter bei jedem PR |
-| P1 | Fehlerabbildung und Input-Grenzen der Upload-Routen prüfen | HTTP-Regressionstests, korrekte 4xx und keine Dateien/DB-Einträge bei Ablehnung | Fehlerabbildung und isolierter Quota-/Datei-Cleanup-Test ergänzt; anonymer HTTP-401-/Keine-Datei-Test ergänzt; authentifizierter HTTP-Quota-Test noch offen |
+| P1 | Fehlerabbildung und Input-Grenzen der Upload-Routen prüfen | HTTP-Regressionstests, korrekte 4xx und keine Dateien/DB-Einträge bei Ablehnung | Fehlerabbildung und isolierter Quota-/Datei-Cleanup-Test ergänzt; anonymer HTTP-401-Test und authentifizierter HTTP-400-Leerupload-Test ergänzt; vorhandener PostgreSQL-18-E2E prüft bereits HTTP-402-Quota-Ablehnung mit Cleanup |
 | P1 | Staging-Isolation nachweisen, bevor neue Builds auf Render starten | Separate Staging-DB ohne Produktionsverbindung | Blockiert: zweite Free-DB nicht erlaubt |
 | P2 | Admin-Rollen/MFA-Entwürfe #47/#52 gesondert bewerten | Betreiberzugang, Backup, Restore, Rollback | Nicht mergen/deployen |
 | P2 | Echte Browser-/OBS-/Launcher-/Integrationsabnahme | Dokumentierte Ergebnisse mit realen Berechtigungen | Noch nicht durchgeführt |
@@ -26,4 +26,4 @@ Kein zusätzlicher Render-Tarif, kein neuer kostenpflichtiger Dienst, keine Prod
 5. Keine Produktionsdatenbank/Render-Konfiguration ohne eigene Freigabe ändern.
 
 ## Nächster konkreter Schritt
-CI für den neuen anonymen HTTP-Upload-Test prüfen. Danach authentifizierten HTTP-Quota-Test nur mit isolierter PostgreSQL-18-Testdatenbank und eigenen Testkonten ergänzen; keine Produktionsdaten verwenden. Keine neuen Deployments.
+CI für den neuen authentifizierten HTTP-400-Leerupload-Test prüfen. Danach die Upload-Fehlergrenzen (z. B. Content-Length und Chunked-413) auf verbleibende Lücken prüfen; keine Produktionsdaten verwenden. Keine neuen Deployments.
