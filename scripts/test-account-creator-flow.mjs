@@ -981,6 +981,35 @@ try {
   // application session. Test against the isolated disposable PostgreSQL instance.
   const testPool = new pg.Pool({ connectionString: databaseUrl, ssl: false });
   try {
+    // A second database row may intentionally share a historical storage_path.
+    // Deleting the media row must NOT unlink bytes while a creator_assets row
+    // still references them. This is isolated to disposable local PG18.
+    const sharedUpload = await upload('/api/creator/media/clips', 'video/mp4',
+      'ci-shared-video.mp4', privateVideo);
+    assert.equal(sharedUpload.status, 201);
+    const sharedMedia = sharedUpload.data.media;
+    const sharedLeaf = sharedMedia.url.slice('/assets/uploads/'.length);
+    const sharedPath = join(uploadRoot, sharedLeaf);
+    await testPool.query(
+      "insert into creator_assets(account_id,name,mime_type,size_bytes,storage_path) values($1,$2,$3,$4,$5)",
+      [created.data.account.id, 'ci-shared-asset', 'video/mp4', privateVideo.length, sharedLeaf]
+    );
+    try {
+      const removedShared = await request('DELETE',
+        '/api/creator/media/clips/' + sharedMedia.id, { cookie: login.cookie });
+      assert.equal(removedShared.status, 200);
+      await access(sharedPath);
+      assert.equal((await fetch(base + sharedMedia.url, {
+        headers: { cookie: login.cookie }
+      })).status, 200, 'A surviving asset row must preserve shared bytes after media DELETE');
+    } finally {
+      await testPool.query(
+        "delete from creator_assets where account_id=$1 and storage_path=$2 and name=$3",
+        [created.data.account.id, sharedLeaf, 'ci-shared-asset']
+      );
+      await unlink(sharedPath);
+    }
+
     // Force registration failure in the disposable local CI database after
     // bytes have already been written, then verify filesystem compensation.
     // The constraints affect only these test sentinel filenames and are
