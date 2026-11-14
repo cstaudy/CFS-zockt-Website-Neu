@@ -5,6 +5,7 @@ import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
 import { uploadRoot } from "./upload-storage.js";
 import { decodeUploadFilename } from "./upload-filename.js";
+import { uploadStorageExtension } from "./upload-media-policy.js";
 
 const categories = { image: "Bilder", overlay: "Overlays", frame_overlay: "Rahmen", background: "Hintergründe" };
 
@@ -30,7 +31,8 @@ export async function uploadAsset(req, body) {
   if (!body?.length || body.length > 16 * 1024 * 1024) return { error: "INVALID_ASSET_SIZE", status: 400 };
   const original = decodeUploadFilename(req.headers["x-cfs-file-name"], "upload");
   if (original === null) return { error: "INVALID_FILE_NAME", status: 400 };
-  const stored = `${randomUUID()}-${cleanName(original)}`;
+  // Store by validated MIME, not a client-chosen filename extension.
+  const stored = `${randomUUID()}${uploadStorageExtension(mime)}`;
   await mkdir(uploadRoot, { recursive: true });
   await writeFile(join(uploadRoot, stored), body, { flag: "wx" });
   const result = await getPool().query("insert into creator_assets (account_id, name, mime_type, size_bytes, storage_path) values ($1, $2, $3, $4, $5) returning id, name, media_type, mime_type, size_bytes, storage_path, category, created_at", [account.id, cleanName(original), mime, body.length, stored]);
