@@ -33,3 +33,6 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 ## Aktualisierung: Sicherheitsregression im CI-Check
 - `npm run check` führt jetzt `scripts/test-operator-release-gates.mjs` aus. Der Test verhindert unbemerkte Änderungen der Dokumentations-Standardwerte von GESPERRT/OFFEN/NEIN auf vermeintlich freigegeben und prüft die dokumentierten Backup-/Staging-Stop-Gates.
 - Vorheriger HEAD `0bf5cd8` grün (Run `43632235907`); neue CI prüfen. Der Test ersetzt weder Betreiberentscheidung noch echten Restore.
+
+## CI-Korrektur
+- Neuer Dokumentations-Regressionscheck scheiterte am Wortlaut des bestehenden Freigabegates, nicht an der Anwendung. Die Assertion prüft nun die tatsächliche Formulierung `Produktivdeploy erst nach allen Gates` (Commit `afbffac`). CI erneut prüfen; ohne Grün kein Merge.
