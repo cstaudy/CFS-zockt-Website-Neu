@@ -90,7 +90,8 @@ export async function expectedLegacySchema() {
   return parseLegacySchemaSql(sql);
 }
 
-export async function inspectLegacySchemaShape(db, expected = await expectedLegacySchema()) {
+export async function inspectLegacySchemaShape(db, expected = null) {
+  if (!expected) expected = await expectedLegacySchema();
   const result = await db.query(`
     select table_name, column_name, udt_name, is_nullable
     from information_schema.columns
