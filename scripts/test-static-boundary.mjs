@@ -30,6 +30,19 @@ try {
   for (const path of ['/', '/pages/login.html', '/assets/css/styles.css', '/widgets/scene.html', '/games/runtime.html', '/auth/tiktok/callback.html', '/.well-known/security.txt', '/config/monetization.json']) {
     assert.equal((await fetch(base + path)).status, 200, `${path} should be public`);
   }
+  // HTTP regression: anonymous Creator uploads must fail before reading or
+  // writing upload bytes, without a configured database or session.
+  const anonymousUpload = await fetch(base + '/api/creator/widget-studio/assets', {
+    method: 'POST',
+    headers: { 'content-type': 'image/png' },
+    body: Buffer.from('not-a-real-image')
+  });
+  assert.equal(anonymousUpload.status, 401,
+    'Anonymous Creator upload must be denied before storing bytes');
+  assert.deepEqual(await anonymousUpload.json(), { error: 'AUTHENTICATION_REQUIRED' });
+  assert.deepEqual((await readdir(uploadRoot)).sort(), ['probe.txt'],
+    'Anonymous HTTP upload must not create files');
+
   // This OBS page embeds a signed bearer token in its query string. Neither
   // static assets nor later same-origin navigation may receive that full URL
   // through Referer, and the HTML should never remain in a shared cache.
