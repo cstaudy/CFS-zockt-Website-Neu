@@ -22,3 +22,9 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Letzter vollständiger HEAD `5dbfbeb`: GitHub Actions Run `43638853771` erfolgreich, mergeable/clean.
 - PR #90 von Draft auf **Ready for review** gestellt; **kein Merge**. Reviewer sollen insbesondere Header für bekannte Medien und unbekannte Legacy-Dateien sowie Browser-Verhalten prüfen.
 - Dieser Dokumentations-Commit erfordert erneute CI; vor Merge neuen HEAD prüfen. Keine Render- oder DB-Aktion.
+
+## Prüfung des echten HTTP-Pfads (Quellcode und bestehende Tests)
+- HEAD `bb56976` grün, CI Run `43639049229`, PR #90 review-bereit/clean.
+- `server.js` übergibt in der statischen Dateiauslieferung für `isUpload` die Header aus `uploadDeliveryHeaders(filePath)` unmittelbar an `res.writeHead(200, ...)`; `HEAD` nutzt denselben Headerpfad vor `res.end()`.
+- `scripts/test-upload-media-policy.mjs` prüft die Headerfunktion direkt. `scripts/test-static-boundary.mjs` prüft dagegen für `GET` und `HEAD` nur den unauthentifizierten Uploadzugriff (`401`); ein authentifizierter HTTP-200-Upload-Header-Test fehlt.
+- **Grenze:** Kein realer HTTP-200-/Browser-Nachweis für authentifizierte Uploads. Ein solcher Test benötigt eine isolierte Test-DB und kontrollierte Authentifizierung; niemals Produktionsdatenbank oder öffentliche Uploads verwenden. Kein Code-/Teständerungsbedarf ohne gesicherten Fixture-Ansatz.
