@@ -912,7 +912,7 @@ try {
       assert.equal((await fetch(base + legacyUrl)).status, 401);
       for (const method of ['GET', 'HEAD']) {
         const response = await fetch(base + legacyUrl, {
-          method, headers: { cookie: created.cookie }, signal: AbortSignal.timeout(8000)
+          method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
         });
         assert.equal(response.status, 200);
         assert.equal(response.headers.get('content-type'), 'application/octet-stream',
