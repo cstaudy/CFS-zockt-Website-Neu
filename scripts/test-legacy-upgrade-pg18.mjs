@@ -123,6 +123,28 @@ try {
   await baselineMigrations(legacy, legacyBaselineFiles, loadMigrationSql);
   assert.equal(Number((await legacy.query("select count(*) as n from schema_migrations")).rows[0].n), 21);
 
+  // A corrupted ledger must fail before applying any of 022–025.
+  // This takes place only in the disposable PostgreSQL 18 CI database.
+  await legacy.query(
+    "insert into schema_migrations(name, checksum) values($1, $2)",
+    ["999_future_unknown.sql", "ci-synthetic-untrusted-checksum"]
+  );
+  const beforeUnknown = await snapshot();
+  await assert.rejects(
+    applyMigrations(legacy, migrationFiles, loadMigrationSql),
+    /nicht lückenlos|unbekannte Migrationen|unvollständig, unbekannt/,
+    "Unknown future migration must block an otherwise pending 022–025 upgrade"
+  );
+  assert.equal((await legacy.query(
+    "select to_regclass('public.mfa_login_challenges') as name")).rows[0].name, null,
+    "Blocked migration must not have created the first MFA table");
+  assert.deepEqual(await snapshot(), beforeUnknown,
+    "Unknown migration guard must not change existing account data");
+  await legacy.query("delete from schema_migrations where name=$1",
+    ["999_future_unknown.sql"]);
+  assert.equal(Number((await legacy.query(
+    "select count(*) as n from schema_migrations")).rows[0].n), 21);
+
   // After the correct 21-item baseline, the normal migration runner may
   // apply the four pending MFA schema upgrades.
   await applyMigrations(legacy, migrationFiles, loadMigrationSql);

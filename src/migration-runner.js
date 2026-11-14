@@ -42,6 +42,25 @@ export async function applyMigrations(client, files, loadSql) {
       checksum text not null,
       applied_at timestamptz not null default now()
     )`);
+    // Inspect the WHOLE ledger before running any pending migration. A later
+    // migration must not be applied if an earlier one was skipped or rewritten;
+    // unknown entries may indicate a newer deployment and require review.
+    const history = await client.query('select name, checksum from schema_migrations order by name');
+    if (!Array.isArray(history?.rows) || !Array.isArray(files) ||
+        new Set(files).size !== files.length || history.rows.length > files.length) {
+      throw new Error('Migrationshistorie ist unvollständig, unbekannt oder ungültig.');
+    }
+    for (let index = 0; index < history.rows.length; index++) {
+      const row = history.rows[index];
+      if (typeof row?.name !== 'string' || typeof row?.checksum !== 'string' ||
+          row.name !== files[index]) {
+        throw new Error('Migrationshistorie ist nicht lückenlos oder enthält unbekannte Migrationen.');
+      }
+      const checksum = migrationChecksum(await loadSql(row.name));
+      if (checksum !== row.checksum) {
+        throw new Error(`Migration wurde nach Ausführung geändert: ${row.name}`);
+      }
+    }
     for (const file of files) {
       const sql = await loadSql(file);
       const checksum = migrationChecksum(sql);
