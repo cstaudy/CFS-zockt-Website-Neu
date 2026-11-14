@@ -67,6 +67,30 @@ erzeugten Wegwerf-Legacystand mit dem abgeleiteten Vertrag und
 überprüft, dass das Entfernen einer historischen Tabelle sofort
 als Abweichung erkannt wird.
 
+### Manueller Baseline-Befehl verweigert Schemaabweichungen
+
+Zusätzlich zur rein lesenden Statusprüfung kontrolliert der
+**manuelle** `scripts/baseline-migrations.js`-Befehl vor der
+historischen Baseline 001–021 jetzt **selbst** die kanonische Schemaform.
+Er öffnet dafür ausdrücklich eine `BEGIN TRANSACTION READ ONLY`-
+Transaktion und führt danach `ROLLBACK` aus.
+
+Fehlt beispielsweise eine historische Tabelle oder ist eine alte
+Spalte mit falschem Typ bzw. falscher `NULL`-Vorgabe vorhanden, bricht
+der Befehl mit `LEGACY_BASELINE_SCHEMA_SHAPE_DRIFT` ab, **bevor**
+`baselineMigrations` eine Migrationshistorie anlegen kann.
+
+Die schon vorhandenen ausdrücklichen Betreiber-Opt-ins
+`CONFIRM_MIGRATION_BASELINE=yes`,
+`CONFIRM_VERIFIED_DATABASE_BACKUP=yes` und
+`CONFIRM_LEGACY_BASELINE_ONLY=yes` bleiben unverändert erforderlich.
+**Diese Kennzeichen dürfen erst nach tatsächlich nachgewiesenem
+Produktiv-Backup samt isoliertem Restore gesetzt werden** – CI-Mocks
+gelten dafür nicht. Nach erfolgreicher Formprüfung führt der bisherige
+Baseline-Runner weiterhin den zurückgerollten Metadaten-Fingerprint-
+Vergleich durch. Weder Formprüfung noch Fingerprint ersetzen eine
+tatsächliche Datenwiederherstellung.
+
 ## Read-only Befund aus der Render-Instanz, 14.11.2026
 
 Für `cfs-zockt-db` wurde über die verbundene Render-Read-only-Abfrage
