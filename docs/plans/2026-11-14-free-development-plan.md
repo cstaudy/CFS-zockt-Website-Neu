@@ -9,7 +9,7 @@ Kein zusätzlicher Render-Tarif, kein neuer kostenpflichtiger Dienst, keine Prod
 
 | Priorität | Arbeit | Nachweis / Abnahme | Status |
 | --- | --- | --- | --- |
-| P0 | Asset-Quota: eingehende Bytezahlen defensiv validieren | Unit-Negativfälle und CI des letzten PR-HEAD | Implementiert in PR #89; CI nach zusätzlicher HTTP-Fehlerabbildung erneut prüfen |
+| P0 | Asset-Quota: eingehende Bytezahlen defensiv validieren | Unit-Negativfälle und CI des letzten PR-HEAD | Implementiert in PR #89; vollständige CI auf HEAD 5ab6de2 grün (Run 43631304250); abschließende Review vor Merge |
 | P0 | Vorhandene Render-Produktions-DB nur lesend auf Migrationsstand prüfen | Kein Ledger / MFA-Challenges nachgewiesen, keine Schreibzugriffe | Blocker bestätigt |
 | P0 | Reales verschlüsseltes Produktionsbackup und isolierter Restore durch autorisierten Betreiber | Wiederherstellung dokumentiert, keine Secrets im Repo | Blockiert: nicht nachgewiesen |
 | P1 | Migrations- und Restore-Pfade kostenlos in GitHub Actions PostgreSQL 18 testen | `npm run check`, Creator-E2E, Legacy-Upgrade, Dump/Restore, Read-only Preflight | Vorhandene CI grün auf `main`; weiter bei jedem PR |
@@ -26,4 +26,13 @@ Kein zusätzlicher Render-Tarif, kein neuer kostenpflichtiger Dienst, keine Prod
 5. Keine Produktionsdatenbank/Render-Konfiguration ohne eigene Freigabe ändern.
 
 ## Nächster konkreter Schritt
-CI-Fehler `ENOENT` im neuen Leerupload-Test mit `uploadFilesIfPresent()` korrigiert; vollständige CI des letzten PR-HEAD erneut prüfen. HTTP-413-Content-Length-Test erfolgreich; authentifizierter Chunked-413-Test erfolgreich; exakte 16-MiB-Grenze mit Content-Length erfolgreich; exakte 16-MiB-Chunked-Grenze erfolgreich; unveränderte Asset-Metadaten nach beiden HTTP-415-Grenztests prüfen, CI abwarten; keine Produktionsdaten verwenden. Keine neuen Deployments.
+1. PR #89 abschließend reviewen; Code, HTTP-Fehlerabbildung und Cleanup wurden geprüft. CI für HEAD `5ab6de2` ist grün (Run `43631304250`), GitHub meldet mergeable/clean. Merge nur nach ausdrücklicher Betreiberfreigabe; kein Deploy.
+2. Release-Gates als unabhängiges Folgepaket vorbereiten: echten verschlüsselten Produktions-Dump und isolierten Restore durch autorisierten Betreiber nachweisen; kein Live-Zugriff durch CI oder diesen PR.
+3. Vor dem 09.12.2026 eine kostenlose, nachweisbar datenverlustfreie Fortführungsentscheidung für Render-PostgreSQL treffen. Ohne bestätigten Restore keine Baseline 001–021, Migration 022–025 oder Produktionsstart.
+4. Staging-DB-Trennung verifizieren, bevor irgendein Staging-Deploy erfolgt. Die bestehenden Staging-/Produktionsverbindungen nicht umkonfigurieren.
+
+## Review-Befund PR #89 (14.11.2026)
+- `assetQuotaViolation` prüft sichere nichtnegative Ganzzahlen vor BigInt-Quota-Arithmetik; `registerAssetWithinQuota` lehnt fehlerhafte Größen vor DB-Verbindung mit HTTP 400 ab.
+- HTTP-Upload validiert Body-Größe und PNG-Signatur vor Dateischreibzugriff; Fehlercodes 400/401/402/413/415 sind in Unit- und HTTP-Tests abgedeckt.
+- E2E mit Wegwerf-PostgreSQL 18 prüft Quota-Transaktionen, Rollback, Dateibereinigung sowie unveränderte Asset-Anzahl nach abgelehnten Grenz-Uploads.
+- Keine Produktionsmigrationen, keine neuen Tabellen, keine Render-Konfigurationsänderungen. Bestehende Release-Blocker bleiben bestehen.
