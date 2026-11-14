@@ -164,6 +164,49 @@ einen SQL-`CHECK`-Fehler. Nach dem 500-Fehler darf im
 Uploadverzeichnis keine neue Datei verbleiben. Die beiden
 synthetischen Test-Constraints werden sofort wieder entfernt.
 
+## Physische Datei-Bereinigung beim Löschen von Videos und Clips
+
+Bisher entfernte `DELETE /api/creator/media/(videos|clips)/:id` nur den
+owner-scoped `user_media`-Datensatz. Die Bytes der Datei blieben
+auf Disk, obwohl der Server den Zugriff bereits verweigerte. Dadurch
+konnten sich nicht mehr referenzierte Medien über längere Zeit ansammeln.
+
+Nach erfolgreichem, eigentümergebundenem Datenbank-DELETE versucht
+der Handler jetzt auch den **physikalischen Upload** zu entfernen.
+Dazu gelten strikte Schutzmaßnahmen:
+
+- Gelöscht werden nur Dateien mit einem durch den Code erzeugbaren
+  Namen `<Account-UUID>-<Datei-UUID>.<mp4|webm|mov|mkv>` oder
+  dem älteren Format
+  `<Account-UUID>-<Datei-UUID>-<bereinigter Originalname>`.
+  Die eingebettete Account-UUID muss zum authentifizierten Besitzer
+  passen; fremde, manipulierte und verzeichnishaltige Pfade werden
+  nie an `unlink` übergeben.
+- **Vor dem physikalischen Entfernen** liest der Server ab, ob
+  ein anderer `user_media`- oder `creator_assets`-Datensatz
+  noch genau diesen `storage_path` referenziert. In diesem
+  Fall bleibt die Datei erhalten – auch dann, wenn die andere
+  Referenz einem weiteren Konto gehört.
+- Bereits fehlende Dateien gelten als bereinigt. Scheitert die
+  Referenzabfrage oder das Entfernen der Datei, bleibt der
+  **erfolgreiche Metadaten-DELETE wirksam**; der Fehler wird ohne
+  Datei-/Kontonamen als `media_delete_storage_cleanup_failed`
+  protokolliert.
+
+Das ist **Best-Effort-Bereinigung**, keine garantierte atomare
+Transaktion über PostgreSQL und Dateisystem. Ein Stromausfall nach
+dem Datenbank-DELETE oder ein I/O-Fehler kann weiterhin einen
+verwaisten Upload hinterlassen. Es erfolgt ausdrücklich **kein
+pauschaler Scan und kein Bereinigen vorhandener Bestandsdateien**.
+
+Reine Tests prüfen die erzeugten Storage-Namensformen, Fremd-
+Account-Pfade, Traversal, überlebende Referenzen, fehlende Dateien
+und das gezielte Löschen im temporären Verzeichnis. Die
+isolierte PostgreSQL-18-HTTP-E2E prüft außerdem, dass ein
+fremder DELETE mit 404 abgewiesen wird, der eigene DELETE
+seine Datei tatsächlich entfernt und eine zweite Asset-Referenz
+das Entfernen zuverlässig verhindert.
+
 ## Optionale Video-Laufzeit als begrenztes Metadatum
 
 Der Header `X-CFS-Duration-Ms` war bisher direkt mit `Number()`
