@@ -6,7 +6,7 @@ function fakeClient({ legacyTables = false, historyExists = false, recorded = []
   const rows = new Map(recorded);
   const executed = [];
   let pending;
-  let historyInitialized = historyExists;
+  let historyInitialized = historyExists || recorded.length > 0;
   return {
     rows, executed,
     async query(sql, params = []) {
