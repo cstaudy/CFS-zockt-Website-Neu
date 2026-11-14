@@ -50,7 +50,7 @@ export function validImageSignature(mime, data) {
   if (mime === "image/jpeg") {
     return data.length >= 4 &&
       data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff &&
-      data[3] !== 0x00 && data[3] !== 0xff;
+      data[3] !== 0x00;
   }
   if (mime === "image/gif") {
     return data.length >= 10 &&
