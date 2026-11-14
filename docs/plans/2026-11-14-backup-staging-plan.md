@@ -53,3 +53,8 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 ## Aktualisierung: Pflichtfeld-Vollständigkeit
 - 26 explizite Pflichtfelder sind jetzt als Dokumentationsvertrag im CI-Test erfasst. Für jede Zeile wird ein Löschversuch simuliert; Anzahl und Reihenfolge werden geprüft.
 - Vorheriger Stand `b33a8ed` grün (Run `43636469792`); neuer Test-HEAD braucht CI. Keine Freigabe, Migration oder Deployment.
+
+## Übergabe an Review / nächste Abhängigkeit
+- CI HEAD `313d440` erfolgreich (Run `43638290828`), PR #91 konfliktfrei und review-bereit. Testpaket abgeschlossen; keine weitere Testausweitung ohne konkreten Fehler.
+- Nächste Entscheidung: ausdrückliche Mergefreigabe für PR #89/#91 **separat**; unabhängig davon ist Produktionsfreigabe weiterhin gesperrt.
+- Betreiber muss rechtzeitig vor 09.12.2026 eine nachweislich kostenlose PostgreSQL-Fortführung und einen autorisierten, verschlüsselten Backup-/isolierten Restore-Prozess bestätigen. Ohne diese Nachweise keine Migration oder Deployment.
