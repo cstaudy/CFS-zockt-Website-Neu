@@ -24,3 +24,7 @@ Nur Dokumentationsänderungen; Branch/PR kann ohne Laufzeiteffekt verworfen werd
 - PR #91 auf HEAD `0bf5cd8` grün (Run `43632235907`), mergeable/clean.
 - Neu: `scripts/test-operator-release-gates.mjs` und Aufnahme in `npm run check` (`0016aa3`, `66bff2f`, `309b186`). Test liest nur lokale Markdown-Dateien und erzwingt gesperrte Standardfelder, Frist, Restore-/Staging-Hinweise und Stop-Regeln. Er prüft **keine** tatsächlichen Backups oder Render-Verbindungen.
 - CI des neuen HEAD abwarten; bei Fehlern den Dokumentations-/Testvertrag korrigieren. Kein Merge, Deploy, DB-Zugriff oder Tarifwechsel.
+
+## CI-Korrektur nach Fehlbefund
+- CI des HEAD `4365e52` fehlgeschlagen (Run `43632478137`), ausschließlich im neuen Dokumentations-Test: Regex erwartete eine Formulierung `kein ... Produktionsdeploy`, während die Dokumentation tatsächlich `Produktivdeploy erst nach allen Gates` schreibt.
+- Test auf die reale, eindeutige Stop-Regel korrigiert (Commit `afbffac`); keine Produktivlogik verändert. CI des aktualisierten HEAD abwarten.
