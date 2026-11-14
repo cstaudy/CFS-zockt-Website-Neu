@@ -14,3 +14,8 @@ Nur Dokumentationsänderungen; Branch/PR kann ohne Laufzeiteffekt verworfen werd
 - PR #91: HEAD `a72e1a3` CI erfolgreich, Run `43631677494`; PR bleibt Draft und ungemergt.
 - Neu: `docs/operations/FREE_POSTGRES_DEADLINE_DECISION.md` (Commit `cd6639c`). Vier Optionen mit Risiken und ausdrücklich offenen Verfügbarkeits-/Kostenfragen, Planungsziele 20./25./30.11. und 04./07.12.2026, Stop-Kriterien sowie nachweisbare, geheimnisfreie Betreiberabnahme.
 - Keine Sicherung, Restore, Datenbankabfrage, Render-Änderung oder Freigabe. CI des aktualisierten PR-HEAD erneut prüfen.
+
+## Fortsetzung – prüfbares Betreiberprotokoll
+- Neuer Commit `c471908`: `docs/operations/DB_BACKUP_RESTORE_EVIDENCE_TEMPLATE.md`. Nicht geheime Abnahmevorlage mit getrennten A–D-Gates für Kosten/Berechtigung, verschlüsseltes Backup, isolierten Restore, Staging/Migration. Alle unbestätigten Felder stehen explizit auf OFFEN/NEIN; Gesamtstatus GESPERRT.
+- Vorheriger Dokumentationsstand `a72e1a3` grün (Run `43631677494`). Nachfolgende Runs `43632157602` und `43632169812` waren beim Prüfzeitpunkt noch in Bearbeitung. CI des neuen HEAD prüfen.
+- Keine Sicherung, kein Restore, keine Produktions- oder Render-Änderung. Die Vorlage ist **kein** Backup-Nachweis.
