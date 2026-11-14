@@ -42,7 +42,7 @@ export async function uploadAsset(req, body) {
     return { asset: asset(result.rows[0]) };
   } catch (error) {
     if (["ASSET_LIMIT_REACHED", "ASSET_STORAGE_LIMIT_REACHED",
-      "AUTHENTICATION_REQUIRED"].includes(error?.code)) {
+      "INVALID_ASSET_SIZE", "AUTHENTICATION_REQUIRED"].includes(error?.code)) {
       return { error: error.code, status: error.status, limits: assetQuota };
     }
     throw error;
