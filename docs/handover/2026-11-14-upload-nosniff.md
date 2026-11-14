@@ -17,3 +17,8 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Vollständiger PR #90 HEAD `2b328c7` CI **success** (Run `43625825079`), GitHub mergeable/clean. Änderung auf vier Dateien begrenzt: Headerfunktion, Unit-Test, Übergabe, Plan.
 - Die Änderung setzt `nosniff` für alle ausgelieferten Upload-Dateitypen und belässt unbekannte Endungen bei `application/octet-stream` plus Download-Anweisung.
 - Kein Browser-E2E-Nachweis; Review offen, kein Merge/Deploy ohne ausdrückliche Zustimmung. PR #89 und #91 ebenfalls offen.
+
+## Review-Status aktualisiert
+- Letzter vollständiger HEAD `5dbfbeb`: GitHub Actions Run `43638853771` erfolgreich, mergeable/clean.
+- PR #90 von Draft auf **Ready for review** gestellt; **kein Merge**. Reviewer sollen insbesondere Header für bekannte Medien und unbekannte Legacy-Dateien sowie Browser-Verhalten prüfen.
+- Dieser Dokumentations-Commit erfordert erneute CI; vor Merge neuen HEAD prüfen. Keine Render- oder DB-Aktion.
