@@ -26,10 +26,40 @@ for (const label of [
     `Operator evidence must default to unapproved: ${label}`);
 }
 // Check every evidence row, not just a small set of named critical fields.
+const requiredEvidenceLabels = [
+  "Freigebende Rolle / Kontaktkanal (keine privaten Kontaktdaten)",
+  "Kostenfreie Zieloption und verbindlich geprüfte Bedingungen",
+  "Kostenprüfung (0 zusätzliche EUR bestätigt?)",
+  "Export-/Restore-Zugriffsberechtigung geprüft?",
+  "Datenschutz-/Aufbewahrungsfreigabe?",
+  "Sicherungszeitpunkt (UTC)",
+  "PostgreSQL-Server- und Client-Hauptversion",
+  "Konsistentes Dump-Verfahren und Exitcode",
+  "Verschlüsselung nach Betreiberstandard bestätigt?",
+  "Speicherort unabhängig von Render, Zugriff beschränkt (nur allgemeine Beschreibung)",
+  "SHA-256 des **verschlüsselten** Artefakts",
+  "Lesbarkeit und Aufbewahrungsdauer geprüft?",
+  "Isolierte Zielumgebung nachweislich getrennt von Produktion?",
+  "Ziel als Wegwerf-DB bestätigt, keine produktiven Clients verbunden?",
+  "Restore-Zeitpunkt (UTC), Exitcode, verwendete Tool-Version",
+  "Tabellen-/Schema-Inventar gegen Quelle geprüft (ohne Datensätze)?",
+  "Unkritische aggregierte Zählwerte plausibel?",
+  "Schema-Fingerprint geprüft?",
+  "Restore-/Rollback-Verantwortliche und Abbruchweg dokumentiert?",
+  "Staging-DB-Identität technisch verschieden von Produktion?",
+  "Staging-Datenherkunft und Zugriffskontrolle freigegeben?",
+  "Read-only-Preflight ausgeführt und dokumentiert?",
+  "Historisches Ledger/Schema vollständig geklärt?",
+  "Migration 001–021-Baseline separat freigegeben?",
+  "Migration 022–025 separat freigegeben?",
+  "Produktionsdeploy separat freigegeben?"
+];
 function validateEvidenceRows(markdown) {
   const rows = markdown.split("\n").filter(line => /^\| .+ \| .+ \|$/.test(line));
   const evidence = rows.filter(line => !/^\| (?:Feld|---|Render-Free-Ablauf)/.test(line));
-  assert.ok(evidence.length >= 20, "Evidence table unexpectedly truncated");
+  assert.equal(evidence.length, requiredEvidenceLabels.length, "Evidence row count changed");
+  assert.deepEqual(evidence.map(row => row.slice(1, -1).split("|")[0].trim()),
+    requiredEvidenceLabels, "Evidence labels missing, duplicated or reordered");
   for (const row of evidence) {
     const [label, value] = row.slice(1, -1).split("|").map(part => part.trim());
     assert.ok(label && value, "Empty operator evidence field");
@@ -48,6 +78,12 @@ for (const line of evidenceLines) {
   assert.notEqual(changed, template, `Mutation must alter evidence row: ${label}`);
   assert.throws(() => validateEvidenceRows(changed), /Evidence must remain unapproved/,
     `Premature approval must be rejected: ${label}`);
+}
+// Mutation test: removing any evidence row must fail, even when many rows remain.
+for (const line of evidenceLines) {
+  const changed = template.replace(line + "\\n", "");
+  assert.notEqual(changed, template, "Deletion must alter the evidence template");
+  assert.throws(() => validateEvidenceRows(changed), /Evidence row count changed/);
 }
 for (const document of [gates, deadline]) {
   assert.match(document, /09\.12\.2026/);
