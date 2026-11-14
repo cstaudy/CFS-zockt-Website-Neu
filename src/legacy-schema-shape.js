@@ -139,3 +139,22 @@ export async function inspectLegacySchemaShape(db, expected = null) {
   };
   return report;
 }
+
+/**
+ * Refuse the operator baseline before it can write a migration ledger if the
+ * historical 001–021 database differs in table/column/type/nullability shape.
+ * Not a proof of indexes, constraints, data integrity or restored backups.
+ */
+export async function assertHistoricalBaselineShape(db, expected = null) {
+  const report = await inspectLegacySchemaShape(db, expected);
+  if (!report.matched) {
+    const error = new Error(
+      "LEGACY_BASELINE_SCHEMA_SHAPE_DRIFT: historische Tabellen/Spalten stimmen nicht mit 001–021 überein."
+    );
+    error.code = "LEGACY_BASELINE_SCHEMA_SHAPE_DRIFT";
+    // No personal records or credentials; exact drift can be inspected by
+    // the separate, explicitly read-only release preflight.
+    throw error;
+  }
+  return report;
+}
