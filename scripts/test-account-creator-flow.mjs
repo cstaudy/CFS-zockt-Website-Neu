@@ -1010,6 +1010,88 @@ try {
       await unlink(sharedPath);
     }
 
+    // The already advertised 120-item limit must be enforced at INSERT.
+    // All quota fixtures are metadata-only rows in the disposable local PG18 DB.
+    const assetListBeforeQuota = await request('GET',
+      '/api/creator/widget-studio/assets', { cookie: login.cookie });
+    assert.equal(assetListBeforeQuota.status, 200);
+    assert.equal(assetListBeforeQuota.data.limits.max_assets, 120);
+    assert.equal(assetListBeforeQuota.data.limits.max_total_bytes, 128 * 1024 * 1024);
+    const quotaMarker = 'ci-quota-' + randomUUID();
+    const padTo119 = 119 - assetListBeforeQuota.data.assets.length;
+    assert(padTo119 > 0, 'Disposable CI account should start below the quota');
+    await testPool.query(
+      "insert into creator_assets(account_id,name,mime_type,size_bytes,storage_path) " +
+      "select $1, $2 || n::text, 'image/png', 1, $3 || n::text " +
+      "from generate_series(1,$4::int) as g(n)",
+      [created.data.account.id, quotaMarker + '-name-', quotaMarker + '-file-', padTo119]
+    );
+    let acceptedQuotaAsset = null;
+    try {
+      const filesBefore = new Set(await readdir(uploadRoot));
+      const attempts = await Promise.all([
+        upload('/api/creator/widget-studio/assets', 'image/png',
+          'quota-race-one.png', privateImage),
+        upload('/api/creator/widget-studio/assets', 'image/png',
+          'quota-race-two.png', privateImage)
+      ]);
+      assert.deepEqual(attempts.map(x => x.status).sort(), [201, 402],
+        'Exactly one concurrent creator asset INSERT may claim the last free slot');
+      acceptedQuotaAsset = attempts.find(x => x.status === 201).data.asset;
+      assert.equal(attempts.find(x => x.status === 402).data.error,
+        'ASSET_LIMIT_REACHED');
+      assert.equal((await request('GET', '/api/creator/widget-studio/assets',
+        { cookie: login.cookie })).data.assets.length, 120);
+      const newFiles = (await readdir(uploadRoot)).filter(x => !filesBefore.has(x));
+      assert.deepEqual(newFiles, [
+        acceptedQuotaAsset.url.slice('/assets/uploads/'.length)
+      ], 'Rejected concurrent upload must not leave orphan bytes');
+      const full = await upload('/api/creator/widget-studio/assets',
+        'image/png', 'quota-serial-denied.png', privateImage);
+      assert.equal(full.status, 402);
+      assert.equal(full.data.error, 'ASSET_LIMIT_REACHED');
+    } finally {
+      await testPool.query(
+        "delete from creator_assets where account_id=$1 and name like $2",
+        [created.data.account.id, quotaMarker + '-name-%']
+      );
+      if (acceptedQuotaAsset) {
+        const stored = acceptedQuotaAsset.url.slice('/assets/uploads/'.length);
+        await testPool.query(
+          "delete from creator_assets where account_id=$1 and storage_path=$2",
+          [created.data.account.id, stored]
+        );
+        await unlink(join(uploadRoot, stored));
+      }
+    }
+
+    // Independently assert the byte limit, not just the number of assets.
+    const beforeBytes = await request('GET', '/api/creator/widget-studio/assets',
+      { cookie: login.cookie });
+    const sizePadding = 128 * 1024 * 1024 -
+      beforeBytes.data.usage.bytes - privateImage.length + 1;
+    assert(sizePadding > 0, 'Quota byte test needs a fresh CI account');
+    const byteMarker = 'ci-quota-bytes-' + randomUUID();
+    await testPool.query(
+      "insert into creator_assets(account_id,name,mime_type,size_bytes,storage_path) " +
+      "values ($1,$2,'image/png',$3,$4)",
+      [created.data.account.id, byteMarker, sizePadding, byteMarker + '.png']
+    );
+    try {
+      const filesBefore = (await readdir(uploadRoot)).sort();
+      const deniedByBytes = await upload('/api/creator/widget-studio/assets',
+        'image/png', 'quota-byte-denied.png', privateImage);
+      assert.equal(deniedByBytes.status, 402);
+      assert.equal(deniedByBytes.data.error, 'ASSET_STORAGE_LIMIT_REACHED');
+      assert.deepEqual((await readdir(uploadRoot)).sort(), filesBefore,
+        'Byte-over-limit upload must not retain a new file');
+    } finally {
+      await testPool.query(
+        "delete from creator_assets where account_id=$1 and storage_path=$2",
+        [created.data.account.id, byteMarker + '.png']
+      );
+    }
+
     // Force registration failure in the disposable local CI database after
     // bytes have already been written, then verify filesystem compensation.
     // The constraints affect only these test sentinel filenames and are
