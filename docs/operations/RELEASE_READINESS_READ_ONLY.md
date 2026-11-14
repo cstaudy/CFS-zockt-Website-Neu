@@ -91,6 +91,32 @@ Baseline-Runner weiterhin den zurückgerollten Metadaten-Fingerprint-
 Vergleich durch. Weder Formprüfung noch Fingerprint ersetzen eine
 tatsächliche Datenwiederherstellung.
 
+### Migrationen nur nach vollständiger Ledger-Prefixprüfung
+
+Beim Start des Webservers prüft der vorhandene Migrationsrunner die
+gespeicherten Migrationen künftig **als komplette, lückenlose Folge**,
+bevor noch ausstehende Dateien ausgeführt werden. Er liest nur
+`name` und `checksum` aus `schema_migrations` unter der bereits
+bestehenden PostgreSQL-Advisory-Sperre.
+
+- Eine unbekannte oder nach einem Downgrade nur noch auf der Datenbank
+  vorhandene Migration wird **nicht** stillschweigend ignoriert.
+- Eine Lücke in der Folge oder ein unzulässig früher erfasster
+  Migrationsschritt stoppt den Lauf.
+- Alle bereits registrierten SHA-256-Prüfsummen werden **vor** der
+  ersten neuen Migration geprüft; ein historischer Prüfsummenfehler
+  darf nicht erst mitten im Upgrade entdeckt werden.
+- Eine frische, leere CI-Datenbank darf weiterhin bei 001 beginnen;
+  eine vorhandene Legacy-Datenbank ohne Ledger bleibt durch den
+  separaten historischen Baseline-Guard gesperrt.
+
+Das ist eine zusätzliche Sicherheitsprüfung im **bereits vorhandenen**
+Migration-Pfad, **keine** neue Migration und **keine**
+Freigabe für ein reales Datenbankupgrade. Für ein Rollback auf einen
+älteren Code-Stand sind der dokumentierte Schema-/Anwendungsabgleich
+und ein geprüftes Backup erforderlich; unbekannte neuere Migrationen
+werden bewusst nicht übersprungen.
+
 ## Read-only Befund aus der Render-Instanz, 14.11.2026
 
 Für `cfs-zockt-db` wurde über die verbundene Render-Read-only-Abfrage
