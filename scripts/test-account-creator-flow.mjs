@@ -797,6 +797,18 @@ try {
   assert.equal(assetsAfterEmpty.data.assets.length, assetsBeforeEmpty.data.assets.length,
     'Rejected empty asset upload must not insert metadata');
 
+  // Exact 16 MiB must pass the HTTP size guard and reach the image-signature
+  // validation. The deliberately invalid image is rejected as 415, not 413,
+  // and must not be persisted.
+  const filesBeforeExactLimit = await uploadFilesIfPresent();
+  const exactLimit = await upload('/api/creator/widget-studio/assets',
+    'image/png', 'exact-limit-invalid-ci.png', Buffer.alloc(16 * 1024 * 1024));
+  assert.equal(exactLimit.status, 415,
+    'Exactly 16 MiB must reach image validation instead of HTTP 413');
+  assert.equal(exactLimit.data.error, 'INVALID_ASSET_SIGNATURE');
+  assert.deepEqual(await uploadFilesIfPresent(), filesBeforeExactLimit,
+    'Invalid image at exact HTTP size limit must not create files');
+
   // No Content-Length: exercise the actual authenticated server route using
   // Transfer-Encoding: chunked. The streaming parser must reject >16 MiB.
   const filesBeforeChunked = await uploadFilesIfPresent();
