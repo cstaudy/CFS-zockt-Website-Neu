@@ -45,3 +45,7 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 ## Aktualisierung: vollständiger Vorlagen-Guard
 - Der CI-Test prüft jetzt alle Nachweiszeilen (nicht nur sieben ausgewählte), erkennt unerwartete Tabellenverkürzung und enthält einen Negativtest für versehentliches `JA` bei Produktivdeploy.
 - Ausgangsstand `dcf1bba` CI grün. Neue CI nach Teständerung abwarten; keine Freigaben oder Betriebsaktionen.
+
+## Aktualisierung: Mutationstest sämtlicher Nachweise
+- Der CI-Guard simuliert jetzt in jeder Betreiber-Nachweiszeile eine `JA`-Freigabe und verlangt jeweils einen Fehler; die Vorlage selbst bleibt unverändert.
+- Vorheriger Stand `c6f6629` grün (Run `43636202088`); neue CI prüfen. Keine produktiven Aktionen.
