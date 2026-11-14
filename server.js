@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { requestId } from "./src/request-id.js";
 import { readJson as readJsonBody } from "./src/request-json.js";
+import { readRaw, maxBufferedUploadBytes } from "./src/request-raw.js";
 import { loginThrottle } from "./src/login-throttle.js";
 import { createReadStream } from "node:fs";
 import { access, readFile, stat } from "node:fs/promises";
@@ -49,7 +50,7 @@ const host = process.env.HOST || "0.0.0.0";
 const startedAt = new Date().toISOString();
 let originalDesignCatalogCache = null;
 const version = process.env.RENDER_GIT_COMMIT || process.env.APP_VERSION || "local";
-const maxBodyBytes = 16 * 1024 * 1024;
+const maxBodyBytes = maxBufferedUploadBytes;
 const maxJsonBytes = 1024 * 1024;
 
 const mimeTypes = {
@@ -108,13 +109,6 @@ function requestOriginAllowed(req) {
 
 async function readJson(req) {
   return readJsonBody(req, maxJsonBytes);
-}
-
-async function readRaw(req) {
-  const chunks = [];
-  let size = 0;
-  for await (const chunk of req) { size += chunk.length; if (size > maxBodyBytes * 16) throw Object.assign(new Error("PAYLOAD_TOO_LARGE"), { status: 413 }); chunks.push(chunk); }
-  return Buffer.concat(chunks);
 }
 
 const publicRootFiles = new Set([
