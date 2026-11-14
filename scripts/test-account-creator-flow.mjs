@@ -786,8 +786,10 @@ try {
     'Creator video upload limit must accurately reflect the current HTTP buffering cap');
 
   const videoCountBeforeInvalidDuration = bufferedVideoLimits.data.media.length;
+  // Node's HTTP parser normalizes surrounding optional header whitespace,
+  // so test malformed on-wire values here and whitespace in the pure parser.
   for (const duration of ['-1', '2147483648', 'Infinity', 'NaN', '1.2',
-    '1e6', '12ms', ' 300 ', '999999999999999']) {
+    '1e6', '12ms', '999999999999999']) {
     for (const folder of ['videos', 'clips']) {
       const rejected = await upload('/api/creator/media/' + folder, 'video/mp4',
         'duration-invalid.mp4', privateVideo, { 'x-cfs-duration-ms': duration });
