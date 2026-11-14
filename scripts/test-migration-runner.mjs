@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { applyMigrations, baselineMigrations } from '../src/migration-runner.js';
 import { migrationFiles, loadMigrationSql } from '../src/migrations.js';
 
-function fakeClient({ legacyTables = false, historyExists = false } = {}) {
-  const rows = new Map();
+function fakeClient({ legacyTables = false, historyExists = false, recorded = [] } = {}) {
+  const rows = new Map(recorded);
   const executed = [];
   let pending;
   let historyInitialized = historyExists;
@@ -13,6 +13,10 @@ function fakeClient({ legacyTables = false, historyExists = false } = {}) {
       executed.push(sql.trim().toLowerCase().split(/\s+/).slice(0, 3).join(' '));
       if (sql.includes("to_regclass('public.schema_migrations')")) return { rows: [{ history_exists: historyInitialized, application_tables_exist: legacyTables || rows.size > 0 }] };
       if (sql === 'select exists (select 1 from schema_migrations) as has_entries') return { rows: [{ has_entries: rows.size > 0 }] };
+      if (sql === 'select name, checksum from schema_migrations order by name') {
+        return { rows: [...rows].sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, checksum]) => ({ name, checksum })) };
+      }
       if (sql.startsWith('create table if not exists schema_migrations')) { historyInitialized = true; return {}; }
       if (sql.startsWith('select checksum')) return { rows: rows.has(params[0]) ? [{ checksum: rows.get(params[0]) }] : [] };
       if (sql === 'begin') { pending = null; return {}; }
@@ -48,7 +52,37 @@ const emptyHistory = fakeClient({ legacyTables: true, historyExists: true });
 await assert.rejects(applyMigrations(emptyHistory, files, file => sql[file]), /leerer Migrationshistorie/);
 assert(!emptyHistory.executed.some(item => item.startsWith('create table')), 'empty history must not be modified');
 
-console.log('Migration runner: apply, skip, checksum guard, legacy schema guard and rollback passed.');
+// Previously the runner only checked expected migration names one by one.
+// An unknown recorded migration or a hole could survive until later writes.
+const checkpoint = fakeClient({ recorded: [['002.sql', 'untrusted-checksum']] });
+await assert.rejects(applyMigrations(checkpoint, files, file => sql[file]),
+  /nicht lückenlos|unbekannte Migrationen/);
+assert(!checkpoint.executed.includes('begin'), 'Out-of-order history must not begin a migration transaction');
+assert.equal(checkpoint.executed.at(-1), 'select pg_advisory_unlock($1)',
+  'Ledger prefix error must always release advisory lock');
+
+const unknown = fakeClient({ recorded: [['999_unknown.sql', 'unexpected-checksum']] });
+await assert.rejects(applyMigrations(unknown, files, file => sql[file]),
+  /nicht lückenlos|unbekannte Migrationen/);
+assert(!unknown.executed.includes('begin'), 'Unknown ledger entry must block any pending migration');
+
+const extra = fakeClient({ recorded: [
+  ['001.sql', 'ignored-for-prefix-test'], ['002.sql', 'ignored-for-prefix-test'],
+  ['003_future.sql', 'untrusted-checksum']
+] });
+await assert.rejects(applyMigrations(extra, files, file => sql[file]),
+  /unvollständig, unbekannt oder ungültig/);
+assert(!extra.executed.includes('begin'));
+
+const tampered = fakeClient({ recorded: [['001.sql', 'wrong-checksum']] });
+await assert.rejects(applyMigrations(tampered, files, file => sql[file]),
+  /Migration wurde nach Ausführung geändert: 001.sql/);
+assert(!tampered.executed.includes('begin'),
+  'Wrong stored checksum must be caught before later migration DDL');
+
+await assert.rejects(applyMigrations(fakeClient(), ['001.sql', '001.sql'],
+  () => 'create table repeated'), /unvollständig, unbekannt oder ungültig/);
+console.log('Migration runner: apply, complete prefix/checksums, unknown entries, missing ledger, rollback passed.');
 
 function baselineClient(existing = []) {
   const executed = [];
