@@ -81,7 +81,7 @@ for (const line of evidenceLines) {
 }
 // Mutation test: removing any evidence row must fail, even when many rows remain.
 for (const line of evidenceLines) {
-  const changed = template.replace(line + "\\n", "");
+  const changed = template.replace(line + "\n", "");
   assert.notEqual(changed, template, "Deletion must alter the evidence template");
   assert.throws(() => validateEvidenceRows(changed), /Evidence row count changed/);
 }
