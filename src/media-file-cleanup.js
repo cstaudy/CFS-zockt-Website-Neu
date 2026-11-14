@@ -8,7 +8,7 @@ import { uploadRoot } from "./upload-storage.js";
 // Legacy:  <account-uuid>-<file-uuid>-<sanitized-original-filename>
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
 const ownedFile = new RegExp(
-  "^(" + UUID + ")-(" + UUID + ")(?:\\.[a-z0-9]{1,8}|-[a-z0-9._-]{1,120})$", "i"
+  "^(" + UUID + ")-(" + UUID + ")(?:\\.(?:mp4|webm|mov|mkv)|-[a-z0-9._-]{1,120})$", "i"
 );
 
 export function isOwnedMediaStorageName(stored, ownerId) {
