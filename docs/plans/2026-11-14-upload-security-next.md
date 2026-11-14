@@ -29,3 +29,8 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 - Bestehender HTTP-Test prüft `401` für anonyme Uploads, aber noch keinen authentifizierten `200`-Response mit `nosniff` und Legacy-`attachment`.
 - Vor produktivem Deployment in isolierter Testumgebung mit Test-DB und Auth-Fixture HTTP-Header für Bild/Video/Legacy jeweils mit GET und HEAD prüfen. Kein Zugriff auf Prod-Daten, keine Freigabe durch grünen Unit-Test allein.
 - PR #90 HEAD `bb56976` CI grün (Run `43639049229`); neue reine Dokumentations-CI prüfen.
+
+## Isolierter HTTP-200-Test – Voraussetzungen
+- `serveStatic()` lässt Upload-HTTP-200 nur nach DB-gestützter Veröffentlichung oder Eigentums-/Authentifizierungsprüfung zu. Ohne Test-DB ist der sichere Integrationstest nicht realisierbar; Autorisierung keinesfalls lockern.
+- Testplan: ephemeres PG18 mit Migrationsschema; eigenes Testkonto, Session und Asset-Datei; GET/HEAD auf bekanntes Bild und Legacy-Datei; `nosniff`, MIME, `attachment`, `private, no-store` und Fremdzugriff prüfen; danach DB und Dateien entsorgen.
+- Aktueller HEAD `088d8b0` CI grün (Run `43639293520`); keine Änderung an Auth-Logik oder Produktionsinfrastruktur.
