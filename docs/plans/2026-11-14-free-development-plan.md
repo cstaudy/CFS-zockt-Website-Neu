@@ -26,4 +26,4 @@ Kein zusätzlicher Render-Tarif, kein neuer kostenpflichtiger Dienst, keine Prod
 5. Keine Produktionsdatenbank/Render-Konfiguration ohne eigene Freigabe ändern.
 
 ## Nächster konkreter Schritt
-CI-Fehler `ENOENT` im neuen Leerupload-Test mit `uploadFilesIfPresent()` korrigiert; vollständige CI des letzten PR-HEAD erneut prüfen. HTTP-413-Content-Length-Test erfolgreich; authentifizierter Chunked-413-Test erfolgreich; exakte 16-MiB-Grenze mit erwarteter HTTP-415-Signaturablehnung ergänzt, CI prüfen; keine Produktionsdaten verwenden. Keine neuen Deployments.
+CI-Fehler `ENOENT` im neuen Leerupload-Test mit `uploadFilesIfPresent()` korrigiert; vollständige CI des letzten PR-HEAD erneut prüfen. HTTP-413-Content-Length-Test erfolgreich; authentifizierter Chunked-413-Test erfolgreich; exakte 16-MiB-Grenze mit Content-Length erfolgreich; exakte 16-MiB-Chunked-Grenze (HTTP 415 statt 413) ergänzt, CI prüfen; keine Produktionsdaten verwenden. Keine neuen Deployments.
