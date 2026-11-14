@@ -772,6 +772,24 @@ try {
   // Synthetic ISO BMFF file-type box, not a fully playable video. The
   // upload's first-line container signature is validated before saving.
   const privateVideo = Buffer.from('000000146674797069736f6d0000000069736f6d', 'hex');
+  // Authenticated HTTP regression: empty image bodies must return a stable
+  // client error before filesystem writes or creator_assets insertion.
+  const filesBeforeEmptyAsset = (await readdir(uploadRoot)).sort();
+  const assetsBeforeEmpty = await request('GET', '/api/creator/widget-studio/assets',
+    { cookie: login.cookie });
+  assert.equal(assetsBeforeEmpty.status, 200);
+  const emptyAsset = await upload('/api/creator/widget-studio/assets',
+    'image/png', 'empty-ci.png', Buffer.alloc(0));
+  assert.equal(emptyAsset.status, 400, 'Empty authenticated asset upload must return HTTP 400');
+  assert.equal(emptyAsset.data.error, 'INVALID_ASSET_SIZE');
+  assert.deepEqual((await readdir(uploadRoot)).sort(), filesBeforeEmptyAsset,
+    'Rejected empty asset upload must not create files');
+  const assetsAfterEmpty = await request('GET', '/api/creator/widget-studio/assets',
+    { cookie: login.cookie });
+  assert.equal(assetsAfterEmpty.status, 200);
+  assert.equal(assetsAfterEmpty.data.assets.length, assetsBeforeEmpty.data.assets.length,
+    'Rejected empty asset upload must not insert metadata');
+
   const asset = await upload('/api/creator/widget-studio/assets', 'image/png', 'private-ci.png', privateImage);
   assert.equal(asset.status, 201, `Asset upload failed: ${JSON.stringify(asset.data)}`);
   const media = await upload('/api/creator/media/videos', 'video/mp4',
