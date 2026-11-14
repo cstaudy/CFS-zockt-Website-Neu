@@ -43,3 +43,6 @@ GitHub Actions Run `43628319038` scheiterte im PostgreSQL-E2E an `ENOENT` beim `
 
 ## Aktualisierung: HTTP 413 für zu große Asset-Uploads
 Der vorherige HEAD `b0cb3cb` ist in GitHub Actions Run `43629217715` vollständig grün. Commit `f81cbca` ergänzt `scripts/test-static-boundary.mjs`: POST auf die Asset-Upload-Route mit 16 MiB + 1 Byte und korrektem Content-Length muss HTTP 413 / `PAYLOAD_TOO_LARGE` liefern, ohne Upload-Datei zu schreiben. Test verwendet lokalen Server ohne Datenbank. CI für den neuen HEAD ist noch offen. Chunked-413 ist bereits in `scripts/test-request-raw.mjs` für den Stream-Parser abgedeckt; eine vollständige HTTP-Routenprüfung für Chunked-Uploads bleibt als separates Ziel bestehen.
+
+## Aktualisierung: Chunked-HTTP-Grenztest
+Vorheriger PR-HEAD `6c1f24e`: vollständige GitHub-Actions-CI erfolgreich (Run `43630579894`). Commit `847807f` ergänzt den PostgreSQL-18-CI-E2E-Test um einen authentifizierten Streaming-POST auf `/api/creator/widget-studio/assets` ohne Content-Length: 8 MiB + 8 MiB + 1 Byte per `ReadableStream` und `duplex: 'half'`. Erwartet HTTP 413 / `PAYLOAD_TOO_LARGE`, keine neue Upload-Datei und kein zusätzlicher Creator-Asset-Eintrag. Nur lokaler, ausdrücklich freigegebener CI-PostgreSQL-Server; kein Produktionszugriff. CI des neuen Commits steht aus.
