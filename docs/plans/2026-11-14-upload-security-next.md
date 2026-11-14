@@ -34,3 +34,8 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 - `serveStatic()` lässt Upload-HTTP-200 nur nach DB-gestützter Veröffentlichung oder Eigentums-/Authentifizierungsprüfung zu. Ohne Test-DB ist der sichere Integrationstest nicht realisierbar; Autorisierung keinesfalls lockern.
 - Testplan: ephemeres PG18 mit Migrationsschema; eigenes Testkonto, Session und Asset-Datei; GET/HEAD auf bekanntes Bild und Legacy-Datei; `nosniff`, MIME, `attachment`, `private, no-store` und Fremdzugriff prüfen; danach DB und Dateien entsorgen.
 - Aktueller HEAD `088d8b0` CI grün (Run `43639293520`); keine Änderung an Auth-Logik oder Produktionsinfrastruktur.
+
+## HTTP-Header-Test in bestehende kostenlose CI integriert
+- Bereits vorhandene PG18-CI führt echte authentifizierte HTTP-GET/HEAD-Tests mit Testkonto und Testdateien aus; Legacy-`.html` wurde schon mit `nosniff`/`attachment` geprüft. Vorherige Beschreibung als komplett fehlender HTTP-200-Test korrigiert.
+- Ergänzt: `scripts/test-account-creator-flow.mjs` prüft für normale Bild-/Video-Uploads nun auch `nosniff` und erwarteten MIME auf GET/HEAD (Commit `6a661eb`).
+- Nächster Gate: neuer CI-Lauf muss grün sein; manueller Browser-Test vor Produktionsfreigabe bleibt offen. Kein Merge/Deploy ohne Freigabe.
