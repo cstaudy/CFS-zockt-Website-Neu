@@ -23,3 +23,9 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 - CI für `5dbfbeb` grün (Run `43638853771`); PR #90 jetzt review-bereit.
 - Offene Abnahme: Reviewer bestätigt Headerverhalten; realer Browser-Test vor Deployment; explizite Mergefreigabe bleibt erforderlich.
 - Nach dieser Dokumentationsänderung neue CI prüfen. Keine weiteren Änderungen ohne Befund.
+
+## Nächste Abnahme: tatsächlicher HTTP-Uploadpfad
+- Quellcode verifiziert: `server.js` nutzt `uploadDeliveryHeaders(filePath)` bei `res.writeHead(200)` für Uploads, für GET und HEAD.
+- Bestehender HTTP-Test prüft `401` für anonyme Uploads, aber noch keinen authentifizierten `200`-Response mit `nosniff` und Legacy-`attachment`.
+- Vor produktivem Deployment in isolierter Testumgebung mit Test-DB und Auth-Fixture HTTP-Header für Bild/Video/Legacy jeweils mit GET und HEAD prüfen. Kein Zugriff auf Prod-Daten, keine Freigabe durch grünen Unit-Test allein.
+- PR #90 HEAD `bb56976` CI grün (Run `43639049229`); neue reine Dokumentations-CI prüfen.
