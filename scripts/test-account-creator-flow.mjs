@@ -829,6 +829,12 @@ try {
   assert.deepEqual(await uploadFilesIfPresent(), filesBeforeExactLimit,
     'Invalid chunked image at exact limit must not create files');
 
+  const assetsAfterExactLimits = await request('GET', '/api/creator/widget-studio/assets',
+    { cookie: login.cookie });
+  assert.equal(assetsAfterExactLimits.status, 200);
+  assert.equal(assetsAfterExactLimits.data.assets.length, assetsBeforeEmpty.data.assets.length,
+    'Invalid exact-limit uploads (regular and chunked) must not insert asset metadata');
+
   // No Content-Length: exercise the actual authenticated server route using
   // Transfer-Encoding: chunked. The streaming parser must reject >16 MiB.
   const filesBeforeChunked = await uploadFilesIfPresent();
