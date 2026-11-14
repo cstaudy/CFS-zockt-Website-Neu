@@ -12,3 +12,8 @@ Browser dürfen Uploads nicht mehr als abweichende Typen interpretieren. Dies ka
 
 ## Status
 Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung noch ausstehend. PR #89 bleibt separat als Draft, seine CI war für HEAD `c761adb` erfolgreich.
+
+## Nachprüfung am 14.11.2026
+- Vollständiger PR #90 HEAD `2b328c7` CI **success** (Run `43625825079`), GitHub mergeable/clean. Änderung auf vier Dateien begrenzt: Headerfunktion, Unit-Test, Übergabe, Plan.
+- Die Änderung setzt `nosniff` für alle ausgelieferten Upload-Dateitypen und belässt unbekannte Endungen bei `application/octet-stream` plus Download-Anweisung.
+- Kein Browser-E2E-Nachweis; Review offen, kein Merge/Deploy ohne ausdrückliche Zustimmung. PR #89 und #91 ebenfalls offen.
