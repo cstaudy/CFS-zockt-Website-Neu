@@ -164,4 +164,27 @@ einen SQL-`CHECK`-Fehler. Nach dem 500-Fehler darf im
 Uploadverzeichnis keine neue Datei verbleiben. Die beiden
 synthetischen Test-Constraints werden sofort wieder entfernt.
 
+## Optionale Video-Laufzeit als begrenztes Metadatum
+
+Der Header `X-CFS-Duration-Ms` war bisher direkt mit `Number()`
+umgewandelt worden. Negativwerte, Fließkommazahlen, `Infinity`
+oder Werte außerhalb der PostgreSQL-`integer`-Spalte
+`user_media.duration_ms` konnten dadurch unpassende Metadaten
+oder einen Datenbankfehler auslösen.
+
+Jetzt gelten vor jedem Dateischreiben **klare Eingaberegeln**:
+Ein fehlender oder leerer Header bleibt `NULL`, `0` bleibt zur
+bisherigen API kompatibel ebenfalls `NULL`. Ansonsten wird nur eine
+nichtnegative ganze Dezimalzahl zwischen `1` und `2147483647`
+Millisekunden akzeptiert. Unpassende, negative, nachträglich gerundete,
+nicht endliche oder zu große Werte werden für Videos **und** Clips
+mit `400 INVALID_MEDIA_DURATION` abgewiesen. Der Header beschreibt
+nur vom Client deklarierte Metadaten; dies ist kein Beweis für die
+wirkliche Video- oder Audiodauer.
+
+Die CI testet die Umwandlung direkt und bei realen Creator-HTTP-
+Uploads auf der **isolierten lokalen PostgreSQL-18-Datenbank**:
+eine gültige Dauer wird als Ganzzahl gespeichert, ungültige Header
+schlagen kontrolliert fehl, ohne neue Medienzeilen anzulegen.
+
 Kein Production-Backup, keine Live-Migration und kein Render-Deploy.
