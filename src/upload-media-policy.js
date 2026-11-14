@@ -34,3 +34,34 @@ export function uploadDeliveryHeaders(path) {
         "content-disposition": 'attachment; filename="download"'
       };
 }
+
+/**
+ * Cheap, bounded first-line image signature gate. This is NOT a full image
+ * decoder or malware scan; it prevents plain HTML/XML/script bytes from being
+ * accepted merely because the caller declared a supported image MIME.
+ */
+export function validImageSignature(mime, data) {
+  if (!Buffer.isBuffer(data)) return false;
+  if (mime === "image/png") {
+    return data.length >= 24 &&
+      data.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex")) &&
+      data.toString("ascii", 12, 16) === "IHDR";
+  }
+  if (mime === "image/jpeg") {
+    return data.length >= 4 &&
+      data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff &&
+      data[3] !== 0x00;
+  }
+  if (mime === "image/gif") {
+    return data.length >= 10 &&
+      (data.toString("ascii", 0, 6) === "GIF87a" ||
+       data.toString("ascii", 0, 6) === "GIF89a");
+  }
+  if (mime === "image/webp") {
+    return data.length >= 16 &&
+      data.toString("ascii", 0, 4) === "RIFF" &&
+      data.toString("ascii", 8, 12) === "WEBP" &&
+      ["VP8 ", "VP8L", "VP8X"].includes(data.toString("ascii", 12, 16));
+  }
+  return false;
+}

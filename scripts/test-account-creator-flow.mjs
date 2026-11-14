@@ -762,7 +762,12 @@ try {
     });
     return { status: response.status, data: await response.json() };
   };
-  const privateImage = Buffer.from('private-image-payload-ci');
+  // A real, tiny PNG rather than arbitrary CI bytes. The upload now
+  // validates image signatures before writing files or metadata.
+  const privateImage = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNg+M/wHwAEAQH/cetH5QAAAABJRU5ErkJggg==',
+    'base64'
+  );
   const privateVideo = Buffer.from('private-video-payload-ci');
   const asset = await upload('/api/creator/widget-studio/assets', 'image/png', 'private-ci.png', privateImage);
   assert.equal(asset.status, 201, `Asset upload failed: ${JSON.stringify(asset.data)}`);
@@ -771,31 +776,39 @@ try {
   // The claimed MIME, not an attacker-controlled original suffix, must
   // determine how new upload bytes can be served by the static handler.
   const htmlPayload = Buffer.from('<!doctype html><script>alert("upload-xss")</script>');
-  for (const [path, mime, filename, suffix, property] of [
-    ['/api/creator/widget-studio/assets', 'image/png', 'masquerading.html', '.png', 'asset'],
-    ['/api/creator/media/videos', 'video/mp4', 'masquerading.html', '.mp4', 'media']
+  for (const [mime, filename] of [
+    ['image/png', 'masquerading.html'],
+    ['image/jpeg', 'not-a-real-jpeg.jpg'],
+    ['image/webp', 'not-a-real-webp.webp'],
+    ['image/gif', 'not-a-real-gif.gif']
   ]) {
-    const disguised = await upload(path, mime, filename, htmlPayload);
-    assert.equal(disguised.status, 201, 'MIME-derived upload filename must remain supported');
-    assert.equal(disguised.data[property].name, filename,
-      'Original name is retained only as display metadata');
-    const safeUrl = disguised.data[property].url;
-    assert(safeUrl.endsWith(suffix), 'Stored file extension must be derived from accepted MIME');
-    assert(!safeUrl.endsWith('.html'), 'Client-supplied executable extension must never enter storage URL');
-    for (const method of ['GET', 'HEAD']) {
-      const response = await fetch(base + safeUrl, {
-        method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
-      });
-      assert.equal(response.status, 200);
-      assert.equal(response.headers.get('content-type'), mime,
-        'MIME-based storage extension must prevent a same-origin HTML response');
-      assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-      assert.equal(response.headers.get('cache-control'), 'private, no-store');
-      if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), htmlPayload);
-    }
-    assert.equal((await fetch(base + safeUrl)).status, 401,
-      'A MIME-safely stored upload must retain owner authorization checks');
+    const invalidImage = await upload('/api/creator/widget-studio/assets',
+      mime, filename, htmlPayload);
+    assert.equal(invalidImage.status, 415,
+      'Spoofed image content must be rejected before filesystem or DB writes');
+    assert.equal(invalidImage.data.error, 'INVALID_ASSET_SIGNATURE');
   }
+
+  // Video signature/decode inspection is a separate acceptance gate. For now
+  // a .html original name must never become a text/html static response.
+  const disguisedVideo = await upload('/api/creator/media/videos',
+    'video/mp4', 'masquerading.html', htmlPayload);
+  assert.equal(disguisedVideo.status, 201);
+  assert.equal(disguisedVideo.data.media.name, 'masquerading.html');
+  const safeVideoUrl = disguisedVideo.data.media.url;
+  assert(safeVideoUrl.endsWith('.mp4') && !safeVideoUrl.endsWith('.html'));
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + safeVideoUrl, {
+      method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'video/mp4');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), htmlPayload);
+  }
+  assert.equal((await fetch(base + safeVideoUrl)).status, 401,
+    'MIME-safely stored videos must still require owner authorization');
 
 
   assert(!(await request('GET', '/api/creator/widget-studio/assets', { cookie: mediaOtherCookie }))
