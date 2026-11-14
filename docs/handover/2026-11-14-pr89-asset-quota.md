@@ -37,3 +37,6 @@ Commit `789e6f9` ergänzt im bestehenden Server-HTTP-Test `scripts/test-static-b
 
 ## Aktualisierung: authentifizierter HTTP-400-Test
 Commit `73de312`: `scripts/test-account-creator-flow.mjs` prüft mit angemeldetem CI-Testkonto auf der lokalen PostgreSQL-18-Datenbank einen leeren Bild-POST. Erwartet werden HTTP 400 / `INVALID_ASSET_SIZE`, unveränderte Anzahl von `creator_assets` und unverändertes Upload-Verzeichnis. Der vorhandene CI-E2E-Test prüft bereits authentifizierte 402-Ablehnungen für Asset-Anzahl und Speicherlimit einschließlich Cleanup; dies wurde bei der Bestandsaufnahme bestätigt. Keine Produktionsdaten. CI für den aktuellen PR-HEAD nach Dokumentations-Commits erneut prüfen.
+
+## CI-Fehleranalyse und Testkorrektur
+GitHub Actions Run `43628319038` scheiterte im PostgreSQL-E2E an `ENOENT` beim `readdir(assets/uploads)` in der neu eingefügten Leerupload-Prüfung. Das Verzeichnis existiert bei frischer CI-Installation noch nicht. Commit `ed7bb5a` ergänzt `uploadFilesIfPresent()`: `ENOENT` zählt als leeres Verzeichnis, andere Dateisystemfehler werden weitergeworfen. Die Korrektur betrifft ausschließlich den Test; keine Laufzeitcode-Änderung. CI des neuen HEAD ist erneut abzuwarten.
