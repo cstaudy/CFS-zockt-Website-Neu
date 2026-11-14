@@ -6,7 +6,7 @@ import { totpCode } from '../src/totp.js';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
-import { writeFile, unlink, readdir } from 'node:fs/promises';
+import { access, writeFile, unlink, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { uploadRoot } from '../src/upload-storage.js';
 
@@ -940,13 +940,29 @@ try {
   })).status, 200);
   assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
     'Unpublishing the owner widget must immediately revoke anonymous access');
+  const savedVideoLeaf = media.data.media.url.slice('/assets/uploads/'.length);
+  const savedVideoPath = join(uploadRoot, savedVideoLeaf);
+  await access(savedVideoPath);
+  const foreignDelete = await request('DELETE',
+    `/api/creator/media/videos/${media.data.media.id}`, {
+      cookie: mediaOtherCookie
+    });
+  assert.equal(foreignDelete.status, 404,
+    'A second account may not delete another creator\'s video');
+  await access(savedVideoPath);
   const deleted = await request('DELETE', `/api/creator/media/videos/${media.data.media.id}`, {
     cookie: login.cookie
   });
   assert.equal(deleted.status, 200, 'Owner must be able to delete own media metadata');
+  await assert.rejects(access(savedVideoPath), { code: 'ENOENT' },
+    'Owned unreferenced video bytes must be physically removed after metadata deletion');
   assert.equal((await fetch(base + media.data.media.url, {
     headers: { cookie: login.cookie }
-  })).status, 404, 'Deleted media must not be accessible even if bytes remain on disk');
+  })).status, 404, 'Deleted media must no longer be accessible');
+  assert.equal((await request('DELETE',
+    `/api/creator/media/videos/${media.data.media.id}`, {
+      cookie: login.cookie
+    })).status, 404, 'Repeat deletion must not touch any other file');
 
   // The HTTP guard shares its counters across both public login aliases.
   // This check runs last because a locked account must remain locked.
