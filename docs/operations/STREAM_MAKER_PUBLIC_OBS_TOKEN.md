@@ -6,6 +6,18 @@ The existing `/widgets/stream-maker.html?token=<signed-token>&element=<element-i
 
 The source sanitizer rejects arbitrary external image URLs and private `/assets/uploads/` paths. Only built-in first-party design sources currently survive validation. Private creator media is never made publicly accessible through this PR. No `/assets/uploads` source-token exception is introduced.
 
+**Bildquellen und Capability-Trennung:** Der Browser-Renderer
+verhindert jetzt auch unmittelbar vor einer Bildanfrage den Zugriff auf
+`/assets/uploads/`. Eine alte, von der Sanitizer-Policy ohnehin nicht
+erreichbare Sonderbehandlung, die den OBS-Bundle-Token als
+`source_token`-Query-Parameter an private Upload-URLs anhängen würde,
+wurde entfernt. Ein signierter Stream-Maker-Token ist **keine
+Berechtigung für private Datei-Downloads**. Das wird unabhängig von
+der bestehenden Config-Sanitization simuliert: selbst bei manipuliertem
+Quellpfad darf weder eine Upload- noch eine externe Bildanfrage ausgelöst
+werden. Öffentliche, zugelassene Designbilder werden weiterhin normal
+geladen, ohne den OBS-Token anzuhängen.
+
 **Revocation:** Rotating a bundle's source token invalidates older signed URLs. Archiving a bundle invalidates every source immediately. A current OBS Browser Source that receives a permanent 404 clears its canvas and in-memory model. The separate one-second render timer cannot redraw a stale/revoked frame. If a formerly selected element is removed, the browser clears that element without continuing to show outdated content. Public responses are no-store, and the browser fetches without session cookies.
 
 **Bearer-URL-Härtung:** Die HTML-Ausgabe

@@ -18,7 +18,7 @@ async function runScenario(responses) {
     getContext() { return { clearRect() {} }; }
   };
   const error = { textContent: "", hidden: true };
-  const urls = [], intervals = new Map();
+  const urls = [], imageRequests = [], intervals = new Map();
   let draws = 0;
   const renderer = {
     sanitize: config => config,
@@ -31,6 +31,9 @@ async function runScenario(responses) {
   };
   const context = {
     URLSearchParams, URL, AbortController,
+    Image: class {
+      set src(url) { imageRequests.push(String(url)); }
+    },
     location: { search: "?token=" + token + "&element=ci_counter", origin: "http://localhost" },
     document: { getElementById(name) { return name === "output" ? canvas : name === "error" ? error : null; } },
     StreamMaker: renderer,
@@ -50,7 +53,7 @@ async function runScenario(responses) {
     await new Promise(resolve => setImmediate(resolve));
   };
   await flush();
-  return { canvas, error, urls, intervals, flush, drawCount: () => draws };
+  return { canvas, error, urls, imageRequests, intervals, flush, drawCount: () => draws };
 }
 const revoked = await runScenario([
   { status: 200, payload: bundle },
@@ -84,4 +87,26 @@ assert.equal(removed.canvas.width, 1, "Removed widget element must clear last pu
 removed.intervals.get(1000)();
 assert.equal(removed.drawCount(), drawnBeforeRemoval,
   "A removed element must never be redrawn by the stale renderer");
-console.log("Signed Stream Maker OBS output: cookie-free token fetch, no-store, instant revocation and missing element clearing.");
+// Simulate even a compromised/misconfigured upstream sanitizer: the OBS
+// image loader must not attach the signed bearer source token to a private
+// upload URL or load a cross-origin resource. The genuine sanitizer already
+// rejects both, but runtime defense must hold independently.
+const privateImage = await runScenario([{
+  status: 200, payload: { config: { ...bundle.config, source: "/assets/uploads/private.png" } }
+}]);
+assert.deepEqual(privateImage.imageRequests, [],
+  "A private upload path must never be requested with the OBS source token");
+const foreignImage = await runScenario([{
+  status: 200, payload: { config: { ...bundle.config, source: "https://evil.example/track.jpg" } }
+}]);
+assert.deepEqual(foreignImage.imageRequests, [],
+  "OBS renderer must not fetch external image URLs");
+const firstPartyImage = await runScenario([{
+  status: 200, payload: { config: { ...bundle.config,
+    source: "/assets/img/design-pack-v208/aurora-master.jpg" } }
+}]);
+assert.deepEqual(firstPartyImage.imageRequests,
+  ["http://localhost/assets/img/design-pack-v208/aurora-master.jpg"],
+  "Allowlisted image must not receive the OBS signed token as a URL parameter");
+assert(!firstPartyImage.imageRequests.some(url => url.includes(token)));
+console.log("Signed Stream Maker OBS output: cookie-free token fetch, no-store, instant revocation, image source isolation and missing element clearing.");
