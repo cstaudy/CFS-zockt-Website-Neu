@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { requestId } from "./src/request-id.js";
 import { readJson as readJsonBody } from "./src/request-json.js";
 import { loginThrottle } from "./src/login-throttle.js";
 import { createReadStream } from "node:fs";
@@ -90,10 +91,6 @@ function securityHeaders(res) {
   res.setHeader("x-frame-options", "SAMEORIGIN");
   res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
   res.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=()");
-}
-
-function requestId(req) {
-  return req.headers["x-request-id"] || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function requestOriginAllowed(req) {
