@@ -45,3 +45,9 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Reale authentifizierte HTTP-200-GET/HEAD-Antworten für Bild/Video prüfen nun `nosniff` und den jeweiligen MIME-Typ. Vorhandene Legacy-`.html`-HTTP-Tests prüfen `attachment`, `application/octet-stream` und `nosniff`.
 - Dokumentations-HEAD `b69fcdc` bei letzter Prüfung noch in CI; nur grüner HEAD darf als abgeschlossen gelten. Browserprüfung bleibt als separates Deployment-Abnahmekriterium offen.
 - PR #90 bleibt review-bereit und ungemergt; keine Render-/Produktionsaktion.
+
+## Cross-PR-Review #89 / #90 / #91
+- PR #90 HEAD `502625f`: GitHub Actions `43640019169` **success**, mergeable/clean, Ready for review. Auch PR #89 und #91: grün und clean.
+- Dateidiff-Abgleich: #89 und #90 ändern beide `scripts/test-account-creator-flow.mjs`, aber unterschiedliche Testabschnitte (#89 Quota-/Uploadvalidierung; #90 GET/HEAD-Auslieferungsheader). Kein Nachweis eines tatsächlichen Mergekonflikts aus Dateinamen allein; **kombinierte CI nach einem autorisierten Merge erforderlich**.
+- #91 berührt keine Dateien der beiden Security-PRs; eigener CI-Check ist in `package.json` ergänzt. Für die Reihenfolge ist erst ein freigegebener Security-PR, dann CI auf `main`, anschließend der nächste PR sinnvoll; keinerlei automatischer Merge.
+- Offene Freigaben: expliziter Mergeentscheid, manueller Browser-Test vor Deploy, echte Produktionsbackup-/Staging-Gates weiterhin GESPERRT.
