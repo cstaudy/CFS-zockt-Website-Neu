@@ -164,6 +164,45 @@ einen SQL-`CHECK`-Fehler. Nach dem 500-Fehler darf im
 Uploadverzeichnis keine neue Datei verbleiben. Die beiden
 synthetischen Test-Constraints werden sofort wieder entfernt.
 
+## Server-seitig durchgesetzte Creator-Asset-Grenzen
+
+Die `GET /api/creator/widget-studio/assets`-Antwort zeigte bislang
+`max_assets: 120` und `max_total_bytes: 128 MiB` an. Der eigentliche
+Bild-Upload prüfte beide Grenzen aber noch nicht serverseitig.
+
+Neu zählt der `creator_assets`-INSERT innerhalb einer Datenbank-
+Transaktion die bereits gespeicherten Dateien und ihre nichtnegativen
+Bytezahlen. Dabei wird der `accounts`-Datensatz des angemeldeten
+Benutzers mit `FOR UPDATE` gesperrt. **Zwei parallele Uploads können
+so nicht denselben letzten freien Slot belegen.** Es gelten exakt
+die schon bisher angezeigten Grenzen:
+
+- Ab **120 gespeicherten Assets** führt ein weiteres Bild zu
+  `402 ASSET_LIMIT_REACHED`.
+- Würde ein neuer Upload die Summe von **128 × 1024 × 1024 Bytes**
+  überschreiten, führt er zu
+  `402 ASSET_STORAGE_LIMIT_REACHED`.
+- **Genau** die letzte freie Position und genau die vorhandene
+  Bytegrenze sind weiterhin zulässig. Die API gibt bei beiden
+  Fehlern das unveränderte `limits`-Objekt zurück.
+
+Der Upload nutzt weiterhin das `storeUploadWithRecord`-Cleanup:
+Falls die Datenbank den INSERT wegen eines Limits ablehnt, werden
+die gerade erst erzeugten Bildbytes wieder entfernt. Alle
+Berechtigungs-, Signatur- und Herkunftsprüfungen bleiben bestehen.
+Die Grenzen betreffen **Creator-Assets**, nicht Video-/Clip-Dateien;
+für Videos wird derzeit weiterhin nur das 16-MiB-Einzeluploadlimit
+und die im API genannte Item-Grenze angezeigt. Eine separate,
+transaktionssichere Video-Quota müsste eigenständig überprüft werden.
+
+Die Unit-Tests prüfen Grenzwerte, Transaktions-/Rollbackverhalten und
+Account-Lock. Die isolierte PostgreSQL-18-HTTP-E2E belegt ein
+Testkonto bis auf einen Asset-Platz, sendet **zwei parallele gültige
+Bild-Uploads** und erwartet genau einen Erfolg. Zusätzlich wird der
+128-MiB-Speichergrenzwert mit synthetischen CI-Metadaten geprüft;
+abgewiesene Uploads dürfen keine Bytes auf dem Testdatenträger
+hinterlassen. Es werden keine Produktionsdateien verändert.
+
 ## Physische Datei-Bereinigung beim Löschen von Videos und Clips
 
 Bisher entfernte `DELETE /api/creator/media/(videos|clips)/:id` nur den
