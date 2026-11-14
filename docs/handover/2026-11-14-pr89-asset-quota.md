@@ -52,3 +52,6 @@ Vorheriger HEAD `4a6ad9a` vollständig grün in GitHub Actions Run `43630746966`
 
 ## Aktualisierung: exakte Chunked-Grenze
 Vorheriger HEAD `79f44fc` grün (GitHub Actions Run `43630942969`). Commit `c96b1b2` ergänzt einen authentifizierten HTTP-POST ohne Content-Length mit exakt zwei 8-MiB-Streaming-Chunks. Die ungültigen PNG-Bytes müssen mit HTTP 415 / `INVALID_ASSET_SIGNATURE` statt HTTP 413 abgewiesen werden; es darf keine Datei entstehen. Zusammen mit dem vorhandenen 16-MiB-plus-ein-Byte-Chunked-Test prüft dies die inklusive Streaming-Grenze auf der echten Serverroute. CI ausstehend; nur isolierte lokale CI-PostgreSQL-18-Datenbank.
+
+## Aktualisierung: keine Metadaten bei exakt begrenzten ungültigen Uploads
+Der vorherige HEAD `33c031b` ist grün (GitHub Actions Run `43631111573`). Commit `aae059a` ergänzt den authentifizierten PostgreSQL-18-E2E-Test: Nach den abgewiesenen Uploads mit exakt 16 MiB (Content-Length und Chunked, jeweils HTTP 415 wegen ungültiger PNG-Signatur) wird die Asset-Liste erneut geladen und die unveränderte Anzahl gegenüber dem Ausgangszustand geprüft. Damit werden neben den vorhandenen Dateisystem-Assertions auch unbeabsichtigte Metadaten-Inserts ausgeschlossen. CI für neuen HEAD ausstehend.
