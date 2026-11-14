@@ -28,3 +28,9 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - `server.js` übergibt in der statischen Dateiauslieferung für `isUpload` die Header aus `uploadDeliveryHeaders(filePath)` unmittelbar an `res.writeHead(200, ...)`; `HEAD` nutzt denselben Headerpfad vor `res.end()`.
 - `scripts/test-upload-media-policy.mjs` prüft die Headerfunktion direkt. `scripts/test-static-boundary.mjs` prüft dagegen für `GET` und `HEAD` nur den unauthentifizierten Uploadzugriff (`401`); ein authentifizierter HTTP-200-Upload-Header-Test fehlt.
 - **Grenze:** Kein realer HTTP-200-/Browser-Nachweis für authentifizierte Uploads. Ein solcher Test benötigt eine isolierte Test-DB und kontrollierte Authentifizierung; niemals Produktionsdatenbank oder öffentliche Uploads verwenden. Kein Code-/Teständerungsbedarf ohne gesicherten Fixture-Ansatz.
+
+## Isolationsprüfung für HTTP-200-Test
+- CI HEAD `088d8b0` erfolgreich (Run `43639293520`).
+- `server.js:serveStatic()` verlangt vor dem erfolgreichen Upload-Response einen Datenbank-Nachweis: veröffentlichte Widget-/Scene-Referenz oder authentifiziertes Konto mit `creator_assets`-/`user_media`-Eigentum. Ohne `DATABASE_URL` ist kein erfolgreicher Upload-Abruf möglich; bestehender `test-static-boundary.mjs` bestätigt daher absichtlich nur `401` für GET/HEAD.
+- **Kein Umgehen der Autorisierung zu Testzwecken.** Integrationstest für `200` nur mit isoliertem ephemerem PostgreSQL, Testkonto, Test-Asset und anschließendem Cleanup; keine Prod-Verbindung oder Test-Bypass-Route. Vorhandene CI-PG18-Infrastruktur kann dafür später wiederverwendet werden.
+- Review-Entscheidung: Sicherheitsheader-Unit-Test plus Codepfad sind grün; echter authentifizierter HTTP-200-Nachweis bleibt offen und muss vor produktiver Freigabe erfolgen. Kein Merge/Deploy ohne explizite Zustimmung.
