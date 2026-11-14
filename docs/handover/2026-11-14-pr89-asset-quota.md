@@ -26,3 +26,8 @@ Nach weiteren Code- und Dokumentationsänderungen CI erneut prüfen; obiger Nach
 
 ## Rollback und Übernahme
 Bei Regression PR nicht mergen bzw. die Code-/Test-Commits revertieren; keine Schema-Rückmigration erforderlich. Vor Merge die CI des letzten PR-HEAD, den Diff und die API-Fehlerabbildung prüfen. Produktionsfreigabe bleibt separat und erfordert echte Backup-/Restore-Abnahme.
+
+## Aktualisierung: Quota-Ablehnung und Dateiaufräumung
+Am 14.11.2026 wurde `scripts/test-asset-quota.mjs` um einen isolierten Integrationstest ergänzt: Der Test schreibt über `storeUploadWithRecord()` eine temporäre Datei, simuliert die Ablehnung bei 120 Assets bzw. überschrittenem Byte-Limit und prüft anschließend Datenbank-Rollback und leeres temporäres Upload-Verzeichnis. Kein Produktionszugriff. Commit `628c9bd`.
+
+Dieser Test ist **kein echter HTTP-End-to-End-Test**. Für den aktuellen Commit steht der CI-Nachweis noch aus; ältere grüne Läufe gelten nicht als Nachweis für diesen Commit.
