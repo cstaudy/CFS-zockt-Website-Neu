@@ -47,7 +47,7 @@ try {
     if (method === 'GET') {
       const page = await response.text();
       assert.match(page, /meta name="referrer" content="no-referrer"/);
-      assert.match(page, /stream-maker-output\\.js/);
+      assert.match(page, /stream-maker-output\.js/);
     }
   }
   const ordinaryPage = await fetch(base + '/widgets/scene.html');
