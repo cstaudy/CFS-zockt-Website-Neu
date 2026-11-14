@@ -8,12 +8,13 @@ PR: https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/89
 Defensiv absichern, dass eingehende Asset-Bytezahlen vor Quota-Arithmetik und Datenbankverbindung gültige, nichtnegative, sichere JavaScript-Ganzzahlen sind. Keine Änderung des Limits von 120 Assets / 128 MiB.
 
 - `src/asset-quota.js`: `assetQuotaViolation()` liefert `INVALID_ASSET_SIZE` für ungültige eingehende Größen; `registerAssetWithinQuota()` antwortet mit Status 400 vor `pool.connect()`.
+- `src/assets.js`: mappt den zusätzlichen internen Fehlercode `INVALID_ASSET_SIZE` auf die bestehende strukturierte HTTP-400-Antwort, statt einen ungefangenen Fehler zu erzeugen.
 - `scripts/test-asset-quota.mjs`: Negativfälle (negative, gebrochene, nichtendliche, String-, null-, undefined- und unsichere Zahlen) und Prüfung, dass kein SQL ausgeführt wird.
 
 ## Testnachweis
 GitHub Actions, PR-HEAD `7659fce9792ba3cd689a689ea8fd46d16ba8f9f5`: erfolgreich am 14.11.2026.
 https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43624191572
-Nach Dokumentationsänderungen CI erneut prüfen; obiger Nachweis gilt nur für den genannten Commit.
+Nach weiteren Code- und Dokumentationsänderungen CI erneut prüfen; obiger Nachweis gilt nur für den genannten Commit. Die HTTP-Abbildung ist defensiv und noch nicht durch einen eigenen End-to-End-HTTP-Test abgedeckt.
 
 ## Betriebsstatus und Risiken
 - Kein Merge, kein Render-Deploy, keine Produktionsdatenbankmutation.
@@ -24,4 +25,4 @@ Nach Dokumentationsänderungen CI erneut prüfen; obiger Nachweis gilt nur für 
 - `INVALID_ASSET_SIZE` ist ein zusätzlicher interner Fehlerpfad; gültige Uploads bleiben unverändert. Aufrufende Upload-Pfade und Fehlerabbildung bei späteren Änderungen erneut testen.
 
 ## Rollback und Übernahme
-Bei Regression PR nicht mergen bzw. die zwei Code-/Test-Commits revertieren; keine Schema-Rückmigration erforderlich. Vor Merge die CI des letzten PR-HEAD, den Diff und die API-Fehlerabbildung prüfen. Produktionsfreigabe bleibt separat und erfordert echte Backup-/Restore-Abnahme.
+Bei Regression PR nicht mergen bzw. die Code-/Test-Commits revertieren; keine Schema-Rückmigration erforderlich. Vor Merge die CI des letzten PR-HEAD, den Diff und die API-Fehlerabbildung prüfen. Produktionsfreigabe bleibt separat und erfordert echte Backup-/Restore-Abnahme.
