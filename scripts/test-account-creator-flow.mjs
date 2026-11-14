@@ -768,7 +768,9 @@ try {
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNg+M/wHwAEAQH/cetH5QAAAABJRU5ErkJggg==',
     'base64'
   );
-  const privateVideo = Buffer.from('private-video-payload-ci');
+  // Synthetic ISO BMFF file-type box, not a fully playable video. The
+  // upload's first-line container signature is validated before saving.
+  const privateVideo = Buffer.from('000000146674797069736f6d0000000069736f6d', 'hex');
   const asset = await upload('/api/creator/widget-studio/assets', 'image/png', 'private-ci.png', privateImage);
   assert.equal(asset.status, 201, `Asset upload failed: ${JSON.stringify(asset.data)}`);
   const media = await upload('/api/creator/media/videos', 'video/mp4', 'private-ci.mp4', privateVideo);
@@ -789,26 +791,51 @@ try {
     assert.equal(invalidImage.data.error, 'INVALID_ASSET_SIGNATURE');
   }
 
-  // Video signature/decode inspection is a separate acceptance gate. For now
-  // a .html original name must never become a text/html static response.
-  const disguisedVideo = await upload('/api/creator/media/videos',
-    'video/mp4', 'masquerading.html', htmlPayload);
-  assert.equal(disguisedVideo.status, 201);
-  assert.equal(disguisedVideo.data.media.name, 'masquerading.html');
-  const safeVideoUrl = disguisedVideo.data.media.url;
-  assert(safeVideoUrl.endsWith('.mp4') && !safeVideoUrl.endsWith('.html'));
-  for (const method of ['GET', 'HEAD']) {
-    const response = await fetch(base + safeVideoUrl, {
-      method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
-    });
-    assert.equal(response.status, 200);
-    assert.equal(response.headers.get('content-type'), 'video/mp4');
-    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-    assert.equal(response.headers.get('cache-control'), 'private, no-store');
-    if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), htmlPayload);
+  // Every accepted video MIME must have a matching container signature.
+  // A spoofed HTML body is rejected before any file or metadata is created.
+  const otherVideoHeaders = [
+    ['video/quicktime', '.mov', Buffer.from(
+      '0000001466747970717420200000000071742020', 'hex')],
+    ['video/webm', '.webm', Buffer.from(
+      '1a45dfa3874282847765626d', 'hex')],
+    ['video/x-matroska', '.mkv', Buffer.from(
+      '1a45dfa38b4282886d6174726f736b61', 'hex')]
+  ];
+  for (const [mime, extension, bytes] of [
+    ['video/mp4', '.mp4', privateVideo], ...otherVideoHeaders
+  ]) {
+    const rejected = await upload('/api/creator/media/videos',
+      mime, 'not-real' + extension, htmlPayload);
+    assert.equal(rejected.status, 415,
+      'HTML with a spoofed video MIME must fail the video signature gate');
+    assert.equal(rejected.data.error, 'INVALID_MEDIA_SIGNATURE');
+
+    const accepted = await upload('/api/creator/media/clips',
+      mime, 'masquerading.html', bytes);
+    assert.equal(accepted.status, 201, 'Matching container header should be stored');
+    assert.equal(accepted.data.media.name, 'masquerading.html',
+      'Original upload name remains display metadata');
+    const url = accepted.data.media.url;
+    assert(url.endsWith(extension) && !url.endsWith('.html'),
+      'Video storage path must keep a MIME-derived suffix');
+    assert.equal((await fetch(base + url)).status, 401,
+      'Unpublished video bytes remain account-private');
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(base + url, {
+        method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+      });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('content-type'), mime);
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+      assert.equal(response.headers.get('cache-control'), 'private, no-store');
+      if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), bytes);
+    }
   }
-  assert.equal((await fetch(base + safeVideoUrl)).status, 401,
-    'MIME-safely stored videos must still require owner authorization');
+  const crossType = await upload('/api/creator/media/clips',
+    'video/webm', 'wrong-container.webm', otherVideoHeaders[2][2]);
+  assert.equal(crossType.status, 415,
+    'Matroska EBML DocType must not be accepted as WebM');
+  assert.equal(crossType.data.error, 'INVALID_MEDIA_SIGNATURE');
 
 
   assert(!(await request('GET', '/api/creator/widget-studio/assets', { cookie: mediaOtherCookie }))
