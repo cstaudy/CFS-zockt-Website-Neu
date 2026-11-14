@@ -6,7 +6,7 @@ import { totpCode } from '../src/totp.js';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
-import { writeFile, unlink } from 'node:fs/promises';
+import { writeFile, unlink, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { uploadRoot } from '../src/upload-storage.js';
 
@@ -944,6 +944,36 @@ try {
   // application session. Test against the isolated disposable PostgreSQL instance.
   const testPool = new pg.Pool({ connectionString: databaseUrl, ssl: false });
   try {
+    // Force registration failure in the disposable local CI database after
+    // bytes have already been written, then verify filesystem compensation.
+    // The constraints affect only these test sentinel filenames and are
+    // dropped in finally; production or staging DB URLs are prohibited above.
+    for (const scenario of [
+      { table: 'creator_assets', path: '/api/creator/widget-studio/assets',
+        mime: 'image/png', name: 'ci-db-failure.png', bytes: privateImage,
+        constraint: 'ci_test_asset_registration_failure' },
+      { table: 'user_media', path: '/api/creator/media/videos',
+        mime: 'video/mp4', name: 'ci-db-failure.mp4', bytes: privateVideo,
+        constraint: 'ci_test_media_registration_failure' }
+    ]) {
+      await testPool.query(`alter table ${scenario.table} add constraint ${scenario.constraint}
+        check (name <> '${scenario.name}')`);
+      try {
+        const before = (await readdir(uploadRoot)).sort();
+        const rejected = await upload(scenario.path, scenario.mime,
+          scenario.name, scenario.bytes);
+        assert.equal(rejected.status, 500,
+          'Synthetic database constraint failure must fail the request');
+        assert.equal(rejected.data.error, 'INTERNAL_SERVER_ERROR',
+          'Database failure details must not leak to the client');
+        assert.deepEqual((await readdir(uploadRoot)).sort(), before,
+          'A rejected database insert must leave no orphan upload bytes');
+      } finally {
+        await testPool.query(
+          `alter table ${scenario.table} drop constraint ${scenario.constraint}`);
+      }
+    }
+
     // Pre-hardening uploads may already exist with an .html extension.
     // Keep their owner-only access, but never execute their bytes as HTML.
     const legacyStorage = randomUUID() + '-old-upload.html';

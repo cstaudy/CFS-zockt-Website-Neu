@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { storeUploadWithRecord } from "./upload-write.js";
 import { getPool } from "./db.js";
 import { requireAccount } from "./projects.js";
-import { uploadRoot } from "./upload-storage.js";
 import { decodeUploadFilename } from "./upload-filename.js";
 import { uploadStorageExtension, validImageSignature } from "./upload-media-policy.js";
 import { maxBufferedUploadBytes } from "./request-raw.js";
@@ -35,8 +33,7 @@ export async function uploadAsset(req, body) {
   if (original === null) return { error: "INVALID_FILE_NAME", status: 400 };
   // Store by validated MIME, not a client-chosen filename extension.
   const stored = `${randomUUID()}${uploadStorageExtension(mime)}`;
-  await mkdir(uploadRoot, { recursive: true });
-  await writeFile(join(uploadRoot, stored), body, { flag: "wx" });
-  const result = await getPool().query("insert into creator_assets (account_id, name, mime_type, size_bytes, storage_path) values ($1, $2, $3, $4, $5) returning id, name, media_type, mime_type, size_bytes, storage_path, category, created_at", [account.id, cleanName(original), mime, body.length, stored]);
+  const result = await storeUploadWithRecord(stored, body, () =>
+    getPool().query("insert into creator_assets (account_id, name, mime_type, size_bytes, storage_path) values ($1, $2, $3, $4, $5) returning id, name, media_type, mime_type, size_bytes, storage_path, category, created_at", [account.id, cleanName(original), mime, body.length, stored]));
   return { asset: asset(result.rows[0]) };
 }

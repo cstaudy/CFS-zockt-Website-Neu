@@ -130,4 +130,38 @@ Der Test `scripts/test-request-raw.mjs` prüft volle und
 ohne `Content-Length`. Die isolierte PostgreSQL-18-HTTP-E2E
 prüft die korrigierte öffentliche Creator-Video-Limitangabe.
 
+## Keine verwaisten Dateien bei fehlgeschlagenem Datenbankeintrag
+
+Ein hochgeladenes Bild oder Video ist erst vollständig registriert,
+wenn zu den gespeicherten Bytes auch ein gültiger Datenbankeintrag
+existiert. Zuvor konnten `creator_assets`- und `user_media`-Uploads
+nach dem Dateischreiben an einer fehlgeschlagenen
+`INSERT`-Operation scheitern und unreferenzierte Dateien hinterlassen.
+
+Beide API-Endpunkte verwenden nun einen gemeinsamen
+`storeUploadWithRecord`-Helfer: Die Datei wird ausschließlich
+mit `wx` angelegt (bestehende Dateien werden nie überschrieben)
+und mit restriktiven Dateirechten gespeichert. **Nur wenn die
+Datei wirklich neu angelegt wurde**, wird beim Fehlschlag des
+anschließenden Datenbankeintrags die Datei wieder gelöscht.
+Der ursprüngliche Fehler wird dabei nicht verdeckt. Bei einem
+Fehler während dieser Bereinigung wird eine neutrale Meldung
+`upload_orphan_cleanup_failed` ohne Datei- oder Kontonamen
+geschrieben.
+
+Die Kompensation ist **best effort**: Dateisystem und PostgreSQL
+lassen sich nicht als eine einzige atomare Transaktion behandeln.
+Beispielsweise können ein Prozessabsturz zwischen Dateischreiben
+und Datenbankeintrag oder ein nicht eindeutiger Commit-Status
+weiterhin eine manuelle Prüfung erforderlich machen. Es findet
+bewusst **kein pauschales Löschen alter Uploads** statt.
+
+Ein reiner Test im temporären Verzeichnis kontrolliert erfolgreiche
+Speicherung, Abbruch und Datei-Cleanup sowie `EEXIST`-Kollisionen.
+Die PostgreSQL-18-HTTP-E2E erzwingt zusätzlich auf der **nur lokal
+zugelassenen CI-Datenbank** für je einen Bild- und Video-Sentinel
+einen SQL-`CHECK`-Fehler. Nach dem 500-Fehler darf im
+Uploadverzeichnis keine neue Datei verbleiben. Die beiden
+synthetischen Test-Constraints werden sofort wieder entfernt.
+
 Kein Production-Backup, keine Live-Migration und kein Render-Deploy.
