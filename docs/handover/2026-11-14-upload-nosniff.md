@@ -39,3 +39,9 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Bestehende ephemere PG18-CI unter `.github/workflows/check.yml` führt bereits `scripts/test-account-creator-flow.mjs` aus: echte Testkonto-Registrierung, Uploads und authentifizierte GET/HEAD-HTTP-200-Abrufe. Zudem war für Legacy-`.html` bereits `nosniff` plus `attachment` im HTTP-Test abgedeckt. Die frühere Aussage, es fehle **jeder** authentifizierte HTTP-200-Test, war daher ungenau.
 - Commit `6a661eb` ergänzt nun im bestehenden isolierten HTTP-Test für bekannte Bild-/Video-Uploads die Prüfung von `x-content-type-options: nosniff` und `content-type` auf GET und HEAD. Keine Test-DB neu erstellt, keine Auth-Änderung, keine Produktionsverbindung.
 - CI dieses Commits prüfen; bei Grün ist die konkrete Header-Regression über echten HTTP-Pfad (bekannt + Legacy) nachgewiesen, nicht jedoch ein manueller Browser-Test.
+
+## HTTP-Integrationstest bestätigt
+- Test-Commit `6a661eb`: GitHub Actions Run `43639925962` **success**, einschließlich isoliertem PostgreSQL-18-Creator-End-to-End.
+- Reale authentifizierte HTTP-200-GET/HEAD-Antworten für Bild/Video prüfen nun `nosniff` und den jeweiligen MIME-Typ. Vorhandene Legacy-`.html`-HTTP-Tests prüfen `attachment`, `application/octet-stream` und `nosniff`.
+- Dokumentations-HEAD `b69fcdc` bei letzter Prüfung noch in CI; nur grüner HEAD darf als abgeschlossen gelten. Browserprüfung bleibt als separates Deployment-Abnahmekriterium offen.
+- PR #90 bleibt review-bereit und ungemergt; keine Render-/Produktionsaktion.
