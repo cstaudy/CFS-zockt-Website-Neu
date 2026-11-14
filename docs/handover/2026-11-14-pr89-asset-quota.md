@@ -55,3 +55,10 @@ Vorheriger HEAD `79f44fc` grün (GitHub Actions Run `43630942969`). Commit `c96b
 
 ## Aktualisierung: keine Metadaten bei exakt begrenzten ungültigen Uploads
 Der vorherige HEAD `33c031b` ist grün (GitHub Actions Run `43631111573`). Commit `aae059a` ergänzt den authentifizierten PostgreSQL-18-E2E-Test: Nach den abgewiesenen Uploads mit exakt 16 MiB (Content-Length und Chunked, jeweils HTTP 415 wegen ungültiger PNG-Signatur) wird die Asset-Liste erneut geladen und die unveränderte Anzahl gegenüber dem Ausgangszustand geprüft. Damit werden neben den vorhandenen Dateisystem-Assertions auch unbeabsichtigte Metadaten-Inserts ausgeschlossen. CI für neuen HEAD ausstehend.
+
+## Abschlussreview und sichere Übergabe (14.11.2026)
+- Letzter vollständiger Code-/Dokumentationsstand vor diesem Review: `5ab6de2`; GitHub Actions Run `43631304250` erfolgreich, PR #89 `mergeable=true` und `mergeable_state=clean`.
+- Geprüft: `src/asset-quota.js` verwirft ungültige Bytezahlen vor DB-Verbindung bzw. BigInt; `src/assets.js` ordnet `INVALID_ASSET_SIZE` HTTP 400 zu und prüft MIME/Signatur vor Speicherung; `src/request-raw.js` verwirft Streaming-Bodies über 16 MiB mit HTTP 413. Tests decken anonymen 401, authentifizierten Leerupload 400, Quota 402, ungültige Signatur 415, 16-MiB-Grenze sowie Content-Length/Chunked 413 und unveränderte Dateien/Asset-Metadaten ab.
+- Ergebnis: Code-Review ohne neu erkannten Blocker für diesen isolierten PR. **Keine Merge-Freigabe und keine Produktionsfreigabe erteilt.** Nach Dokumentations-Commit CI des neuen HEAD prüfen.
+- Unverändert blockiert: Produktiv-DB ohne `schema_migrations` und MFA-Schema, kein verifizierter produktiver Backup/Restore, keine nachgewiesene isolierte Staging-Datenbank; Free-PostgreSQL-Ablauf laut Render 09.12.2026. Keine Baseline, Migration, Deploys oder Datenbankänderungen aus diesem Review.
+- Folgeschritt: PR #89 nach grüner CI und ausdrücklicher Freigabe separat mergen; danach kostenfreien Backup-/Restore-Nachweis und Staging-Isolationskonzept als eigenes, zunächst rein dokumentarisches Paket ausarbeiten.
