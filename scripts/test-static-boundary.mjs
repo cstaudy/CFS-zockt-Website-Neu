@@ -30,6 +30,35 @@ try {
   for (const path of ['/', '/pages/login.html', '/assets/css/styles.css', '/widgets/scene.html', '/games/runtime.html', '/auth/tiktok/callback.html', '/.well-known/security.txt', '/config/monetization.json']) {
     assert.equal((await fetch(base + path)).status, 200, `${path} should be public`);
   }
+  // This OBS page embeds a signed bearer token in its query string. Neither
+  // static assets nor later same-origin navigation may receive that full URL
+  // through Referer, and the HTML should never remain in a shared cache.
+  const signedPage = base + '/widgets/stream-maker.html?token=' +
+    '123e4567-e89b-42d3-a456-426614174001' + 'a'.repeat(43) + '&element=counter';
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(signedPage, { method });
+    assert.equal(response.status, 200, 'Signed OBS document must remain accessible');
+    assert.equal(response.headers.get('referrer-policy'), 'no-referrer',
+      'OBS bearer URL must not leak through same-origin Referer');
+    assert.equal(response.headers.get('cache-control'), 'no-store',
+      'Signed OBS document must not be cached');
+    assert.match(response.headers.get('x-robots-tag') || '', /noindex/,
+      'OBS output cannot be indexed');
+    if (method === 'GET') {
+      const page = await response.text();
+      assert.match(page, /meta name="referrer" content="no-referrer"/);
+      assert.match(page, /stream-maker-output\\.js/);
+    }
+  }
+  const ordinaryPage = await fetch(base + '/widgets/scene.html');
+  assert.equal(ordinaryPage.headers.get('referrer-policy'),
+    'strict-origin-when-cross-origin', 'Other site pages retain global referrer behavior');
+  assert.equal(ordinaryPage.headers.get('cache-control'), 'no-cache',
+    'Other HTML caching policy remains untouched');
+  const sharedCss = await fetch(base + '/assets/css/stream-maker-output.css');
+  assert.equal(sharedCss.headers.get('cache-control'), 'public, max-age=3600',
+    'Public static CSS may remain cacheable');
+
   for (const page of (await readdir(new URL('../pages/', import.meta.url))).filter(name => name.endsWith('.html'))) {
     assert.equal((await fetch(`${base}/pages/${page}`)).status, 200, `${page} should be reachable`);
   }
