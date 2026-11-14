@@ -39,3 +39,8 @@ Nur Dokumentationsänderungen; Branch/PR kann ohne Laufzeiteffekt verworfen werd
 - PR #91 auf HEAD `dcf1bba` erfolgreich (GitHub Actions, grün) und review-bereit; PR #89 ebenfalls grün, beide ungemergt.
 - `scripts/test-operator-release-gates.mjs` prüft jetzt **jede** Betreiber-Nachweiszeile auf OFFEN/NEIN (außer rein informativem Render-Ablaufdatum), verlangt mindestens 20 Felder und testet selbst, dass eine simulierte `JA`-Freigabe für Produktivdeploy einen Fehler auslöst. Commits `11d84dd`, `1c1ab43`.
 - Keine echten Freigaben, Sicherungen, DB-Zugriffe oder Deployments; neue CI des erweiterten Tests abwarten.
+
+## Fortsetzung – vollständiger Mutations-Negativtest
+- Ausgangsstand `c6f6629` grün (CI Run `43636202088`), PR #91 mergeable/clean und zur Review bereit.
+- Neuer Test-Commit `cecdc9b`: für **jede** Nachweiszeile wird im Speicher eine simulierte `JA`-Freigabe eingefügt; der Dokumentations-Guard muss jede einzelne zurückweisen. Kein Schreiben an Vorlage, keine DB-/Render-Verbindung.
+- CI des neuen HEAD prüfen; weiterhin kein Merge, Deploy oder Betreiberfreigabe.
