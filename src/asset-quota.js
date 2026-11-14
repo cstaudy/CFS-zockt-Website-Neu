@@ -6,6 +6,11 @@ export const assetQuota = Object.freeze({
 });
 
 export function assetQuotaViolation(count, usedBytes, incomingBytes) {
+  // The incoming byte count comes from an upload buffer, never from client metadata.
+  // Reject malformed values before BigInt conversion or quota arithmetic.
+  if (!Number.isSafeInteger(incomingBytes) || incomingBytes < 0) {
+    return "INVALID_ASSET_SIZE";
+  }
   if (BigInt(count) >= BigInt(assetQuota.max_assets)) return "ASSET_LIMIT_REACHED";
   if (BigInt(usedBytes) + BigInt(incomingBytes) > BigInt(assetQuota.max_total_bytes)) {
     return "ASSET_STORAGE_LIMIT_REACHED";
@@ -24,6 +29,9 @@ function quotaError(code, status) {
  * also removes its uniquely created temporary file.
  */
 export async function registerAssetWithinQuota(pool, accountId, fields) {
+  if (!Number.isSafeInteger(fields?.size) || fields.size < 0) {
+    throw quotaError("INVALID_ASSET_SIZE", 400);
+  }
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
