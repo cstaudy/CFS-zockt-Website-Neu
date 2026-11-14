@@ -45,6 +45,10 @@ export function publicScenePayload(row, widgetRows = []) {
 export async function getPublicScene(id) {
   if (!UUID.test(String(id))) return { error: "SCENE_NOT_FOUND", status: 404 };
   const pool = getPool();
+  // A published scene must not turn an absent account store into an
+  // uncaught server error or disclose whether a private scene exists.
+  // Match the fail-closed 404 contract of public widget and Maker output.
+  if (!pool) return { error: "SCENE_NOT_FOUND", status: 404 };
   const found = await pool.query(
     "select id, account_id, data, status from creator_projects where id=$1 and kind='scene' and status='published' limit 1",
     [id]
