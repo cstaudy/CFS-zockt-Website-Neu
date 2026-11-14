@@ -14,3 +14,7 @@ Stand: 14.11.2026. Kostenrahmen: nur bestehende GitHub-Actions-CI, keine neue ko
 
 ## Vorgehen und Rollback
 Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des letzten HEAD prüfen, nur nach Review mergen. Keine Produktionsmigration, kein Render-Deploy, kein zusätzlicher Tarif. Bei Browserregression den kleinen Header-Commit revertieren. Als nächste Aufgabe die tatsächliche Header-Anwendung in der HTTP-Auslieferung und den Testumfang prüfen.
+
+## Nachprüfung des bestehenden PR #90
+- HEAD `2b328c7` erfolgreich in GitHub Actions (Run `43625825079`), ohne Merge-Konflikte. Reine Headerhärtung, kein Datenbankzugriff.
+- Review kann beginnen; kein Merge ohne ausdrückliche Freigabe. Browser-E2E bleibt optionaler, vor Deployment nachzuholender Nachweis.
