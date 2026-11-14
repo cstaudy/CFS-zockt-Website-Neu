@@ -6,6 +6,9 @@ assert.deepEqual(assetQuota, {
 });
 const max = assetQuota.max_total_bytes;
 assert.equal(assetQuotaViolation(0, 0, 1), null);
+for (const invalid of [-1, 1.5, NaN, Infinity, "1", null, undefined, Number.MAX_SAFE_INTEGER + 1]) {
+  assert.equal(assetQuotaViolation(0, 0, invalid), "INVALID_ASSET_SIZE");
+}
 assert.equal(assetQuotaViolation(119, max - 70, 70), null,
   "The last permitted asset fitting exactly into the byte cap is allowed");
 assert.equal(assetQuotaViolation(119, max - 70, 71), "ASSET_STORAGE_LIMIT_REACHED");
@@ -40,6 +43,12 @@ function fakePool({ count = 0, bytes = 0, owner = true, insertError = null } = {
   return { queries, get released() { return released; }, async connect() { return client; } };
 }
 const fields = { name: "test.png", mime: "image/png", size: 100, stored: "test.png" };
+for (const invalid of [-1, 1.5, NaN, Infinity, "1", null, undefined, Number.MAX_SAFE_INTEGER + 1]) {
+  const pool = fakePool();
+  await assert.rejects(registerAssetWithinQuota(pool, "ci-account", { ...fields, size: invalid }),
+    error => error.code === "INVALID_ASSET_SIZE" && error.status === 400);
+  assert.deepEqual(pool.queries, [], "Malformed byte counts must not open a DB transaction");
+}
 const pass = fakePool({ count: 119, bytes: max - 100 });
 const saved = await registerAssetWithinQuota(pass, "ci-account", fields);
 assert.equal(saved.rows[0].id, "ci-asset");
