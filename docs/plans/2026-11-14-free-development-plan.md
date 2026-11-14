@@ -9,11 +9,11 @@ Kein zusätzlicher Render-Tarif, kein neuer kostenpflichtiger Dienst, keine Prod
 
 | Priorität | Arbeit | Nachweis / Abnahme | Status |
 | --- | --- | --- | --- |
-| P0 | Asset-Quota: eingehende Bytezahlen defensiv validieren | Unit-Negativfälle und CI des letzten PR-HEAD | Implementiert in PR #89; CI für Code-HEAD grün, Dokumentations-HEAD erneut prüfen |
+| P0 | Asset-Quota: eingehende Bytezahlen defensiv validieren | Unit-Negativfälle und CI des letzten PR-HEAD | Implementiert in PR #89; CI nach zusätzlicher HTTP-Fehlerabbildung erneut prüfen |
 | P0 | Vorhandene Render-Produktions-DB nur lesend auf Migrationsstand prüfen | Kein Ledger / MFA-Challenges nachgewiesen, keine Schreibzugriffe | Blocker bestätigt |
 | P0 | Reales verschlüsseltes Produktionsbackup und isolierter Restore durch autorisierten Betreiber | Wiederherstellung dokumentiert, keine Secrets im Repo | Blockiert: nicht nachgewiesen |
 | P1 | Migrations- und Restore-Pfade kostenlos in GitHub Actions PostgreSQL 18 testen | `npm run check`, Creator-E2E, Legacy-Upgrade, Dump/Restore, Read-only Preflight | Vorhandene CI grün auf `main`; weiter bei jedem PR |
-| P1 | Fehlerabbildung und Input-Grenzen der Upload-Routen prüfen | HTTP-Regressionstests, korrekte 4xx und keine Dateien/DB-Einträge bei Ablehnung | Als nächster Code-Audit-Schritt offen |
+| P1 | Fehlerabbildung und Input-Grenzen der Upload-Routen prüfen | HTTP-Regressionstests, korrekte 4xx und keine Dateien/DB-Einträge bei Ablehnung | Fehlerabbildung für `INVALID_ASSET_SIZE` ergänzt; eigenständiger HTTP-Test noch offen |
 | P1 | Staging-Isolation nachweisen, bevor neue Builds auf Render starten | Separate Staging-DB ohne Produktionsverbindung | Blockiert: zweite Free-DB nicht erlaubt |
 | P2 | Admin-Rollen/MFA-Entwürfe #47/#52 gesondert bewerten | Betreiberzugang, Backup, Restore, Rollback | Nicht mergen/deployen |
 | P2 | Echte Browser-/OBS-/Launcher-/Integrationsabnahme | Dokumentierte Ergebnisse mit realen Berechtigungen | Noch nicht durchgeführt |
@@ -26,4 +26,4 @@ Kein zusätzlicher Render-Tarif, kein neuer kostenpflichtiger Dienst, keine Prod
 5. Keine Produktionsdatenbank/Render-Konfiguration ohne eigene Freigabe ändern.
 
 ## Nächster konkreter Schritt
-Upload-Routen und HTTP-Fehlerbehandlung für Asset-Größen-/Quota-Ablehnungen analysieren. Bei einem belegten Problem separaten Fix mit Tests, Übergabe und aktualisiertem Plan eröffnen. Keine neuen Deployments.
+Aktuellen PR-HEAD auf vollständige CI prüfen; danach eigenständige HTTP-Regressionstests für Asset-Upload-Fehler und Dateiaufräumung ergänzen. Keine neuen Deployments.
