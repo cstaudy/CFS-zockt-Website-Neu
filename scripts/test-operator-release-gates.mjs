@@ -33,7 +33,7 @@ function validateEvidenceRows(markdown) {
   for (const row of evidence) {
     const [label, value] = row.slice(1, -1).split("|").map(part => part.trim());
     assert.ok(label && value, "Empty operator evidence field");
-    assert.match(value, /^(?:OFFEN|NEIN(?:\\b|\\s|\\s*–))/i,
+    assert.match(value, /^(?:OFFEN|NEIN)(?:$|\s)/i,
       `Evidence must remain unapproved: ${label}`);
   }
 }
