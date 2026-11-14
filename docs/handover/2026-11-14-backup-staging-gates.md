@@ -44,3 +44,8 @@ Nur Dokumentationsänderungen; Branch/PR kann ohne Laufzeiteffekt verworfen werd
 - Ausgangsstand `c6f6629` grün (CI Run `43636202088`), PR #91 mergeable/clean und zur Review bereit.
 - Neuer Test-Commit `cecdc9b`: für **jede** Nachweiszeile wird im Speicher eine simulierte `JA`-Freigabe eingefügt; der Dokumentations-Guard muss jede einzelne zurückweisen. Kein Schreiben an Vorlage, keine DB-/Render-Verbindung.
 - CI des neuen HEAD prüfen; weiterhin kein Merge, Deploy oder Betreiberfreigabe.
+
+## Fortsetzung – Pflichtfeld-Vollständigkeit
+- Ausgangsstand `b33a8ed` grün (CI `43636469792`), PR #91 mergeable/clean.
+- Der Dokumentations-Guard hält nun die 26 Pflicht-Nachweislabels explizit fest, prüft Anzahl und Reihenfolge und simuliert für **jede** Zeile eine Entfernung, die zurückgewiesen werden muss. Commits `8978ab2`, `74fba85`.
+- Kein produktiver Zugriff; neue CI prüfen. Eine beabsichtigte Änderung des Abnahmeformulars benötigt bewusste Aktualisierung des Testvertrags und Review.
