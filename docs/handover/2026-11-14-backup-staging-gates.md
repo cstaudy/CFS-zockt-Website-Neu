@@ -19,3 +19,8 @@ Nur Dokumentationsänderungen; Branch/PR kann ohne Laufzeiteffekt verworfen werd
 - Neuer Commit `c471908`: `docs/operations/DB_BACKUP_RESTORE_EVIDENCE_TEMPLATE.md`. Nicht geheime Abnahmevorlage mit getrennten A–D-Gates für Kosten/Berechtigung, verschlüsseltes Backup, isolierten Restore, Staging/Migration. Alle unbestätigten Felder stehen explizit auf OFFEN/NEIN; Gesamtstatus GESPERRT.
 - Vorheriger Dokumentationsstand `a72e1a3` grün (Run `43631677494`). Nachfolgende Runs `43632157602` und `43632169812` waren beim Prüfzeitpunkt noch in Bearbeitung. CI des neuen HEAD prüfen.
 - Keine Sicherung, kein Restore, keine Produktions- oder Render-Änderung. Die Vorlage ist **kein** Backup-Nachweis.
+
+## Fortsetzung – CI-Regression für Dokumentations-Freigaben
+- PR #91 auf HEAD `0bf5cd8` grün (Run `43632235907`), mergeable/clean.
+- Neu: `scripts/test-operator-release-gates.mjs` und Aufnahme in `npm run check` (`0016aa3`, `66bff2f`, `309b186`). Test liest nur lokale Markdown-Dateien und erzwingt gesperrte Standardfelder, Frist, Restore-/Staging-Hinweise und Stop-Regeln. Er prüft **keine** tatsächlichen Backups oder Render-Verbindungen.
+- CI des neuen HEAD abwarten; bei Fehlern den Dokumentations-/Testvertrag korrigieren. Kein Merge, Deploy, DB-Zugriff oder Tarifwechsel.
