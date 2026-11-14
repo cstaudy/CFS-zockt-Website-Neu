@@ -34,3 +34,6 @@ Dieser Test ist **kein echter HTTP-End-to-End-Test**. Für den aktuellen Commit 
 
 ## Aktualisierung: anonymer HTTP-Upload
 Commit `789e6f9` ergänzt im bestehenden Server-HTTP-Test `scripts/test-static-boundary.mjs` einen POST auf `/api/creator/widget-studio/assets` ohne Sitzung. Erwartet werden HTTP 401 und `AUTHENTICATION_REQUIRED`; das temporäre Upload-Verzeichnis darf keine neue Datei enthalten. Test startet lokalen Node-Server ohne `DATABASE_URL`, keine Render- oder Produktionszugriffe. **Kein authentifizierter HTTP-Quota-Test**; der Quota- und Cleanup-Pfad wird separat im isolierten Test geprüft. CI für den neuen Commit steht aus.
+
+## Aktualisierung: authentifizierter HTTP-400-Test
+Commit `73de312`: `scripts/test-account-creator-flow.mjs` prüft mit angemeldetem CI-Testkonto auf der lokalen PostgreSQL-18-Datenbank einen leeren Bild-POST. Erwartet werden HTTP 400 / `INVALID_ASSET_SIZE`, unveränderte Anzahl von `creator_assets` und unverändertes Upload-Verzeichnis. Der vorhandene CI-E2E-Test prüft bereits authentifizierte 402-Ablehnungen für Asset-Anzahl und Speicherlimit einschließlich Cleanup; dies wurde bei der Bestandsaufnahme bestätigt. Keine Produktionsdaten. CI für den aktuellen PR-HEAD nach Dokumentations-Commits erneut prüfen.
