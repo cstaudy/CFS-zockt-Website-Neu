@@ -49,3 +49,7 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 ## Aktualisierung: Mutationstest sämtlicher Nachweise
 - Der CI-Guard simuliert jetzt in jeder Betreiber-Nachweiszeile eine `JA`-Freigabe und verlangt jeweils einen Fehler; die Vorlage selbst bleibt unverändert.
 - Vorheriger Stand `c6f6629` grün (Run `43636202088`); neue CI prüfen. Keine produktiven Aktionen.
+
+## Aktualisierung: Pflichtfeld-Vollständigkeit
+- 26 explizite Pflichtfelder sind jetzt als Dokumentationsvertrag im CI-Test erfasst. Für jede Zeile wird ein Löschversuch simuliert; Anzahl und Reihenfolge werden geprüft.
+- Vorheriger Stand `b33a8ed` grün (Run `43636469792`); neuer Test-HEAD braucht CI. Keine Freigabe, Migration oder Deployment.
