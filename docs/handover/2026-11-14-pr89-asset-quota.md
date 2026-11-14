@@ -46,3 +46,6 @@ Der vorherige HEAD `b0cb3cb` ist in GitHub Actions Run `43629217715` vollständi
 
 ## Aktualisierung: Chunked-HTTP-Grenztest
 Vorheriger PR-HEAD `6c1f24e`: vollständige GitHub-Actions-CI erfolgreich (Run `43630579894`). Commit `847807f` ergänzt den PostgreSQL-18-CI-E2E-Test um einen authentifizierten Streaming-POST auf `/api/creator/widget-studio/assets` ohne Content-Length: 8 MiB + 8 MiB + 1 Byte per `ReadableStream` und `duplex: 'half'`. Erwartet HTTP 413 / `PAYLOAD_TOO_LARGE`, keine neue Upload-Datei und kein zusätzlicher Creator-Asset-Eintrag. Nur lokaler, ausdrücklich freigegebener CI-PostgreSQL-Server; kein Produktionszugriff. CI des neuen Commits steht aus.
+
+## Aktualisierung: exakte HTTP-Upload-Grenze
+Vorheriger HEAD `4a6ad9a` vollständig grün in GitHub Actions Run `43630746966`, einschließlich authentifiziertem Chunked-413-Test. Commit `eaa8d42` ergänzt im PostgreSQL-18-E2E-Test einen authentifizierten Bild-Upload mit exakt 16 MiB. Die Bytes haben absichtlich keine gültige PNG-Signatur: Erwartet wird HTTP 415 / `INVALID_ASSET_SIGNATURE` statt 413, ohne neue Upload-Datei. Damit wird der inklusive Grenzwert des HTTP-Body-Limits geprüft, ohne eine 16-MiB-Datei zu speichern. CI für den neuen Commit ausstehend.
