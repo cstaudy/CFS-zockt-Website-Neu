@@ -809,6 +809,26 @@ try {
   assert.deepEqual(await uploadFilesIfPresent(), filesBeforeExactLimit,
     'Invalid image at exact HTTP size limit must not create files');
 
+  // Chunked at exactly the limit must also reach signature validation,
+  // proving that the streaming boundary is inclusive (not off by one).
+  let exactChunkIndex = 0;
+  const exactChunkedResponse = await fetch(base + '/api/creator/widget-studio/assets', {
+    method: 'POST',
+    headers: { origin: base, cookie: login.cookie, 'content-type': 'image/png' },
+    body: new ReadableStream({
+      pull(controller) {
+        if (exactChunkIndex++ === 2) return controller.close();
+        controller.enqueue(new Uint8Array(8 * 1024 * 1024));
+      }
+    }),
+    duplex: 'half', signal: AbortSignal.timeout(15000)
+  });
+  assert.equal(exactChunkedResponse.status, 415,
+    'Exactly 16 MiB chunked upload must reach signature validation, not HTTP 413');
+  assert.equal((await exactChunkedResponse.json()).error, 'INVALID_ASSET_SIGNATURE');
+  assert.deepEqual(await uploadFilesIfPresent(), filesBeforeExactLimit,
+    'Invalid chunked image at exact limit must not create files');
+
   // No Content-Length: exercise the actual authenticated server route using
   // Transfer-Encoding: chunked. The streaming parser must reject >16 MiB.
   const filesBeforeChunked = await uploadFilesIfPresent();
