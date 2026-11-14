@@ -5,6 +5,7 @@ import { requireAccount } from "./projects.js";
 import { decodeUploadFilename } from "./upload-filename.js";
 import { uploadStorageExtension, validImageSignature } from "./upload-media-policy.js";
 import { maxBufferedUploadBytes } from "./request-raw.js";
+import { assetQuota, registerAssetWithinQuota } from "./asset-quota.js";
 
 const categories = { image: "Bilder", overlay: "Overlays", frame_overlay: "Rahmen", background: "Hintergründe" };
 
@@ -19,7 +20,7 @@ export async function listAssets(req) {
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
   const result = await getPool().query("select id, name, media_type, mime_type, size_bytes, storage_path, category, created_at from creator_assets where account_id = $1 order by created_at desc", [account.id]);
   const rows = result.rows.map(asset);
-  return { assets: rows, categories, limits: { max_assets: 120, max_total_bytes: 128 * 1024 * 1024 }, usage: { count: rows.length, bytes: rows.reduce((sum, row) => sum + row.size, 0) } };
+  return { assets: rows, categories, limits: assetQuota, usage: { count: rows.length, bytes: rows.reduce((sum, row) => sum + row.size, 0) } };
 }
 
 export async function uploadAsset(req, body) {
@@ -33,7 +34,17 @@ export async function uploadAsset(req, body) {
   if (original === null) return { error: "INVALID_FILE_NAME", status: 400 };
   // Store by validated MIME, not a client-chosen filename extension.
   const stored = `${randomUUID()}${uploadStorageExtension(mime)}`;
-  const result = await storeUploadWithRecord(stored, body, () =>
-    getPool().query("insert into creator_assets (account_id, name, mime_type, size_bytes, storage_path) values ($1, $2, $3, $4, $5) returning id, name, media_type, mime_type, size_bytes, storage_path, category, created_at", [account.id, cleanName(original), mime, body.length, stored]));
-  return { asset: asset(result.rows[0]) };
+  try {
+    const result = await storeUploadWithRecord(stored, body, () =>
+      registerAssetWithinQuota(getPool(), account.id, {
+        name: cleanName(original), mime, size: body.length, stored
+      }));
+    return { asset: asset(result.rows[0]) };
+  } catch (error) {
+    if (["ASSET_LIMIT_REACHED", "ASSET_STORAGE_LIMIT_REACHED",
+      "AUTHENTICATION_REQUIRED"].includes(error?.code)) {
+      return { error: error.code, status: error.status, limits: assetQuota };
+    }
+    throw error;
+  }
 }
