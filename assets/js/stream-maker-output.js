@@ -34,12 +34,15 @@
     imagePath = path;
     image = null;
     if (!path) return;
+    const url = new URL(path, location.origin);
+    // The signed OBS bundle token grants access ONLY to its public visual
+    // projection. It must never be sent as a query to private upload paths.
+    // The upstream sanitizer also rejects those paths; enforce this again
+    // at the network boundary as defense in depth.
+    if (url.origin !== location.origin || url.pathname.startsWith("/assets/uploads/")) return;
     const img = new Image();
     img.onload = () => { if (imagePath === path) { image = img; render(); } };
     img.onerror = () => { if (imagePath === path) image = null; };
-    const url = new URL(path, location.origin);
-    if (url.origin !== location.origin) return;
-    if (url.pathname.startsWith("/assets/uploads/")) url.searchParams.set("source_token", token);
     img.src = url.href;
   }
   async function refresh() {
