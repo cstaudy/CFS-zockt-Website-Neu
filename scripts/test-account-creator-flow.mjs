@@ -890,6 +890,11 @@ try {
         if (status === 200) {
           assert.equal(response.headers.get('cache-control'), 'private, no-store',
             'Private uploads must never be cached as public');
+          assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+            'Authenticated GET/HEAD upload responses must disable MIME sniffing');
+          assert.equal(response.headers.get('content-type'),
+            path === asset.data.asset.url ? 'image/png' : 'video/mp4',
+            'Authenticated uploads must preserve their trusted storage MIME');
           if (method === 'GET') {
             const actual = Buffer.from(await response.arrayBuffer());
             assert.deepEqual(actual, expected, 'Owner must receive original upload bytes');
