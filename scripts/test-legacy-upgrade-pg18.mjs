@@ -4,7 +4,7 @@ import pg from "pg";
 import { applyMigrations, baselineMigrations } from "../src/migration-runner.js";
 import { legacyBaselineFiles, pendingLegacyUpgradeFiles } from "../src/legacy-baseline-files.js";
 import { migrationFiles, loadMigrationSql } from "../src/migrations.js";
-import { inspectLegacySchemaShape } from "../src/legacy-schema-shape.js";
+import { inspectLegacySchemaShape, assertHistoricalBaselineShape } from "../src/legacy-schema-shape.js";
 
 // This integration test is destructive, so it may ONLY run inside the disposable
 // PostgreSQL service created by .github/workflows/check.yml, not Render/staging.
@@ -50,6 +50,13 @@ try {
   assert(driftedShape.missing_tables.includes("creator_settings"),
     "Missing legacy table must be detected without mutating application data");
   await assert.rejects(
+    assertHistoricalBaselineShape(legacy), /LEGACY_BASELINE_SCHEMA_SHAPE_DRIFT/,
+    "Operator baseline shape gate must reject the missing historical table"
+  );
+  assert.equal((await legacy.query(
+    "select to_regclass('public.schema_migrations') as name")).rows[0].name, null,
+    "A rejected operator baseline gate must not create migration history");
+  await assert.rejects(
     baselineMigrations(legacy, legacyBaselineFiles, loadMigrationSql),
     /Mindestens eine Migration würde das vorhandene Schema verändern/
   );
@@ -58,6 +65,8 @@ try {
   await legacy.query(await loadMigrationSql("021_creator_settings.sql"));
   assert.equal((await inspectLegacySchemaShape(legacy)).matched, true,
     "Restored canonical legacy shape should match again");
+  assert.equal((await assertHistoricalBaselineShape(legacy)).matched, true,
+    "The operator baseline gate permits the corrected pre-022 schema");
 
   // Synthetic legacy account, session, project, MFA configuration and settings
   // must survive the entire transition bit-for-bit.
