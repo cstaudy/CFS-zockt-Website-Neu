@@ -39,6 +39,12 @@ jobs:
         run: |
           npm run migrate
           node scripts/test-account-creator-flow.mjs
+      - name: Read-only release readiness on isolated PostgreSQL 18 CI database
+        env:
+          DATABASE_URL: postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci
+          DATABASE_SSL: 'false'
+          CONFIRM_RELEASE_PREFLIGHT_READ_ONLY: 'yes'
+        run: npm run release:preflight
       - name: PostgreSQL 18 legacy schema baseline and incremental MFA upgrade
         env:
           DATABASE_URL: postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci
