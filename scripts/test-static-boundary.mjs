@@ -87,6 +87,27 @@ try {
   assert.match(publicStatus.message, /Anmeldung|Creator/, 'Degraded response must explain affected account functions');
   assert(!JSON.stringify(publicStatus).includes('DATABASE_URL'), 'Do not leak database configuration');
 
+  // When account storage is deliberately absent, published OBS scenes must
+  // match widget/Maker output and return an indistinguishable 404, not an
+  // internal 500 error. HEAD must obey the same availability contract.
+  const absentScene = "/api/public/scenes/123e4567-e89b-42d3-a456-426614174112";
+  for (const method of ["GET", "HEAD"]) {
+    for (const path of [absentScene, "/api/public/scenes/invalid-scene"]) {
+      const response = await fetch(base + path, { method });
+      assert.equal(response.status, 404,
+        "Public scene must not leak storage availability or resource existence");
+      assert.equal(response.headers.get("cache-control"), "no-store",
+        "Unavailable OBS projections must never be cached");
+      assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+      if (method === "GET") {
+        assert.deepEqual(await response.json(), { error: "SCENE_NOT_FOUND" });
+      }
+    }
+    const widget = await fetch(base +
+      "/api/public/widgets/123e4567-e89b-42d3-a456-426614174113", { method });
+    assert.equal(widget.status, 404, "Public widget must keep its offline 404 behavior");
+  }
+
   const accountResponse = await fetch(`${base}/api/account/me`);
   assert.equal(accountResponse.status, 200);
   assert.equal((await accountResponse.json()).authenticated, false, 'Anonymous visitor must not be logged in');
