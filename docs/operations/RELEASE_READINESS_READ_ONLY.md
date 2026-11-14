@@ -35,6 +35,38 @@ Testdatenbank. Die zusätzlichen Unit-Tests simulieren eine unvollständige
 Legacy-DB, leere oder widersprüchliche Historien und den
 Berechtigungs-/Konfigurationsschutz. CI ist kein Produktivbackup.
 
+## Zusätzlicher Legacy-Schemaform-Abgleich (Migrationen 001–021)
+
+Solange die historische Datenbank zwar Anwendungstabellen, aber noch
+**keine** `schema_migrations`-Historie besitzt, führt der Preflight eine
+zweite, ausschließlich lesende `information_schema.columns`-Abfrage aus.
+Die **erwarteten 26 historischen Tabellen und Spalten** werden aus den
+vorhandenen Migrationsdateien 001–021 abgeleitet – nicht aus einem
+abgeschriebenen Live-Schema.
+
+Für jede Spalte werden Name, PostgreSQL-Typ und `NULL`-Zulässigkeit
+verglichen. Fehlende, zusätzliche und inkompatible Tabellen/Spalten
+werden ohne Tabelleninhalte als `legacy_schema_shape` gemeldet.
+Abweichungen setzen `LEGACY_SCHEMA_SHAPE_DRIFT`. Damit kann eine
+vermeintlich harmlose Baseline nicht durch einen oberflächlichen
+„Tabellen sind vorhanden“-Check legitimiert werden.
+
+**Die Übereinstimmung ist ausdrücklich nur ein Strukturindikator,
+kein vollständiger Gleichwertigkeitsbeweis.** Indexe, CHECK-/Fremdschlüssel-
+Constraints, Trigger, Funktionen, historische Daten und reale
+Backup-Wiederherstellung sind damit **nicht** überprüft. Vor einer
+produktiven Baseline gilt weiterhin: Ein autorisierter Betreiber muss
+einen **echten** Dump nachweislich in eine **isolierte** Kopie
+wiederherstellen, die dortige Baseline-Transaktion samt
+vollständigem Metadaten-Fingerprint prüfen und den 022–025-MFA-
+Upgrade/Restore-Prozess abnehmen. Dieser PR führt diese Schritte
+nicht gegen Render aus.
+
+Die PostgreSQL-18-CI vergleicht den aus echten 001–021-Migrationen
+erzeugten Wegwerf-Legacystand mit dem abgeleiteten Vertrag und
+überprüft, dass das Entfernen einer historischen Tabelle sofort
+als Abweichung erkannt wird.
+
 ## Read-only Befund aus der Render-Instanz, 14.11.2026
 
 Für `cfs-zockt-db` wurde über die verbundene Render-Read-only-Abfrage

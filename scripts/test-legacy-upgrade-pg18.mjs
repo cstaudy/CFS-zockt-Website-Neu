@@ -4,6 +4,7 @@ import pg from "pg";
 import { applyMigrations, baselineMigrations } from "../src/migration-runner.js";
 import { legacyBaselineFiles, pendingLegacyUpgradeFiles } from "../src/legacy-baseline-files.js";
 import { migrationFiles, loadMigrationSql } from "../src/migrations.js";
+import { inspectLegacySchemaShape } from "../src/legacy-schema-shape.js";
 
 // This integration test is destructive, so it may ONLY run inside the disposable
 // PostgreSQL service created by .github/workflows/check.yml, not Render/staging.
@@ -36,9 +37,18 @@ try {
   assert.equal((await legacy.query("select to_regclass('public.schema_migrations') as name")).rows[0].name, null);
   assert.equal((await legacy.query("select to_regclass('public.mfa_login_challenges') as name")).rows[0].name, null);
 
+  const initialShape = await inspectLegacySchemaShape(legacy);
+  assert.equal(initialShape.matched, true, "Canonical PG18 migrations 001–021 must match the derived legacy metadata contract");
+  assert.equal(initialShape.expected_tables, 26);
+  assert.equal(initialShape.full_equivalence_proven, false, "Metadata is not an archive/restore proof");
+
   // Ensure an actually missing historical table cannot be silently baselined:
   // the rolled-back baseline probe would recreate it and detect schema drift.
   await legacy.query("drop table public.creator_settings");
+  const driftedShape = await inspectLegacySchemaShape(legacy);
+  assert.equal(driftedShape.matched, false);
+  assert(driftedShape.missing_tables.includes("creator_settings"),
+    "Missing legacy table must be detected without mutating application data");
   await assert.rejects(
     baselineMigrations(legacy, legacyBaselineFiles, loadMigrationSql),
     /Mindestens eine Migration würde das vorhandene Schema verändern/
@@ -46,6 +56,8 @@ try {
   assert.equal((await legacy.query("select to_regclass('public.schema_migrations') as name")).rows[0].name, null,
     "A failed baseline must not register a migration ledger");
   await legacy.query(await loadMigrationSql("021_creator_settings.sql"));
+  assert.equal((await inspectLegacySchemaShape(legacy)).matched, true,
+    "Restored canonical legacy shape should match again");
 
   // Synthetic legacy account, session, project, MFA configuration and settings
   // must survive the entire transition bit-for-bit.

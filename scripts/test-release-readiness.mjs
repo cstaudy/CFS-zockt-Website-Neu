@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { inspectReleaseReadiness } from "../src/release-readiness.js";
 import { migrationFiles, loadMigrationSql } from "../src/migrations.js";
+import { expectedLegacySchema } from "../src/legacy-schema-shape.js";
 
 const complete = {
   accounts_exists: true,
@@ -21,7 +22,12 @@ const expectedLedger = await Promise.all(migrationFiles.map(async name => ({
   name, checksum: createHash("sha256")
     .update(await loadMigrationSql(name)).digest("hex")
 })));
-function fakeDb({ flags = {}, ledger = expectedLedger, catalogResult, ledgerResult } = {}) {
+const baseline = await expectedLegacySchema();
+const legacyColumns = [...baseline.entries()].flatMap(([table, cols]) =>
+  [...cols.values()].map(col => ({ table_name: table, column_name: col.name,
+    udt_name: col.type, is_nullable: col.not_null ? "NO" : "YES" })));
+function fakeDb({ flags = {}, ledger = expectedLedger, catalogResult, ledgerResult,
+  schemaRows = legacyColumns } = {}) {
   const queries = [];
   return {
     queries,
@@ -32,6 +38,9 @@ function fakeDb({ flags = {}, ledger = expectedLedger, catalogResult, ledgerResu
         "Readiness inspector must never mutate any DB object");
       if (sql.includes("to_regclass('public.accounts')"))
         return catalogResult === undefined ? { rows: [{ ...complete, ...flags }] } : catalogResult;
+      if (sql.includes("from information_schema.columns") &&
+          sql.includes("table_name <> 'schema_migrations'"))
+        return { rows: schemaRows };
       if (sql.startsWith("select name, checksum from public.schema_migrations"))
         return ledgerResult === undefined ? { rows: ledger } : ledgerResult;
       throw new Error("Unexpected catalog query");
@@ -68,12 +77,41 @@ assert.equal(legacy.migration_history, "missing");
 assert.equal(legacy.database_ready_for_nonmigrating_start, false);
 assert(legacy.blockers.includes("LEGACY_MIGRATION_BASELINE_REQUIRED"));
 assert(legacy.blockers.includes("MFA_SCHEMA_022_025_INCOMPLETE"));
-assert.equal(legacyDb.queries.length, 1,
-  "Legacy database must not be asked to SELECT a nonexistent ledger");
+assert.equal(legacyDb.queries.length, 2,
+  "Legacy DB inspects column metadata but never SELECTs a missing ledger");
+assert.equal(legacy.legacy_schema_shape.matched, true);
+assert.equal(legacy.legacy_schema_shape.expected_tables, 26);
+assert.equal(legacy.legacy_schema_shape.full_equivalence_proven, false);
 
 const noLedgerButSchema = await inspectReleaseReadiness(fakeDb({ flags: { ledger_exists: false } }));
 assert(noLedgerButSchema.blockers.includes("LEGACY_MIGRATION_BASELINE_REQUIRED"),
   "Schema existence alone cannot authorize recording migration history");
+const withMissing = legacyColumns.filter(x =>
+  !(x.table_name === "accounts" && x.column_name === "role"));
+const missingSchema = await inspectReleaseReadiness(fakeDb({
+  flags: { ledger_exists: false }, schemaRows: withMissing
+}));
+assert(missingSchema.blockers.includes("LEGACY_SCHEMA_SHAPE_DRIFT"));
+assert(missingSchema.legacy_schema_shape.missing_columns.includes("accounts.role"));
+const wrongType = await inspectReleaseReadiness(fakeDb({
+  flags: { ledger_exists: false },
+  schemaRows: legacyColumns.map(col => col.table_name === "accounts" &&
+    col.column_name === "role" ? { ...col, udt_name: "int4" } : col)
+}));
+assert(wrongType.blockers.includes("LEGACY_SCHEMA_SHAPE_DRIFT"));
+assert(wrongType.legacy_schema_shape.incompatible_columns.includes("accounts.role"));
+const extraColumn = await inspectReleaseReadiness(fakeDb({
+  flags: { ledger_exists: false },
+  schemaRows: [...legacyColumns, { table_name: "accounts", column_name: "untracked",
+    udt_name: "text", is_nullable: "YES" }]
+}));
+assert(extraColumn.blockers.includes("LEGACY_SCHEMA_SHAPE_DRIFT"));
+assert(extraColumn.legacy_schema_shape.unexpected_columns.includes("accounts.untracked"));
+const missingTable = await inspectReleaseReadiness(fakeDb({
+  flags: { ledger_exists: false },
+  schemaRows: legacyColumns.filter(col => col.table_name !== "creator_settings")
+}));
+assert(missingTable.legacy_schema_shape.missing_tables.includes("creator_settings"));
 const emptyLedger = await inspectReleaseReadiness(fakeDb({ ledger: [] }));
 assert(emptyLedger.blockers.includes("MIGRATION_LEDGER_EMPTY"));
 assert.equal(emptyLedger.database_ready_for_nonmigrating_start, false);

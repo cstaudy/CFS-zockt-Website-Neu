@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { migrationFiles, loadMigrationSql } from "./migrations.js";
+import { inspectLegacySchemaShape } from "./legacy-schema-shape.js";
 
 // Catalog-only inspection. No account records, credentials, personal data, or
 // application rows are read, and no changes are ever applied by this module.
@@ -112,6 +113,14 @@ export async function inspectReleaseReadiness(db) {
     if (pending.length) blockers.push("MIGRATION_FILES_NOT_RECORDED");
     if (unknown.length || modified.length) blockers.push("MIGRATION_LEDGER_CONFLICT");
   }
+  // On the historical 001–021 database, a matching table list alone does
+  // not prove that every required column, type and nullability is intact.
+  // This SELECT-only audit cannot itself authorize a baseline.
+  let legacySchemaShape = null;
+  if (catalog.accounts_exists && !catalog.ledger_exists) {
+    legacySchemaShape = await inspectLegacySchemaShape(db);
+    if (!legacySchemaShape.matched) blockers.push("LEGACY_SCHEMA_SHAPE_DRIFT");
+  }
   if (!schema.mfa_login_challenges || !schema.mfa_recovery_rotation ||
       !schema.mfa_totp_replay || !schema.mfa_challenge_window)
     blockers.push("MFA_SCHEMA_022_025_INCOMPLETE");
@@ -127,6 +136,7 @@ export async function inspectReleaseReadiness(db) {
     unknown_migration_files: unknown,
     checksum_mismatch_files: modified,
     schema,
+    legacy_schema_shape: legacySchemaShape,
     database_ready_for_nonmigrating_start: noMigrationOnStartup,
     blockers,
     // An exclusively database-based check cannot verify backup+restore,
