@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { expectedLegacySchema, inspectLegacySchemaShape, parseLegacySchemaSql } from "../src/legacy-schema-shape.js";
+import { expectedLegacySchema, inspectLegacySchemaShape, parseLegacySchemaSql,
+  assertHistoricalBaselineShape } from "../src/legacy-schema-shape.js";
 
 const expected = await expectedLegacySchema();
 assert.equal(expected.size, 26);
@@ -36,6 +37,22 @@ assert.equal(exact.full_equivalence_proven, false);
 assert.deepEqual(exact.missing_tables, []);
 assert.equal(goodDb.executed.length, 1);
 assert(!goodDb.executed[0].includes("accounts.email"), "No access to application table contents");
+
+const baselineGateDb = dbOf(rows);
+assert.equal((await assertHistoricalBaselineShape(baselineGateDb, expected)).matched, true);
+assert.equal(baselineGateDb.executed.length, 1, "Operator baseline gate queries only the catalog");
+const invalidBaselineDb = dbOf(rows.filter(x =>
+  !(x.table_name === "accounts" && x.column_name === "role")));
+await assert.rejects(assertHistoricalBaselineShape(invalidBaselineDb, expected),
+  error => error?.code === "LEGACY_BASELINE_SCHEMA_SHAPE_DRIFT" &&
+    !String(error.message).includes("email"),
+  "A missing role column must prevent the operator baseline before ledger writes");
+assert.equal(invalidBaselineDb.executed.length, 1);
+const wrongNullGate = dbOf(rows.map(col =>
+  col.table_name === "accounts" && col.column_name === "email" ?
+    { ...col, is_nullable: "YES" } : col));
+await assert.rejects(assertHistoricalBaselineShape(wrongNullGate, expected),
+  /LEGACY_BASELINE_SCHEMA_SHAPE_DRIFT/);
 
 const missing = await inspectLegacySchemaShape(dbOf(rows.filter(x =>
   x.table_name !== "creator_settings")), expected);
