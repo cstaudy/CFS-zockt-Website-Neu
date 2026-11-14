@@ -8,6 +8,24 @@ The source sanitizer rejects arbitrary external image URLs and private `/assets/
 
 **Revocation:** Rotating a bundle's source token invalidates older signed URLs. Archiving a bundle invalidates every source immediately. A current OBS Browser Source that receives a permanent 404 clears its canvas and in-memory model. The separate one-second render timer cannot redraw a stale/revoked frame. If a formerly selected element is removed, the browser clears that element without continuing to show outdated content. Public responses are no-store, and the browser fetches without session cookies.
 
+**Bearer-URL-Härtung:** Die HTML-Ausgabe
+`/widgets/stream-maker.html?token=…&element=…` sendet
+`Referrer-Policy: no-referrer` (zusätzlich als HTML-Metatag),
+`Cache-Control: no-store` und `X-Robots-Tag: noindex, nofollow, noarchive`.
+Damit wird die Token-URL nicht als Referer bei nachgeladenen CSS-/JS-/Bild-
+Ressourcen oder nachfolgenden Navigationen übertragen. Dieselben Regeln
+gelten auch für HEAD-Antworten. Die öffentlichen statischen CSS-/JS-Dateien
+bleiben weiterhin normal cachebar und der bereits private API-Output
+bleibt `no-store`.
+
+**Rest-Risiko:** Das signierte Token steht weiterhin in der vollständigen
+OBS-Quelladresse und im API-Pfad; es kann deshalb im Browser-Quellkonfigurations-
+dialog, in Bildschirmaufnahmen, Reverse-Proxy-/Access-Logs oder von
+Personen mit direktem URL-Zugriff bekannt werden. HTTP-Header beseitigen
+dieses Risiko **nicht**. Niemals Secrets als Overlaytext eingeben,
+Quelladressen nicht öffentlich teilen und bei Verdacht den Token rotieren.
+Dieser PR verändert die Token-Erteilung und Widerrufsfunktion nicht.
+
 **Not activated:** Maker Shop publication, cross-account template copying, uploader-based public assets, Twitch EventSub, migration 026/027 and admin-role changes. A real OBS Browser Source, Render auto-deploy settings and production backup/restore still require independent operator acceptance.
 
 Release gates: pure browser simulation of revoked token and deleted element, sanitization/URL tests, PostgreSQL HTTP E2E with two owners, token tampering, public counter updates, signed token rotation and archive, plus all existing isolated PostgreSQL migration and restore CI.
