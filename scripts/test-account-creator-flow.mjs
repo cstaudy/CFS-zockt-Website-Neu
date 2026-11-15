@@ -910,6 +910,24 @@ try {
     }
   }
 
+  // Unknown upload paths must not reveal whether bytes exist to unauthenticated callers.
+  const missingUploadUrl = '/assets/uploads/nonexistent-private-upload-check.png';
+  for (const [who, cookie, expectedStatus] of [
+    ['anonymous', undefined, 401],
+    ['foreign creator', mediaOtherCookie, 404],
+    ['owner', login.cookie, 404]
+  ]) {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(base + missingUploadUrl, {
+        method, headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(8000)
+      });
+      assert.equal(response.status, expectedStatus,
+        `Unknown upload path must return ${expectedStatus} for ${who} ${method}`);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    }
+  }
+
   // A public project's image reference allows OBS to fetch JUST that image.
   // A different creator cannot publish someone else's asset by referencing its URL.
   const attackerProject = await request('POST', '/api/creator/projects', {
