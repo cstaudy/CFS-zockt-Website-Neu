@@ -49,6 +49,19 @@ try {
   assert.deepEqual(await readFile(join(root, current)), data,
     "A second database record for this path must block physical deletion");
 
+  // A future caller could accidentally return an incomplete DB result,
+  // undefined, null, 0, or a non-boolean object. None can prove the file
+  // has no remaining references, so every case must preserve its bytes.
+  for (const uncertain of [undefined, null, 0, "", {}, [], "false"]) {
+    const status = await removeDeletedMediaFile(current, owner,
+      async () => uncertain, root);
+    assert.equal(status, "referenced",
+      "An ambiguous reference result must never authorize deletion");
+    assert.deepEqual(await readFile(join(root, current)), data,
+      "Ambiguous reference responses must leave the existing media intact");
+  }
+
+
   const referenceFailure = new Error("synthetic database outage");
   await assert.rejects(removeDeletedMediaFile(current, owner, () => {
     throw referenceFailure;
