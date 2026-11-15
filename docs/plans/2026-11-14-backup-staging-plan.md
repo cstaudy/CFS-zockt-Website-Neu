@@ -58,3 +58,17 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 - CI HEAD `313d440` erfolgreich (Run `43638290828`), PR #91 konfliktfrei und review-bereit. Testpaket abgeschlossen; keine weitere Testausweitung ohne konkreten Fehler.
 - Nächste Entscheidung: ausdrückliche Mergefreigabe für PR #89/#91 **separat**; unabhängig davon ist Produktionsfreigabe weiterhin gesperrt.
 - Betreiber muss rechtzeitig vor 09.12.2026 eine nachweislich kostenlose PostgreSQL-Fortführung und einen autorisierten, verschlüsselten Backup-/isolierten Restore-Prozess bestätigen. Ohne diese Nachweise keine Migration oder Deployment.
+
+## 15.11.2026 – Netzwerk-Härtung als zusätzliches P0-Betreiber-Gate
+
+| Priorität | Aufgabe / Nachweis | Stand | Nächste Handlung |
+| --- | --- | --- | --- |
+| P0 | Render-Free-DB `cfs-zockt-db` vor **09.12.2026 18:36 UTC** absichern | Verfügbarkeit und exakt dokumentierte Frist **read-only bestätigt**; keine Fortführung garantiert | Bis 20.11. Verantwortliche und kostenloses Ziel bestätigen; 25.11. autorisierte verschlüsselte Sicherung, 30.11. isolierter Restore planen |
+| P0 | DB-IPv4-Allowlist `0.0.0.0/0` auf tatsächlich erforderliche Zugänge begrenzen | **Offen**: aktueller breiter Netzwerkzugang read-only nachgewiesen, PostgreSQL-Zugangsschutz nicht umgangen | Bis 20.11. vom Betreiber die nötigen internen/externalen Clients, Wartungs- und Backupwege, erreichbare IPs, Ausfallrisiko und Rollback klären; erst nach separater Freigabe Änderung |
+| P0 | Staging-Datenbank von Produktion isolieren | **Gesperrt**: getrennte DB nicht nachgewiesen; Staging und Produktion Auto-Deploy weiterhin aus | Technische Trennung durch Betreiber bestätigen; keine produktiven Daten nach Staging kopieren |
+| P0 | Freigabeformular konservativ halten | Neues **27. Pflichtfeld** für DB-Netzwerkzugang standardmäßig `NEIN`; lokale CI-Dokumententest-Änderung | Aktuelle PR-CI prüfen; sämtliche `JA`- und Lösch-Mutationstests müssen grün sein |
+| P1 | Security-PRs #89/#90 und Operations-PR #91 reviewen | Einzeln grün vor dieser Aktualisierung, ungemergt | Nur nach expliziter Mergefreigabe; anschließend kombinierte CI auf `main` |
+
+**Achtung:** `0.0.0.0/0` öffnet die Netzwerk-Erreichbarkeit, nicht die DB-Authentifizierung. Die Allowlist darf **nicht blind** live verändert werden; interner Render-Zugriff, erlaubte externe Wartungs-IP und Notfall-Rückweg sind zuerst zu prüfen. Weder Render-Konfiguration noch Produktionsdatenbank wurden in dieser Runde verändert.
+
+**Weiteres Vorgehen:** GitHub Actions auf dem aktuellen Branch-HEAD prüfen, einen Fehler im Dokumentationsvertrag ggf. korrigieren, PR #91 zur Review übergeben. Echte Produktiv-Backups/Restores und Kosten-/Deployfreigaben bleiben ausschließlich Betreiberaufgaben; **Gesamtstatus GESPERRT**.
