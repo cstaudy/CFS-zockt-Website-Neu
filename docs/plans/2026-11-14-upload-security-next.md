@@ -90,3 +90,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Abgewiesene Fremdlöschung ohne Seiteneffekt
 - `3bd311e`: Nach fremdem DELETE (`404`) bleibt das Video für den Eigentümer per GET/HEAD (`200`) vollständig erhalten, inklusive Cache-/MIME-Header und Bytegleichheit. Anschließend bleibt die reguläre Löschung samt physischer Entfernung getestet.
 - Vorheriger HEAD `dc5eee2` grün (`43701848825`). Nächste Schritte: CI für neuen Code-/Dokumentations-HEAD kontrollieren, ggf. korrigieren; danach Review. Merge, Deployment, produktive DB-Migration und kostenpflichtige Ressourcen bleiben ohne Freigabe gesperrt.
+
+## Löschwiederholung: Zustand bleibt gesperrt
+- `2848633` prüft nach wiederholtem DELETE (`404`) nochmals physisches Fehlen (`ENOENT`) und Owner GET/HEAD (`404`, `no-store`, `nosniff`).
+- Vorheriger HEAD `db7f214` grün (CI `43702065644`). Als Nächstes neue CI und Dokumentations-HEAD prüfen, dann Review. Kein Merge/Deploy ohne Freigabe; Browser- und Backup-/Staging-Gates weiterhin offen.
