@@ -84,3 +84,16 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 | P1 | PR #91 Review und ggf. Integration | Vorheriger HEAD `7761e78` CI `43709000473` grün, ungemergt | Finale CI + Review; **ausdrückliche Mergefreigabe nötig**; danach Gesamt-CI auf `main` |
 
 **Nächste Schritte:** CI des A2-Validators und finalen Heads prüfen; bei Fehler gezielt korrigieren. Am 20.11. kostenfreies Fortführungsziel und konkrete Berechtigung zur Netzwerkeinschränkung durch den Betreiber klären. Der Ablauf der kostenlosen DB ist `2026-12-09T18:36:16Z`. Kein automatisches Monitoring oder garantierter Datenexport wurde eingerichtet.
+
+## 15.11.2026 – Umsetzbarer Betreiberablauf für die offene DB-Allowlist
+
+| Priorität | Aufgabe | Status / Nachweis | Verantwortlicher nächster Schritt |
+| --- | --- | --- | --- |
+| P0 | Breite IPv4-Erreichbarkeit `0.0.0.0/0` kontrolliert begrenzen | Weiter **OFFEN**, nicht geändert; separates Operator-Runbook `DB_NETWORK_ALLOWLIST_OPERATOR_CHECKLIST.md` erstellt (`659084c`, CI `43709699102` grün) | Bis zum Planungsziel **20.11.** berechtigte DB-Clients, interne Render-Verbindungen, externe Backups, dynamische Adressen und Rückweg ohne Secrets inventarisieren |
+| P0 | Unbelegte Netzwerkfreigabe verhindern | Checkliste enthält 11 `OFFEN`-/`NEIN`-Zeilen; `Gesamtstatus: GESPERRT`; neuer Offline-Guard `2dc7971` prüft Inhalt und negative `JA`-Mutation | **CI des neuen Code- und Dokumentations-HEAD prüfen**; erst bei grüner CI für technische Review bereit |
+| P0 | Sicheres kostenfreies DB-Ziel, echter Dump und isolierter Restore | **GESPERRT**; Free-DB-Ende **09.12.2026 18:36:16 UTC** bleibt bestätigt | Kostenfreie Fortführung und Betreiberberechtigung klären, autorisierten verschlüsselten Dump und isolierte Wiederherstellung mit Nachweis planen |
+| P0 | Staging, Migration und Produktivdeploy | Ohne getrennte Staging-DB, Ledger-/Baseline-Entscheidung und gesonderte Betreiberfreigabe **GESPERRT** | Nichts deployen oder migrieren; alle Abnahme-Gates separat nachweisen |
+
+**Stop-Entscheid:** Sollte irgendein notwendiger DB-Zugangsweg, eine Backup-Verbindung, die Rückfallmöglichkeit oder die Betreiberfreigabe fehlen, **keine** Live-Allowlist-Änderung. Die Checkliste ist keine tatsächliche Prüfung oder Zusage für die Verfügbarkeit einer kostenfreien Render-Option.
+
+**Nächste Entwicklungsrunde:** die vollständige CI nach `2dc7971` und dem Dokumentations-HEAD verifizieren, bei Befund korrigieren, dann PR #91 als review-bereit belassen. Keine neuen Tests ohne konkrete Fehlstelle; die nächste reale Aktion erfordert Betreiberentscheidung. Weiterhin zu jeder Aktualisierung **Übergabe und Entwicklungsplan** fortschreiben.
