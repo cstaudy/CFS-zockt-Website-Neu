@@ -19,7 +19,7 @@ for (const [mime, [extension, expected]] of Object.entries(accepted)) {
 assert.deepEqual(uploadDeliveryHeaders("old-photo.jpeg"), { "content-type": "image/jpeg" },
   "Existing JPEG uploads may retain their .jpeg suffix");
 for (const mime of ["text/html", "application/javascript", "image/svg+xml",
-  "application/pdf", "application/octet-stream", "", null, undefined, "IMAGE/PNG"]) {
+  "application/pdf", "application/octet-stream", "", null, undefined, "IMAGE/PNG", "__proto__", "constructor", "toString", "hasOwnProperty"]) {
   assert.equal(uploadStorageExtension(mime), null, "Unsupported MIME cannot produce a stored upload filename");
 }
 const forbidden = [
