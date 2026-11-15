@@ -98,3 +98,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Header-Vollständigkeit bei Widerruf
 - `31137c3` ergänzt die bestehende anonyme GET/HEAD-Sperre nach `published → private` um `nosniff`; `401` und `no-store` waren bereits abgesichert.
 - Vorheriger HEAD `c5dbe1b` grün (`43702535564`). Als Nächstes aktuelle CI prüfen, anschließend PR #90 zur Review bereit halten. Für unbekannte Upload-Pfade erst tatsächliche Serverantwort ermitteln, bevor neue Statuscode-Erwartungen eingeführt werden. Kein Merge/Deploy ohne Freigabe; Browser-, Backup- und Staging-Gates bleiben offen.
+
+## Unbekannte Upload-Datei: Auth- und Header-Matrix
+- Servercode `serveStatic`/`json()` geprüft: ohne Anmeldung `401`, mit Konto aber ohne Asset-Zuordnung `404`; `no-store` und `nosniff` gelten auch für Fehlerantworten.
+- E2E-Commit `83de4fe` testet unbekannte Upload-URL mit 3 Rollen × GET/HEAD und beiden Headern. Vorheriger HEAD `febaa20` grün (CI `43704203585`). Neue CI prüfen, bei Abweichung korrigieren; PR-Review, Browser- und Backup-/Staging-Gates sowie explizite Mergefreigabe bleiben offen.
