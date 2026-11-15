@@ -82,3 +82,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Rechte-Isolation bei veröffentlichten OBS-Bildern
 - Neuer Test `2990c74`: Eine veröffentlichte Bildreferenz darf nicht versehentlich das private Video desselben Creators freigeben. Anonymes GET+HEAD auf Video muss `401`, `no-store` und `nosniff` liefern.
 - Vorherige Löschtest-CI `43701694175` grün. Nächste Schritte: neuen CI-Lauf kontrollieren, dann Review; Browser-/Backup-/Staging-Gates und explizite Mergefreigabe bleiben offen.
+
+## Widerruf ohne Datenverlust für Eigentümer
+- `9b0546f` ergänzt nach `published → private` eine positive GET/HEAD-Owner-Regression: `200`, `private, no-store`, `nosniff`, `image/png` und Originalbytes. So wird zwischen anonymer Sperre und weiterhin gültigem Eigentümerzugriff unterschieden.
+- Nächste Schritte: CI des aktuellen HEAD abwarten und ggf. korrigieren; PR #90 reviewen. Keine Merge-/Deploy-/Produktionsfreigabe; Backup/Staging und Browserabnahme weiter offen.
