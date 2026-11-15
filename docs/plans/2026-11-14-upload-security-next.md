@@ -66,3 +66,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Nächste Regression: anonyme HEAD-Anfragen
 - Implementiert in `3b04c82`: Fremd-Account kann eigenes veröffentlichtes Widget nicht zum Zugriff auf fremdes Bild verwenden; eigener Draft gibt Bild nicht anonym frei. Beide Fälle nun bei GET und HEAD mit `401` + `no-store` geprüft.
 - Vorheriger Widerrufs-Test `7ee294f` war grün (Run `43701127023`). Nächste Aufgabe: neuen CI-Lauf abwarten und bei Fehlschlag gezielt korrigieren; anschließend Review, manuelle Browserabnahme, nur mit ausdrücklicher Freigabe Merge/Deployment.
+
+## Nächster Security-Check: negative HTTP-Antworten
+- `5740633` erweitert die vorhandene GET/HEAD-Bild-/Video-Matrix für `401` (anonym) und `404` (fremder Creator) um `no-store` und `nosniff`.
+- Ziel: Keine private Medienantwort und auch keine abgewiesene Anfrage darf zwischengespeichert oder MIME-gesnifft werden. CI für neuen Commit abwarten, ggf. Fehler beheben. Danach Review und nur nach ausdrücklicher Freigabe Merge; Browser-/Backup-/Staging-Gates bleiben bestehen.
