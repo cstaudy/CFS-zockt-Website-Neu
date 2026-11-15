@@ -120,3 +120,17 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 | **P1 – Qualitätsnachweis** | Ausgangs-HEAD `8cfbd40` CI [43710490563](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43710490563) **success**. Neue Änderungen ausschließlich an Operationsdokumenten sowie Übergabe/Plan. | **Aktuellen Head-CI-Lauf prüfen**, danach Review von #91; CI ist kein Nachweis eines echten Backups/Restores. Kein Merge ohne ausdrückliche Freigabe. |
 
 **Sperre bleibt bestehen:** Kein Produktionsbackup/Restore durch den Assistenten, keine produktive SQL-Abfrage, kein Render-Upgrade oder Paid-Tarif, keine neue Ressource, keine Änderung an DB-Allowlist, Staging oder Produktion ohne Betreiberfreigabe. Die Anbieterbedingungen wurden am 15.11.2026 geprüft und müssen bei einer späteren Betreiberentscheidung erneut validiert werden.
+
+## 15.11.2026 – Freigabefähigen, aber nicht ausgeführten Backup-/Restore-Ablauf vorbereiten
+
+| Priorität | Aufgabe | Fortschritt / Nachweis | Nächster Schritt |
+| --- | --- | --- | --- |
+| **P0** | Reale Daten **vor 09.12.2026 18:36 UTC** sichern | Neues `PRODUCTION_BACKUP_RESTORE_OPERATOR_RUNBOOK.md` mit acht **OFFEN**-Vorbedingungen; autorisierter `pg_dump -Fc`, externe Verschlüsselung, SHA-256 der verschlüsselten Sicherung, isolierter Restore, Abbruch-/Rollbackregeln dokumentiert | **20.11.** Betreiberverantwortung, Berechtigung, kostenlose Ablage und getrenntes Restore-Ziel bestätigen; **25.11.** ausschließlich berechtigten Betreiber echte Sicherung ausführen lassen |
+| **P0** | Wiederherstellbarkeit echter Nutzerdaten nachweisen | **GESPERRT:** bisherige PG18-CI-Restore-Tests sind synthetisch; Runbook dokumentiert getrennte verifizierte leere Wegwerf-DB, Inventar/Fingerprint und eigene Abnahme | **30.11.** Betreiber verifiziert wirklichen Restore; keine Baseline, Migration oder Deploy vor sauberem Nachweis |
+| **P0** | Dokumentations-Freigaben absichern | `scripts/test-operator-release-gates.mjs`: acht feste Backup-Prüffelder inkl. **JA-/Entfernungs-Mutationen**; Gate C verweist auf Runbook. Neue Testcommits `21718d0`, `31d62b3` | Aktuellen GitHub-Actions-Lauf und Dokumentations-HEAD prüfen; bei Fehlschlag korrigieren |
+| **P0** | Render-Netzwerk, Staging-Isolation und kostenfreie Fortführung | Gate A2 bleibt **OFFEN**; Kosten- und Restore-Gates B/C sowie Staging D und Produktivgate E **GESPERRT** | Sicherung und DB-Zugriff nur autorisiert; keine bezahlten Dienste, automatische Backups, neuen Render-DBs oder Prod-Schreibzugriffe |
+| P1 | PRs #89/#90/#91 verantwortungsvoll integrieren | Alle drei offen, zuletzt conflict-free, keine Mergefreigabe | Nach grüner **vollständiger PR-HEAD-CI** Reviews einholen, jeden Merge separat genehmigen; kombinierte CI danach auf `main` |
+
+**Nächste Arbeit in diesem Branch:** CI des neuen Runbook-Guards und finalen Dokumentations-HEAD bestätigen, Fehler falls nötig gezielt beheben. **Bei grünem Stand** keine zusätzliche Testaufblähung ohne Befund; dann Betreiberfreigabe und echten Backup-/Restore-Nachweis priorisieren.
+
+**Stop-/Rollbackregel:** Der Runbooktext führt nichts aus, enthält keine Secrets und ist kein technischer Beleg für ein echtes Backup. Unvollständige Vorbedingung = **STOPP**. Keine Datenbankmigration, kein Render-Upgrade, keine IP-Allowlist-Änderung, kein Deployment, kein Merge und keine zusätzlichen Kosten ohne ausdrückliche Freigabe. Zu jeder Aktualisierung Übergabe und Entwicklungsplan im selben Branch fortschreiben.
