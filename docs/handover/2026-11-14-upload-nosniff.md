@@ -94,3 +94,8 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Testcommit `304f841` (gelöschte Videos, 3 Rollen × GET/HEAD) in CI `43701694175` **success**. Dokumentations-HEAD `c318749` beim Start dieser Runde noch in CI.
 - Neuer Commit `2990c74`: Während ein OBS-Widget das Eigentümer-Bild veröffentlicht, muss das separate private Video weiterhin bei anonymem GET und HEAD `401`, `cache-control: no-store` und `x-content-type-options: nosniff` liefern.
 - Kein Servercode und keine Produktionsänderung; neue CI abwarten.
+
+## Veröffentlichungsentzug: Eigentümerzugriff bleibt bestehen
+- Letzter bestätigter grüner Dokumentations-HEAD `c318749`, CI `43701704791`. Die CI für den Video-Isolationstest `2990c74` und nachfolgenden HEAD `61d555c` war beim Start noch in Bearbeitung; Ergebnis nicht vorwegnehmen.
+- Neuer Testcommit `9b0546f`: Nach `published → private` muss der Creator sein Bild weiter authentifiziert mit GET und HEAD (`200`) abrufen können, inklusive `private, no-store`, `nosniff`, `image/png` und unveränderten GET-Bytes. Anonymer Zugriff bleibt im unmittelbar vorherigen Test `401`.
+- Kein Servercode/Produktionszugriff; neue CI prüfen.
