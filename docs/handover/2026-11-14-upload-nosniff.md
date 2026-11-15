@@ -104,3 +104,8 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Vorheriger HEAD `dc5eee2` erfolgreich: CI `43701848825`; Codecommit `9b0546f` erfolgreich: `43701835699`.
 - Neuer Commit `3bd311e`: Nach verweigerter Fremdlöschung (`404`) und Prüfung der weiter existierenden Datei wird der Videoabruf durch den Eigentümer mit GET und HEAD (`200`, `private, no-store`, `nosniff`, `video/mp4`) und unveränderten GET-Bytes geprüft. Erst danach erfolgt die legitime Eigentümer-Löschung.
 - Reiner E2E-Test, keine Änderung an produktiver Löschlogik; neue CI abwarten.
+
+## Wiederholte Videolöschung: kein Wiederaufleben der Datei
+- Vorheriger HEAD `db7f214` CI `43702065644` **success**, Testcommit `3bd311e` CI `43702054298` **success**.
+- Neuer Testcommit `2848633`: Nach legitimer Löschung und wiederholtem DELETE (`404`) wird erneut das Fehlen der Datei (`ENOENT`) sowie GET/HEAD `404`, `no-store` und `nosniff` mit Eigentümer-Cookie geprüft. Damit wird der Zustand nach einer idempotent abgewiesenen Wiederholung abgesichert.
+- Ausschließlich E2E-Test; CI des neuen HEAD abwarten, keine Produktions-/Serveränderung.
