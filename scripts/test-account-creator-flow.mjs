@@ -1045,6 +1045,17 @@ try {
     `/api/creator/media/videos/${media.data.media.id}`, {
       cookie: login.cookie
     })).status, 404, 'Repeat deletion must not touch any other file');
+  await assert.rejects(access(savedVideoPath), { code: 'ENOENT' },
+    'Repeat deletion must not recreate removed video bytes');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + media.data.media.url, {
+      method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+    });
+    assert.equal(response.status, 404,
+      'Repeated deletion must not restore owner GET/HEAD access');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  }
 
   // The HTTP guard shares its counters across both public login aliases.
   // This check runs last because a locked account must remain locked.
