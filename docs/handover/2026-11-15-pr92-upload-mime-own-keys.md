@@ -14,7 +14,7 @@
 2. Dieselbe Klasse von Problem betrifft das **Auslieferungs-Mapping** `deliveryTypes`: Bei einer anderweitig verursachten Prototype-Pollution wie `Object.prototype[".svg"] = "image/svg+xml"` dürfte eine ältere `.svg`-Datei nicht als aktives gleichursprüngliches Dokument ausgeliefert werden. **Fix:** `Object.hasOwn(deliveryTypes, extension)`; unbekannte Endungen bleiben `application/octet-stream` mit `attachment; filename="download"`.
 3. `scripts/test-upload-media-policy.mjs`: Prüft alle acht erlaubten MIME-Typen weiterhin positiv; verwirft geerbte Standard-Objektschlüssel; simuliert außerdem **kontrolliert** ererbte `.svg`-/`.html`-Auslieferungs-MIME-Typen und einen fremden Upload-MIME-Schlüssel. Die Testdatei stellt geänderte `Object.prototype`-Eigenschaften über `finally` wieder her; bekannte `.png`-Dateien müssen weiterhin korrekt ausgeliefert werden.
 
-**Commits der Erweiterung:** `3e759211` (Delivery-Fix) und `9512e0cf` (Prototype-Pollution-Regression). Die vollständige CI **dieser Codeänderung ist bis zur erfolgreichen Ausführung offen**; grüne CI für den reinen Main-Abgleich ist kein Nachweis für die Erweiterung.
+**Commits der Erweiterung:** `3e759211` (Delivery-Fix) und `9512e0cf` (Prototype-Pollution-Regression). Der **neue Code- und Test-HEAD `9512e0cf`** hat die vollständige [CI 43757127717](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43757127717) **erfolgreich** bestanden. Die beiden späteren Dokumentationsdateien benötigen zusätzlich einen eigenen abschließenden CI-Nachweis.
 
 ## Grenzen und nächste Schritte
 
