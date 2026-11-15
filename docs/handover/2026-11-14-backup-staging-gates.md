@@ -81,3 +81,10 @@ Nur Dokumentationsänderungen; Branch/PR kann ohne Laufzeiteffekt verworfen werd
 - `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md` verlinkt die Checkliste unmittelbar unter Gate A2 (Commit `ec649e6`).
 - `scripts/test-operator-release-gates.mjs` (Commit `2dc7971`): liest die Checkliste ebenfalls **offline**, verlangt `GESPERRT`, bekannten `0.0.0.0/0`-Befund, Betreibertermin 20.11.2026, Rückweg und 11 standardmäßig abgelehnte Nachweis-/Entscheidungszeilen; eine simulierte unberechtigte `JA`-Freigabe muss fehlschlagen. **Neue CI noch offen**, keine Freigabe vor grünem aktuellem HEAD.
 - Keine Netzwerk-/Render-Änderung, kein SQL, kein echter Dump oder Restore, keine Ausweitung auf neue DB-Ressourcen und keine Kosten. Fortsetzung hängt von Operatorentscheidung, realen Backup-/Restore- und Staging-Nachweisen ab.
+
+## 15.11.2026 – Checkliste gegen unbemerkte Freigaben und Pflichtfeldverlust abgesichert
+
+- Vorheriger vollständiger Branch-HEAD `3e56bd4`: GitHub Actions [43709827298](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43709827298) **success**, PR #91 offen und ohne gemeldeten Merge-Konflikt.
+- Neuer Testcommit `6a29cf1` in `scripts/test-operator-release-gates.mjs`: Die 11 Felder der `DB_NETWORK_ALLOWLIST_OPERATOR_CHECKLIST.md` werden nun einzeln mit **exaktem Label und Reihenfolge** verglichen, nicht nur über ihre Anzahl. Für **jedes** Feld werden eine simulierte, unerlaubte `JA`-Freigabe und eine simulierte Entfernung zurückgewiesen; die Checkliste bleibt dabei unverändert.
+- Querverweis zwischen Gate A2 und dem Operator-Runbook wird jetzt in beiden Richtungen überprüft. Alle 27 Felder des Produktionsbackup-/Restore-Protokolls und ihr Mutationsschutz bleiben unangetastet. `Gesamtstatus: GESPERRT` ist weiterhin bindend.
+- Die Erweiterung ist ein ausschließlich lokaler, kostenfreier Dokumentationsregressionstest; **keine tatsächliche Datenbank-/Allowlist-Prüfung**, kein Restore, kein Datenexport und keine Freigabe. CI auf dem neuen Test- und späteren Dokumentations-HEAD prüfen; erst nach Erfolg als grün kennzeichnen.
