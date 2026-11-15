@@ -63,3 +63,8 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Der vorhandene PG18-End-to-End-Test prüfte veröffentlichte, anonym abrufbare OBS-Bilder bereits auf GET/HEAD, HTTP 200, `private, no-store` und Originalbytes. Er prüfte dort aber noch nicht `nosniff` und den validierten MIME-Typ.
 - Commit `acc3f5e` ergänzt beide Headerprüfungen **für GET und HEAD** im bestehenden Published-Owner-Widget-Test. Autorisierungslogik, Veröffentlichungsregeln und Serverantwort bleiben unverändert. Kein öffentliches Testasset außerhalb der ephemeren CI.
 - Abnahme: CI für neuen Testcommit und aktuellen Dokumentations-HEAD abwarten; PR weiterhin ungemergt.
+
+## Veröffentlichungsentzug auch für HEAD abgesichert
+- CI für vorherigen HEAD `9ae94ff`: Run `43701057296` **success**, inklusive öffentlich freigegebener GET/HEAD-OBS-Header-Prüfung.
+- Neuer Testcommit `7ee294f`: Nach `published → private` wird das identische OBS-Bild anonym sowohl mit GET als auch HEAD auf HTTP `401` und `cache-control: no-store` geprüft. Die bestehende `json()`-Fehlerantwort setzt diesen Header bereits; kein Servercode und keine Berechtigungen geändert.
+- Die Revocation-Regel bleibt DB-gestützt und wird in ephemerer PG18-CI getestet. Neue CI für diesen Commit/HEAD abwarten.
