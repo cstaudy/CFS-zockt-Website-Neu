@@ -48,7 +48,7 @@ Vor Beginn sind **Quell- und Zielidentität durch zwei getrennte Prüfschritte**
 6. **Struktur allein reicht nicht:** Isoliert (ohne produktive Clients) auch vorhandene Indizes, Foreign Keys, Constraints, Trigger, Sequenzstände, Erweiterungen und deren Versionen sowie erforderliche Funktionen/Abhängigkeiten gegen einen zuvor genehmigten Soll-Stand prüfen. Ein erfolgreicher `pg_restore`-Exitcode plus Tabelleninventar beweist **keine** vollständige Anwendungsfähigkeit. Bei nicht belegbarer Übereinstimmung **STOPP**.
 7. **Autorisierter Anwendungstest nur in der isolierten Umgebung:** Nach separater Freigabe kontrollierte read-only Probe mit einer dedizierten, minimal berechtigten **Test-Anwendungsrolle**, **ohne** produktive Sessions, ausgehende Integrationen oder automatischen Migrationsstart. Test-/Rollenresultate nur als nicht geheime Metadaten dokumentieren. Die echte Produktionsanwendung niemals gegen die Restore-DB umkonfigurieren.
 8. Ein fehlendes Migrationsledger in der Ausgangsdatenbank darf im Restore **nicht** als bereits ausgeführte Migration fingiert werden. Baseline/MFA-Migrationen benötigen einen **separaten**, später freigegebenen Test nach dem bewiesenen unveränderten Restore.
-6. Bei Fehler oder Abweichung: Restore stoppen, **nur** die nachweislich isolierte Wegwerf-DB gemäß genehmigtem Verfahren verwerfen; Quelle/Produktion nicht verändern. Keine stillschweigende Wiederholung gegen eine andere URL.
+9. Bei Fehler oder Abweichung: Restore stoppen, **nur** die nachweislich isolierte Wegwerf-DB gemäß genehmigtem Verfahren verwerfen; Quelle/Produktion nicht verändern. Keine stillschweigende Wiederholung gegen eine andere URL.
 
 ### Warum die zusätzlichen Checks erforderlich sind
 
