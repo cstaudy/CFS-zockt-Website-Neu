@@ -958,8 +958,17 @@ try {
       'Published OBS images must retain the validated image MIME type');
     if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), privateImage);
   }
-  assert.equal((await fetch(base + media.data.media.url)).status, 401,
-    'Public overlay reference must not expose private videos');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + media.data.media.url, {
+      method, signal: AbortSignal.timeout(8000)
+    });
+    assert.equal(response.status, 401,
+      'Public overlay image reference must not expose private videos via GET or HEAD');
+    assert.equal(response.headers.get('cache-control'), 'no-store',
+      'Denied private video responses must not be cached');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+      'Denied private video responses must disable MIME sniffing');
+  }
   assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
     cookie: login.cookie, body: { status: 'private' }
   })).status, 200);
