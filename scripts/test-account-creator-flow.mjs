@@ -976,15 +976,44 @@ try {
           method, headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(8000)
         });
         assert.equal(response.status, status, `${who} ${method} ${path} must return ${status}`);
+        if (status !== 200) {
+          assert.equal(response.headers.get('cache-control'), 'no-store',
+            'Denied private upload GET/HEAD responses must not be cached');
+          assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+            'Denied private upload GET/HEAD responses must disable MIME sniffing');
+        }
         if (status === 200) {
           assert.equal(response.headers.get('cache-control'), 'private, no-store',
             'Private uploads must never be cached as public');
+          assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+            'Authenticated GET/HEAD upload responses must disable MIME sniffing');
+          assert.equal(response.headers.get('content-type'),
+            path === asset.data.asset.url ? 'image/png' : 'video/mp4',
+            'Authenticated uploads must preserve their trusted storage MIME');
           if (method === 'GET') {
             const actual = Buffer.from(await response.arrayBuffer());
             assert.deepEqual(actual, expected, 'Owner must receive original upload bytes');
           }
         }
       }
+    }
+  }
+
+  // Unknown upload paths must not reveal whether bytes exist to unauthenticated callers.
+  const missingUploadUrl = '/assets/uploads/nonexistent-private-upload-check.png';
+  for (const [who, cookie, expectedStatus] of [
+    ['anonymous', undefined, 401],
+    ['foreign creator', mediaOtherCookie, 404],
+    ['owner', login.cookie, 404]
+  ]) {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(base + missingUploadUrl, {
+        method, headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(8000)
+      });
+      assert.equal(response.status, expectedStatus,
+        `Unknown upload path must return ${expectedStatus} for ${who} ${method}`);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
     }
   }
 
@@ -998,8 +1027,13 @@ try {
   assert.equal((await request('PATCH', `/api/creator/projects/${attackerProject.data.project.id}`, {
     cookie: mediaOtherCookie, body: { status: 'published' }
   })).status, 200);
-  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
-    'A published reference from a foreign creator must not expose the private image');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + asset.data.asset.url, { method });
+    assert.equal(response.status, 401,
+      'A foreign creator published reference must not expose an image via GET or HEAD');
+    assert.equal(response.headers.get('cache-control'), 'no-store',
+      'Denied foreign publication references must not be cached');
+  }
 
   const ownerProject = await request('POST', '/api/creator/projects', {
     cookie: login.cookie,
@@ -1010,8 +1044,13 @@ try {
     }
   });
   assert.equal(ownerProject.status, 201);
-  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
-    'A draft image reference must not grant public access');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + asset.data.asset.url, { method });
+    assert.equal(response.status, 401,
+      'A draft image reference must not grant anonymous GET or HEAD access');
+    assert.equal(response.headers.get('cache-control'), 'no-store',
+      'Denied draft image requests must not be cached');
+  }
   assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
     cookie: login.cookie, body: { status: 'published' }
   })).status, 200);
@@ -1020,15 +1059,50 @@ try {
     assert.equal(response.status, 200, 'Published OBS image must be accessible without a login');
     assert.equal(response.headers.get('cache-control'), 'private, no-store',
       'Uploads should not persist in public caches after unpublish');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+      'Publicly referenced OBS images must disable MIME sniffing for GET and HEAD');
+    assert.equal(response.headers.get('content-type'), 'image/png',
+      'Published OBS images must retain the validated image MIME type');
     if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), privateImage);
   }
-  assert.equal((await fetch(base + media.data.media.url)).status, 401,
-    'Public overlay reference must not expose private videos');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + media.data.media.url, {
+      method, signal: AbortSignal.timeout(8000)
+    });
+    assert.equal(response.status, 401,
+      'Public overlay image reference must not expose private videos via GET or HEAD');
+    assert.equal(response.headers.get('cache-control'), 'no-store',
+      'Denied private video responses must not be cached');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+      'Denied private video responses must disable MIME sniffing');
+  }
   assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
     cookie: login.cookie, body: { status: 'private' }
   })).status, 200);
-  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
-    'Unpublishing the owner widget must immediately revoke anonymous access');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + asset.data.asset.url, { method });
+    assert.equal(response.status, 401,
+      'Unpublishing the owner widget must immediately revoke anonymous GET/HEAD access');
+    assert.equal(response.headers.get('cache-control'), 'no-store',
+      'Denied public upload requests must not be cached');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+      'Unpublished image GET/HEAD denials must disable MIME sniffing');
+  }
+  // Unpublishing revokes public access, not the creator's own access.
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + asset.data.asset.url, {
+      method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+    });
+    assert.equal(response.status, 200,
+      'Unpublishing must preserve authenticated owner GET/HEAD access');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(response.headers.get('content-type'), 'image/png');
+    if (method === 'GET') {
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), privateImage,
+        'Unpublished owner image bytes must remain intact');
+    }
+  }
   const savedVideoLeaf = media.data.media.url.slice('/assets/uploads/'.length);
   const savedVideoPath = join(uploadRoot, savedVideoLeaf);
   await access(savedVideoPath);
@@ -1039,19 +1113,58 @@ try {
   assert.equal(foreignDelete.status, 404,
     'A second account may not delete another creator\'s video');
   await access(savedVideoPath);
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + media.data.media.url, {
+      method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+    });
+    assert.equal(response.status, 200,
+      'Rejected foreign deletion must preserve owner GET/HEAD access');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(response.headers.get('content-type'), 'video/mp4');
+    if (method === 'GET') {
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), privateVideo,
+        'Rejected foreign deletion must preserve original video bytes');
+    }
+  }
   const deleted = await request('DELETE', `/api/creator/media/videos/${media.data.media.id}`, {
     cookie: login.cookie
   });
   assert.equal(deleted.status, 200, 'Owner must be able to delete own media metadata');
   await assert.rejects(access(savedVideoPath), { code: 'ENOENT' },
     'Owned unreferenced video bytes must be physically removed after metadata deletion');
-  assert.equal((await fetch(base + media.data.media.url, {
-    headers: { cookie: login.cookie }
-  })).status, 404, 'Deleted media must no longer be accessible');
+  for (const [who, cookie, expectedStatus] of [
+    ['anonymous', undefined, 401],
+    ['foreign creator', mediaOtherCookie, 404],
+    ['owner', login.cookie, 404]
+  ]) {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(base + media.data.media.url, {
+        method, headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(8000)
+      });
+      assert.equal(response.status, expectedStatus,
+        `Deleted media must deny ${who} ${method} with HTTP ${expectedStatus}`);
+      assert.equal(response.headers.get('cache-control'), 'no-store',
+        'Deleted media responses must not be cached');
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+        'Deleted media responses must disable MIME sniffing');
+    }
+  }
   assert.equal((await request('DELETE',
     `/api/creator/media/videos/${media.data.media.id}`, {
       cookie: login.cookie
     })).status, 404, 'Repeat deletion must not touch any other file');
+  await assert.rejects(access(savedVideoPath), { code: 'ENOENT' },
+    'Repeat deletion must not recreate removed video bytes');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + media.data.media.url, {
+      method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+    });
+    assert.equal(response.status, 404,
+      'Repeated deletion must not restore owner GET/HEAD access');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  }
 
   // The HTTP guard shares its counters across both public login aliases.
   // This check runs last because a locked account must remain locked.
@@ -1211,33 +1324,42 @@ try {
       }
     }
 
-    // Pre-hardening uploads may already exist with an .html extension.
-    // Keep their owner-only access, but never execute their bytes as HTML.
-    const legacyStorage = randomUUID() + '-old-upload.html';
-    const legacyBytes = Buffer.from('<!doctype html><script>alert("legacy")</script>');
-    await writeFile(join(uploadRoot, legacyStorage), legacyBytes, { flag: 'wx' });
-    try {
-      await testPool.query(
-        "insert into creator_assets(account_id,name,mime_type,size_bytes,storage_path) values($1,$2,$3,$4,$5)",
-        [created.data.account.id, 'legacy-image.html', 'image/png', legacyBytes.length, legacyStorage]
-      );
-      const legacyUrl = '/assets/uploads/' + legacyStorage;
-      assert.equal((await fetch(base + legacyUrl)).status, 401);
-      for (const method of ['GET', 'HEAD']) {
-        const response = await fetch(base + legacyUrl, {
-          method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
-        });
-        assert.equal(response.status, 200);
-        assert.equal(response.headers.get('content-type'), 'application/octet-stream',
-          'Existing .html uploads must not be interpreted as HTML');
-        assert.match(response.headers.get('content-disposition') || '', /^attachment/);
-        assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-        assert.equal(response.headers.get('cache-control'), 'private, no-store');
-        if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), legacyBytes);
+    // Pre-hardening uploads may retain active-document extensions. Their
+    // owner can still download bytes, but the browser must not render them.
+    for (const [suffix, legacyBytes] of [
+      ['html', Buffer.from('<!doctype html><script>alert("legacy")</script>')],
+      ['svg', Buffer.from('<svg xmlns="http://www.w3.org/2000" onload="alert(1)"></svg>')]
+    ]) {
+      const legacyStorage = randomUUID() + '-old-upload.' + suffix;
+      await writeFile(join(uploadRoot, legacyStorage), legacyBytes, { flag: 'wx' });
+      try {
+        await testPool.query(
+          "insert into creator_assets(account_id,name,mime_type,size_bytes,storage_path) values($1,$2,$3,$4,$5)",
+          [created.data.account.id, 'legacy-image.' + suffix, 'image/png', legacyBytes.length, legacyStorage]
+        );
+        const legacyUrl = '/assets/uploads/' + legacyStorage;
+        for (const method of ['GET', 'HEAD']) {
+          const anonymous = await fetch(base + legacyUrl, {
+            method, signal: AbortSignal.timeout(8000)
+          });
+          assert.equal(anonymous.status, 401,
+            'Legacy active-document uploads must remain private for GET and HEAD');
+          const response = await fetch(base + legacyUrl, {
+            method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+          });
+          assert.equal(response.status, 200);
+          assert.equal(response.headers.get('content-type'), 'application/octet-stream',
+            'Legacy .' + suffix + ' uploads must not be rendered as active documents');
+          assert.equal(response.headers.get('content-disposition'), 'attachment; filename="download"',
+            'Legacy downloads must use a safe fixed attachment filename');
+          assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+          assert.equal(response.headers.get('cache-control'), 'private, no-store');
+          if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), legacyBytes);
+        }
+      } finally {
+        await testPool.query("delete from creator_assets where storage_path=$1", [legacyStorage]);
+        await unlink(join(uploadRoot, legacyStorage));
       }
-    } finally {
-      await testPool.query("delete from creator_assets where storage_path=$1", [legacyStorage]);
-      await unlink(join(uploadRoot, legacyStorage));
     }
 
     const setup = await request('POST', '/api/account/mfa/setup', {

@@ -14,9 +14,9 @@ const accepted = {
 for (const [mime, [extension, expected]] of Object.entries(accepted)) {
   assert.equal(uploadStorageExtension(mime), extension);
   assert.deepEqual(uploadDeliveryHeaders("original-name-is-not-trusted" + extension),
-    { "content-type": expected });
+    { "content-type": expected, "x-content-type-options": "nosniff" });
 }
-assert.deepEqual(uploadDeliveryHeaders("old-photo.jpeg"), { "content-type": "image/jpeg" },
+assert.deepEqual(uploadDeliveryHeaders("old-photo.jpeg"), { "content-type": "image/jpeg", "x-content-type-options": "nosniff" },
   "Existing JPEG uploads may retain their .jpeg suffix");
 for (const mime of ["text/html", "application/javascript", "image/svg+xml",
   "application/pdf", "application/octet-stream", "", null, undefined, "IMAGE/PNG"]) {
@@ -30,6 +30,7 @@ const forbidden = [
 for (const name of forbidden) {
   const h = uploadDeliveryHeaders(name);
   assert.equal(h["content-type"], "application/octet-stream");
+  assert.equal(h["x-content-type-options"], "nosniff", "Legacy uploads must not be MIME-sniffed");
   assert.equal(h["content-disposition"], 'attachment; filename="download"',
     "Never render legacy untrusted file extensions as same-origin active documents");
   assert(!JSON.stringify(h).includes(name), "Never reflect an untrusted stored filename into the response");
