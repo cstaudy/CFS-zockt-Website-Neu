@@ -86,3 +86,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Widerruf ohne Datenverlust für Eigentümer
 - `9b0546f` ergänzt nach `published → private` eine positive GET/HEAD-Owner-Regression: `200`, `private, no-store`, `nosniff`, `image/png` und Originalbytes. So wird zwischen anonymer Sperre und weiterhin gültigem Eigentümerzugriff unterschieden.
 - Nächste Schritte: CI des aktuellen HEAD abwarten und ggf. korrigieren; PR #90 reviewen. Keine Merge-/Deploy-/Produktionsfreigabe; Backup/Staging und Browserabnahme weiter offen.
+
+## Abgewiesene Fremdlöschung ohne Seiteneffekt
+- `3bd311e`: Nach fremdem DELETE (`404`) bleibt das Video für den Eigentümer per GET/HEAD (`200`) vollständig erhalten, inklusive Cache-/MIME-Header und Bytegleichheit. Anschließend bleibt die reguläre Löschung samt physischer Entfernung getestet.
+- Vorheriger HEAD `dc5eee2` grün (`43701848825`). Nächste Schritte: CI für neuen Code-/Dokumentations-HEAD kontrollieren, ggf. korrigieren; danach Review. Merge, Deployment, produktive DB-Migration und kostenpflichtige Ressourcen bleiben ohne Freigabe gesperrt.
