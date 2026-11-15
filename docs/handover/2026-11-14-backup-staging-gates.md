@@ -75,7 +75,16 @@ Bei der PR-Review fiel eine vermeidbare destruktive Testoperation auf: `scripts/
 - `PRODUCTION_BACKUP_STAGING_GATE.md` erklärt jetzt ausdrücklich den **synthetischen** Verschlüsselungsnachweis und die Grenze zu einem echten Produktionsbackup. **CI-Grün ist kein Beleg** für tatsächliche Daten, externe verschlüsselte Ablage, reale Key-Rotation, Datenschutzfreigabe oder produktive Wiederherstellbarkeit; das Betreiberverfahren und seine Schlüsselverwaltung müssen noch separat genehmigt und durchgeführt werden.
 - **Keine** Verbindung zur Render-Produktionsdatenbank, kein Dump personenbezogener Daten, kein echter Restore, kein neuer Dienst, kein Tarifwechsel, Merge oder Deployment. Freigabegates A–E bleiben offen bzw. **GESPERRT**.
 
-## 8. Nächste Schritte, Stop- und Rollback-Regel
+## 8. Manipulation und falschen Schlüssel vor Restore abweisen (15.11.2026)
+
+- Ausgangslage: PR #91, Commit `2137c22`, [vollständige CI 43744008751 erfolgreich](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43744008751), weiterhin ungemergt; [P0-Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) weiter offen. Der vorhandene AES-256-GnuPG-CI-Dump wurde zuvor nur im Erfolgsfall verschlüsselt und wiederhergestellt.
+- **Neuer konkreter Negativtest** in `scripts/test-pg18-backup-restore.sh` (Code `0c16553`): In einer **separaten Kopie** des verschlüsselten synthetischen Dumps wird ein zusätzlicher Byte-String angehängt; die zuvor gespeicherte SHA-256-Prüfsumme muss diesen manipulierten Ciphertext **vor Entschlüsselung und SQL-Restore zurückweisen**. Das unveränderte Original bleibt Grundlage der positiven Restore-Probe.
+- **Zweiter Negativtest:** GnuPG muss denselben intakten synthetischen Ciphertext mit einem absichtlich **falschen Einmalschlüssel** ablehnen. `--no-symkey-cache` verhindert, dass ein bereits zwischengespeicherter symmetrischer Schlüssel den Test versehentlich erfolgreich macht. Temporäre Kopien, Schlüssel und etwaige Testausgaben werden im abgesicherten Wegwerf-Verzeichnis entfernt. Anschließend läuft die übliche **positive** Entschlüsselung, Bytegleichheitsprüfung, separater PG18-Restore und Schema-/ACL-Test weiter.
+- Operatives `PRODUCTION_BACKUP_RESTORE_OPERATOR_RUNBOOK.md` (Commit `e873a7b`) verlangt nun vor einer **autorisierten echten** Entschlüsselung den Vergleich des empfangenen verschlüsselten Artefakts mit der **separat dokumentierten Referenz-Prüfsumme** und **STOPP** bei Änderung oder falschem Schlüssel. Einschränkung: SHA-256 schützt vor erkannter Veränderung, **belegt allein keine Authentizität**, wenn Artefakt und Prüfsumme gleichzeitig ausgetauscht werden können.
+- **CI auf Code- und finalem Dokumentations-HEAD noch prüfen**; kein Grün für diese Erweiterung vor tatsächlich abgeschlossenem Lauf. Die sechs bisherigen Docker-/CI-Verweigerungstests bleiben aktiv.
+- **Keine Produktionsaktion:** Kein echter Dump, Restore, produktives GPG-Schlüsselmaterial, Render-Zugriff, Deployment oder Merge. Dokumentation/CI allein lösen keinen der echten Betreiber-Gates.
+
+## 9. Nächste Schritte, Stop- und Rollback-Regel
 
 1. CI für **diesen neuen Dokumentations-HEAD** prüfen und gegebenenfalls korrigieren. Keine neue Testmatrix ohne konkrete Fehlstelle.
 2. PRs #89/#90/#91 separat technisch reviewen. #89 und #90 ändern Teile der gleichen E2E-Datei; nach einer **ausdrücklich genehmigten** Integration ist vollständige kombinierte CI auf aktualisiertem `main` erforderlich.
