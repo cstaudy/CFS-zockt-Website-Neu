@@ -34,6 +34,7 @@ Nur ein autorisierter Betreiber darf eine echte Sicherung erstellen. Das Verfahr
 3. Restore-Erfolg anhand Exitcodes, Schema-/Tabelleninventar, ausgewählten nichtpersonenbezogenen Zählwerten und Schema-Fingerprint verifizieren. Kein Dateninhalt im Prüfprotokoll.
 4. Einmaligen Wiederanlauf-/Rollback-Plan festhalten: wer stoppt den Rollout, welche Anwendungsversion bleibt aktiv, wie wird eine fehlerhafte Ziel-DB verworfen, und wie wird auf die gesicherte Ausgangslage zurückgekehrt?
 5. Erst nach dokumentiertem erfolgreichen Restore Gate C als bestanden markieren. Ein erfolgreiches `scripts/test-pg18-backup-restore.sh` in CI genügt ausdrücklich **nicht**.
+6. Das **nur nach separater Genehmigung zu verwendende** Operator-Runbook für tatsächlichen Export, Verschlüsselung und isolierten Restore steht in `PRODUCTION_BACKUP_RESTORE_OPERATOR_RUNBOOK.md`; es enthält keine Ausführungsfreigabe.
 
 ## Gate D: Staging-Isolation
 - Eindeutige getrennte DB-Identitäten für Produktion und Staging belegen, ohne Credentials offenzulegen. Eine andere Datenbankbezeichnung allein reicht nicht, wenn beide auf dieselbe Instanz/Datenbank zeigen.
