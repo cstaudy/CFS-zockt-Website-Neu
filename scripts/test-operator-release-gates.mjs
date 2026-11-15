@@ -16,7 +16,7 @@ assert.match(template, /Gesamtstatus:\s*GESPERRT/);
 assert.match(template, /09\.12\.2026/);
 for (const label of [
   "Kostenprüfung", "Export-/Restore-Zugriffsberechtigung",
-  "Verschlüsselung", "Isolierte Zielumgebung",
+  "DB-Netzwerkzugang", "Verschlüsselung", "Isolierte Zielumgebung",
   "Schema-Fingerprint", "Staging-DB-Identität",
   "Produktionsdeploy separat freigegeben"
 ]) {
@@ -25,12 +25,13 @@ for (const label of [
   assert.match(line, /(?:OFFEN|NEIN|nicht nachgewiesen)/i,
     `Operator evidence must default to unapproved: ${label}`);
 }
-// Check every evidence row, not just a small set of named critical fields.
+// Check all 27 evidence rows, not just a small set of named critical fields.
 const requiredEvidenceLabels = [
   "Freigebende Rolle / Kontaktkanal (keine privaten Kontaktdaten)",
   "Kostenfreie Zieloption und verbindlich geprüfte Bedingungen",
   "Kostenprüfung (0 zusätzliche EUR bestätigt?)",
   "Export-/Restore-Zugriffsberechtigung geprüft?",
+  "DB-Netzwerkzugang und erforderliche Client-Ausnahmen geprüft?",
   "Datenschutz-/Aufbewahrungsfreigabe?",
   "Sicherungszeitpunkt (UTC)",
   "PostgreSQL-Server- und Client-Hauptversion",
