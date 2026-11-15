@@ -54,3 +54,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 - #89 fügt Tests um Basiszeile 772 hinzu; #90 fügt Headerprüfungen um Basiszeile 890 derselben Datei hinzu. Keine überschneidenden Patch-Kontexte; voraussichtlich textuell kompatibel.
 - Nicht als kombinierten Test oder Merge-Beweis werten. Erst nach ausdrücklich autorisiertem Merge CI auf aktualisiertem `main` abwarten und ggf. Folge-PR rebasen/neu prüfen.
 - PR #90 letzter erfolgreich getesteter Stand `305d179`, Run `43644681889`. Review/Browser/Produktions-Gates bleiben unverändert offen.
+
+## Öffentliche Widget-Bilder: zusätzliche HTTP-Abnahme
+- Bestehende PG18-CI testet veröffentlichte OBS-Bilder ohne Login und private Videos weiterhin mit `401`. Neuer Test `acc3f5e` verlangt auf öffentlich freigegebenen Bildern bei GET+HEAD zusätzlich `x-content-type-options: nosniff` und `content-type: image/png`.
+- Keine produktive Freigabe oder neue Route. Nächster Schritt: GitHub Actions für den neuen Commit kontrollieren; manueller Browser-Test vor Deployment weiterhin offen.
