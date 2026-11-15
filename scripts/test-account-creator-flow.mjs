@@ -978,6 +978,8 @@ try {
       'Unpublishing the owner widget must immediately revoke anonymous GET/HEAD access');
     assert.equal(response.headers.get('cache-control'), 'no-store',
       'Denied public upload requests must not be cached');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+      'Unpublished image GET/HEAD denials must disable MIME sniffing');
   }
   // Unpublishing revokes public access, not the creator's own access.
   for (const method of ['GET', 'HEAD']) {
