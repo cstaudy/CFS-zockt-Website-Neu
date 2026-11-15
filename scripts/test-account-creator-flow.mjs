@@ -1235,33 +1235,42 @@ try {
       }
     }
 
-    // Pre-hardening uploads may already exist with an .html extension.
-    // Keep their owner-only access, but never execute their bytes as HTML.
-    const legacyStorage = randomUUID() + '-old-upload.html';
-    const legacyBytes = Buffer.from('<!doctype html><script>alert("legacy")</script>');
-    await writeFile(join(uploadRoot, legacyStorage), legacyBytes, { flag: 'wx' });
-    try {
-      await testPool.query(
-        "insert into creator_assets(account_id,name,mime_type,size_bytes,storage_path) values($1,$2,$3,$4,$5)",
-        [created.data.account.id, 'legacy-image.html', 'image/png', legacyBytes.length, legacyStorage]
-      );
-      const legacyUrl = '/assets/uploads/' + legacyStorage;
-      assert.equal((await fetch(base + legacyUrl)).status, 401);
-      for (const method of ['GET', 'HEAD']) {
-        const response = await fetch(base + legacyUrl, {
-          method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
-        });
-        assert.equal(response.status, 200);
-        assert.equal(response.headers.get('content-type'), 'application/octet-stream',
-          'Existing .html uploads must not be interpreted as HTML');
-        assert.match(response.headers.get('content-disposition') || '', /^attachment/);
-        assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-        assert.equal(response.headers.get('cache-control'), 'private, no-store');
-        if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), legacyBytes);
+    // Pre-hardening uploads may retain active-document extensions. Their
+    // owner can still download bytes, but the browser must not render them.
+    for (const [suffix, legacyBytes] of [
+      ['html', Buffer.from('<!doctype html><script>alert("legacy")</script>')],
+      ['svg', Buffer.from('<svg xmlns="http://www.w3.org/2000" onload="alert(1)"></svg>')]
+    ]) {
+      const legacyStorage = randomUUID() + '-old-upload.' + suffix;
+      await writeFile(join(uploadRoot, legacyStorage), legacyBytes, { flag: 'wx' });
+      try {
+        await testPool.query(
+          "insert into creator_assets(account_id,name,mime_type,size_bytes,storage_path) values($1,$2,$3,$4,$5)",
+          [created.data.account.id, 'legacy-image.' + suffix, 'image/png', legacyBytes.length, legacyStorage]
+        );
+        const legacyUrl = '/assets/uploads/' + legacyStorage;
+        for (const method of ['GET', 'HEAD']) {
+          const anonymous = await fetch(base + legacyUrl, {
+            method, signal: AbortSignal.timeout(8000)
+          });
+          assert.equal(anonymous.status, 401,
+            'Legacy active-document uploads must remain private for GET and HEAD');
+          const response = await fetch(base + legacyUrl, {
+            method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+          });
+          assert.equal(response.status, 200);
+          assert.equal(response.headers.get('content-type'), 'application/octet-stream',
+            'Legacy .' + suffix + ' uploads must not be rendered as active documents');
+          assert.equal(response.headers.get('content-disposition'), 'attachment; filename="download"',
+            'Legacy downloads must use a safe fixed attachment filename');
+          assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+          assert.equal(response.headers.get('cache-control'), 'private, no-store');
+          if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), legacyBytes);
+        }
+      } finally {
+        await testPool.query("delete from creator_assets where storage_path=$1", [legacyStorage]);
+        await unlink(join(uploadRoot, legacyStorage));
       }
-    } finally {
-      await testPool.query("delete from creator_assets where storage_path=$1", [legacyStorage]);
-      await unlink(join(uploadRoot, legacyStorage));
     }
 
     const setup = await request('POST', '/api/account/mfa/setup', {
