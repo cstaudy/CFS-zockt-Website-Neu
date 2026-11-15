@@ -85,13 +85,36 @@ od -An -tx1 -N 32 /dev/urandom | tr -d '[:space:]' > "$ci_passphrase"
   exit 1
 }
 gpg --batch --yes --quiet --no-tty --pinentry-mode loopback \
-  --passphrase-file "$ci_passphrase" --cipher-algo AES256 \
+  --passphrase-file "$ci_passphrase" --no-symkey-cache --cipher-algo AES256 \
   --output "$cipher_archive" --symmetric "$archive"
 test -s "$cipher_archive"
 (cd "$archive_dir" &&
   sha256sum cfs-ci.pgdump.gpg > cfs-ci.pgdump.gpg.sha256 &&
   sha256sum --check --status cfs-ci.pgdump.gpg.sha256)
-gpg --batch --yes --quiet --no-tty --pinentry-mode loopback \
+# Simulate ciphertext corruption in a separate test copy. The originally
+# stored checksum MUST reject it before any decryption or restore is attempted.
+tampered_dir="${archive_dir}/tampered"
+mkdir -m 700 "$tampered_dir"
+cp -- "$cipher_archive" "${tampered_dir}/cfs-ci.pgdump.gpg"
+cp -- "${archive_dir}/cfs-ci.pgdump.gpg.sha256" "$tampered_dir/"
+printf 'corrupted-ci-archive' >> "${tampered_dir}/cfs-ci.pgdump.gpg"
+if (cd "$tampered_dir" && sha256sum --check --status cfs-ci.pgdump.gpg.sha256); then
+  echo "Synthetic backup integrity check accepted modified ciphertext." >&2
+  exit 1
+fi
+# Wrong keys must be rejected even when the archive itself is intact. Disable
+# GnuPG's symmetric passphrase cache to avoid false positives in the CI run.
+wrong_ci_passphrase="${archive_dir}/wrong-ci-passphrase"
+printf 'intentionally-wrong-disposable-key' > "$wrong_ci_passphrase"
+if gpg --batch --yes --quiet --no-tty --pinentry-mode loopback --no-symkey-cache \
+  --passphrase-file "$wrong_ci_passphrase" \
+  --output "${archive_dir}/wrong-key-output.pgdump" --decrypt "$cipher_archive" \
+  >/dev/null 2>&1; then
+  echo "Synthetic encrypted backup unexpectedly decrypted with a wrong key." >&2
+  exit 1
+fi
+rm -f -- "$wrong_ci_passphrase" "${archive_dir}/wrong-key-output.pgdump"
+gpg --batch --yes --quiet --no-tty --pinentry-mode loopback --no-symkey-cache \
   --passphrase-file "$ci_passphrase" \
   --output "$decrypted_archive" --decrypt "$cipher_archive"
 cmp -s "$archive" "$decrypted_archive" || {
