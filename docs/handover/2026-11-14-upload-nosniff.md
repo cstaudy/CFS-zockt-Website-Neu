@@ -114,3 +114,9 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Vorheriger HEAD `c5dbe1b` grün: CI `43702535564`; Testcommit `2848633` grün: `43702523659`.
 - Neuer Commit `31137c3`: Bei einer auf `private` zurückgestellten OBS-Bildfreigabe müssen anonyme GET- und HEAD-Antworten neben `401` und `no-store` nun ausdrücklich `x-content-type-options: nosniff` enthalten. Die Besitzerfreigabe ist separat mit GET/HEAD `200` getestet.
 - Geprüft wurde als nächster risikoarmer Randfall die vorhandene Widerrufsroute; es wurde bewusst kein nicht belegter Statuscode für unbekannte URLs vorausgesetzt. Nur Testcode, CI abwarten.
+
+## Unbekannte Upload-URL: Verhalten aus Servercode abgeleitet
+- Vorheriger HEAD `febaa20` grün, CI `43704203585`; Testcommit `31137c3` grün, CI `43704191635`.
+- Prüfung von `server.js`: `serveStatic` ermittelt bei Uploads erst eine öffentliche Projektfreigabe, sonst verlangt `currentAccount` eine Anmeldung (`401`) und danach Eigentümerschaft (`404`); `json()` setzt `cache-control: no-store` und `x-content-type-options: nosniff`. Unbekannte Pfade haben keine Eigentümer-Zuordnung.
+- Neuer Commit `83de4fe`: E2E prüft eine nicht vorhandene Upload-URL für anonym (`401`), fremden Creator (`404`) und Eigentümer (`404`), jeweils GET+HEAD und beide Sicherheitsheader. Statuscodes sind aus dem tatsächlichen Serverpfad abgeleitet; CI noch offen.
+- Kein Produktivzugriff, keine Serveränderung.
