@@ -67,15 +67,46 @@ docker exec "$container" pg_dump --version | grep -Eq 'PostgreSQL.*18[.]'
 # Dump remains only on the ephemeral CI runner, never in GitHub artifacts/logs.
 docker exec "$container" pg_dump -U cfs_ci -d cfs_ci -Fc --no-owner --no-acl > "$archive"
 test -s "$archive"
-sha256sum "$archive" > "${archive}.sha256"
-(cd "$archive_dir" && sha256sum --check --status cfs-ci.pgdump.sha256)
-docker exec -i "$container" pg_restore --list < "$archive" > /dev/null
+# Rehearse encrypted storage and decryption using ONLY this synthetic CI dump.
+# This tests the mechanism, not the operator's actual encryption/secret policy.
+command -v gpg >/dev/null || {
+  echo "REFUSED: missing GnuPG for synthetic encrypted backup acceptance." >&2
+  exit 2
+}
+cipher_archive="${archive_dir}/cfs-ci.pgdump.gpg"
+decrypted_archive="${archive_dir}/cfs-ci.recovered.pgdump"
+ci_passphrase="${archive_dir}/ci-only-passphrase"
+export GNUPGHOME="${archive_dir}/gnupg"
+mkdir -m 700 "$GNUPGHOME"
+# Generated for this one disposable CI run only; never log it or use it on real data.
+od -An -tx1 -N 32 /dev/urandom | tr -d ' \\n' > "$ci_passphrase"
+[[ "$(wc -c < "$ci_passphrase")" -eq 64 ]] || {
+  echo "Synthetic backup encryption key generation failed." >&2
+  exit 1
+}
+gpg --batch --yes --quiet --no-tty --pinentry-mode loopback \
+  --passphrase-file "$ci_passphrase" --cipher-algo AES256 \
+  --output "$cipher_archive" --symmetric "$archive"
+test -s "$cipher_archive"
+(cd "$archive_dir" &&
+  sha256sum cfs-ci.pgdump.gpg > cfs-ci.pgdump.gpg.sha256 &&
+  sha256sum --check --status cfs-ci.pgdump.gpg.sha256)
+gpg --batch --yes --quiet --no-tty --pinentry-mode loopback \
+  --passphrase-file "$ci_passphrase" \
+  --output "$decrypted_archive" --decrypt "$cipher_archive"
+cmp -s "$archive" "$decrypted_archive" || {
+  echo "Synthetic encrypted backup failed exact decryption comparison." >&2
+  exit 1
+}
+docker exec -i "$container" pg_restore --list < "$decrypted_archive" > /dev/null
+# Never keep the temporary symmetric passphrase once the CI round-trip is proven.
+rm -f -- "$ci_passphrase" "$archive"
 
 # Restore must be performed into a separate, initially empty database.
 docker exec "$container" createdb -U cfs_ci "$restore_db"
 restore_created=1
 docker exec -i "$container" pg_restore -U cfs_ci -d "$restore_db" \
-  --no-owner --no-acl --exit-on-error < "$archive"
+  --no-owner --no-acl --exit-on-error < "$decrypted_archive"
 
 sql="select count(*) from public.schema_migrations"
 source_migrations="$(docker exec "$container" psql -U cfs_ci -d cfs_ci -At -v ON_ERROR_STOP=1 -c "$sql")"
@@ -148,5 +179,5 @@ restored_count="$(docker exec "$container" psql -U cfs_ci -d "$probe_clone_db" -
 }
 echo "PostgreSQL 18 CI ACL rehearsal: synthetic row restored, original owner and reader grant intentionally absent; real migrations still require operator role checks."
 
-echo "PostgreSQL 18 CI backup verified: pg_dump archive, SHA-256, clean pg_restore, 25 migrations, application rows and schema."
+echo "PostgreSQL 18 CI backup verified: pg_dump, AES256-GPG synthetic encryption/decryption, SHA-256 of ciphertext, clean pg_restore, 25 migrations, application rows and schema."
 echo "Only disposable CI data was used; temporary archive and restore DB will be deleted."
