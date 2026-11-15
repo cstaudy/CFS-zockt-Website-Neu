@@ -772,6 +772,95 @@ try {
   // Synthetic ISO BMFF file-type box, not a fully playable video. The
   // upload's first-line container signature is validated before saving.
   const privateVideo = Buffer.from('000000146674797069736f6d0000000069736f6d', 'hex');
+  // Authenticated HTTP regression: empty image bodies must return a stable
+  // client error before filesystem writes or creator_assets insertion.
+  const uploadFilesIfPresent = async () => {
+    try { return (await readdir(uploadRoot)).sort(); }
+    catch (error) {
+      if (error.code === 'ENOENT') return [];
+      throw error;
+    }
+  };
+  const filesBeforeEmptyAsset = await uploadFilesIfPresent();
+  const assetsBeforeEmpty = await request('GET', '/api/creator/widget-studio/assets',
+    { cookie: login.cookie });
+  assert.equal(assetsBeforeEmpty.status, 200);
+  const emptyAsset = await upload('/api/creator/widget-studio/assets',
+    'image/png', 'empty-ci.png', Buffer.alloc(0));
+  assert.equal(emptyAsset.status, 400, 'Empty authenticated asset upload must return HTTP 400');
+  assert.equal(emptyAsset.data.error, 'INVALID_ASSET_SIZE');
+  assert.deepEqual(await uploadFilesIfPresent(), filesBeforeEmptyAsset,
+    'Rejected empty asset upload must not create files');
+  const assetsAfterEmpty = await request('GET', '/api/creator/widget-studio/assets',
+    { cookie: login.cookie });
+  assert.equal(assetsAfterEmpty.status, 200);
+  assert.equal(assetsAfterEmpty.data.assets.length, assetsBeforeEmpty.data.assets.length,
+    'Rejected empty asset upload must not insert metadata');
+
+  // Exact 16 MiB must pass the HTTP size guard and reach the image-signature
+  // validation. The deliberately invalid image is rejected as 415, not 413,
+  // and must not be persisted.
+  const filesBeforeExactLimit = await uploadFilesIfPresent();
+  const exactLimit = await upload('/api/creator/widget-studio/assets',
+    'image/png', 'exact-limit-invalid-ci.png', Buffer.alloc(16 * 1024 * 1024));
+  assert.equal(exactLimit.status, 415,
+    'Exactly 16 MiB must reach image validation instead of HTTP 413');
+  assert.equal(exactLimit.data.error, 'INVALID_ASSET_SIGNATURE');
+  assert.deepEqual(await uploadFilesIfPresent(), filesBeforeExactLimit,
+    'Invalid image at exact HTTP size limit must not create files');
+
+  // Chunked at exactly the limit must also reach signature validation,
+  // proving that the streaming boundary is inclusive (not off by one).
+  let exactChunkIndex = 0;
+  const exactChunkedResponse = await fetch(base + '/api/creator/widget-studio/assets', {
+    method: 'POST',
+    headers: { origin: base, cookie: login.cookie, 'content-type': 'image/png' },
+    body: new ReadableStream({
+      pull(controller) {
+        if (exactChunkIndex++ === 2) return controller.close();
+        controller.enqueue(new Uint8Array(8 * 1024 * 1024));
+      }
+    }),
+    duplex: 'half', signal: AbortSignal.timeout(15000)
+  });
+  assert.equal(exactChunkedResponse.status, 415,
+    'Exactly 16 MiB chunked upload must reach signature validation, not HTTP 413');
+  assert.equal((await exactChunkedResponse.json()).error, 'INVALID_ASSET_SIGNATURE');
+  assert.deepEqual(await uploadFilesIfPresent(), filesBeforeExactLimit,
+    'Invalid chunked image at exact limit must not create files');
+
+  const assetsAfterExactLimits = await request('GET', '/api/creator/widget-studio/assets',
+    { cookie: login.cookie });
+  assert.equal(assetsAfterExactLimits.status, 200);
+  assert.equal(assetsAfterExactLimits.data.assets.length, assetsBeforeEmpty.data.assets.length,
+    'Invalid exact-limit uploads (regular and chunked) must not insert asset metadata');
+
+  // No Content-Length: exercise the actual authenticated server route using
+  // Transfer-Encoding: chunked. The streaming parser must reject >16 MiB.
+  const filesBeforeChunked = await uploadFilesIfPresent();
+  let chunkIndex = 0;
+  const chunkSizes = [8 * 1024 * 1024, 8 * 1024 * 1024, 1];
+  const chunkedResponse = await fetch(base + '/api/creator/widget-studio/assets', {
+    method: 'POST',
+    headers: { origin: base, cookie: login.cookie, 'content-type': 'image/png' },
+    body: new ReadableStream({
+      pull(controller) {
+        if (chunkIndex === chunkSizes.length) return controller.close();
+        controller.enqueue(new Uint8Array(chunkSizes[chunkIndex++]));
+      }
+    }),
+    duplex: 'half', signal: AbortSignal.timeout(15000)
+  });
+  assert.equal(chunkedResponse.status, 413,
+    'Chunked authenticated upload beyond 16 MiB must return HTTP 413');
+  assert.deepEqual(await chunkedResponse.json(), { error: 'PAYLOAD_TOO_LARGE' });
+  assert.deepEqual(await uploadFilesIfPresent(), filesBeforeChunked,
+    'Oversized chunked upload must not create files');
+  const assetsAfterChunked = await request('GET', '/api/creator/widget-studio/assets',
+    { cookie: login.cookie });
+  assert.equal(assetsAfterChunked.data.assets.length, assetsBeforeEmpty.data.assets.length,
+    'Oversized chunked upload must not insert metadata');
+
   const asset = await upload('/api/creator/widget-studio/assets', 'image/png', 'private-ci.png', privateImage);
   assert.equal(asset.status, 201, `Asset upload failed: ${JSON.stringify(asset.data)}`);
   const media = await upload('/api/creator/media/videos', 'video/mp4',

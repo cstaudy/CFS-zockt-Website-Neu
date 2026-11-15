@@ -30,3 +30,16 @@
 - CI-Fehler stoppen die Freigabe; dokumentierte lokale/isolierte Tests ersetzen keine ausgeführte vollständige GitHub-CI.
 - Falls `nosniff` zuvor falsch klassifizierte Bestandsdateien im Browser sichtbar anders behandelt, erst in einer isolierten Umgebung untersuchen; PR vor Merge anpassen oder nach genehmigtem Merge den Header-Commit gezielt revertieren.
 - Zu **jeder weiteren Aktualisierung** Übergabe **und** Entwicklungsplan auf demselben Branch aktualisieren und den CI-Status zum neuen HEAD wahrheitsgemäß erfassen.
+
+## 16.11.2026 – PR-#90-Merge-Freigabe und Reihenfolge
+
+| Pflichtschritt | Stand |
+| --- | --- |
+| Erst PR #89 separat mergen, vollständige neue Main-CI prüfen | **Erledigt:** `336427d`, [CI 43774832762](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43774832762) erfolgreich |
+| PR-#90-Branch auf neuen `main` bringen und die HTTP-E2E-Fälle aus #89 **und** #90 erhalten | **In dieser Synchronisierung vorbereitet**; `scripts/test-account-creator-flow.mjs` aus dem bereits [grün kombinierten Draft #94](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43766460488) mit beiden Testblöcken |
+| Vollständige neue #90-CI und fehlende Konflikte nachweisen | **Vor Merge zwingend prüfen**, kein vorzeitiges Erfolgsetikett |
+| #90 nur nach grüner CI und aktueller Main-Basis mergen | **Von Nutzer zur Prüfung und zum Merge freigegeben**, aber erst nach erfolgreicher voriger Prüfung |
+| Anschließend Main-CI, dann PR #92 mit `nosniff` + `Object.hasOwn` erhalten synchronisieren, prüfen und mergen | **OFFEN**; kein Blind-Merge, Integrations-Draft #94 war gemeinsam grün |
+| P0 Free-Postgres sichern | **GESPERRT**, echter autorisierter Dump und Restore fehlen, [Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) offen |
+
+Kein Render-/DB-/Produktionszugriff, keine Tariferhöhung oder Deployment-Aktion durch die geplanten PR-Merges.
