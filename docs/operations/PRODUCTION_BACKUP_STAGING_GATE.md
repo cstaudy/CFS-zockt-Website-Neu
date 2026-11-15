@@ -20,6 +20,7 @@ Stand: 15.11.2026. **Nur Planung; keine Produktionszugriffe, Datenexporte, Migra
 2. Für die derzeit offene IPv4-Allowlist `0.0.0.0/0` einen begründeten Minimalzugangsplan erstellen. Prüfen, ob interne Render-Verbindungen weiterhin erreichbar sind und welche externen festen Adressen überhaupt benötigt werden; dynamische IPs und Recovery-/Notfallzugriffe berücksichtigen.
 3. Vor jeder Änderung eine autorisierte, sichere Probe und einen konkreten Rückweg dokumentieren. Die Allowlist erst nach eigener ausdrücklicher Freigabe anpassen; keine produktive Verbindung durch einen ungeprüften Sofort-Fix aussperren.
 4. Bis zur dokumentierten Prüfung bleibt dieses Sicherheitsthema **OFFEN**. Eine zugängliche Netzwerkadresse beweist keine fehlende Passwortprüfung, ist aber eine unnötig breite Angriffsfläche, sofern weniger Zugriff benötigt wird.
+5. Der konkrete, **noch nicht freigegebene** Prüf- und Rückwegplan steht in `DB_NETWORK_ALLOWLIST_OPERATOR_CHECKLIST.md`. Er ersetzt weder echte Verbindungsvalidierung noch eine Betreiberfreigabe.
 
 ## Gate B: Echter Sicherungsnachweis
 Nur ein autorisierter Betreiber darf eine echte Sicherung erstellen. Das Verfahren muss **nachweisbar**:
