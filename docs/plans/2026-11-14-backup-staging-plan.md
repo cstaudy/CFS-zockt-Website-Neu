@@ -72,3 +72,15 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 **Achtung:** `0.0.0.0/0` öffnet die Netzwerk-Erreichbarkeit, nicht die DB-Authentifizierung. Die Allowlist darf **nicht blind** live verändert werden; interner Render-Zugriff, erlaubte externe Wartungs-IP und Notfall-Rückweg sind zuerst zu prüfen. Weder Render-Konfiguration noch Produktionsdatenbank wurden in dieser Runde verändert.
 
 **Weiteres Vorgehen:** GitHub Actions auf dem aktuellen Branch-HEAD prüfen, einen Fehler im Dokumentationsvertrag ggf. korrigieren, PR #91 zur Review übergeben. Echte Produktiv-Backups/Restores und Kosten-/Deployfreigaben bleiben ausschließlich Betreiberaufgaben; **Gesamtstatus GESPERRT**.
+
+## 15.11.2026 – Gate-A2-Absicherung: nächster Abnahmeschritt
+
+| Priorität | Aufgabe | Nachweis / aktueller Status | Weiterarbeit |
+| --- | --- | --- | --- |
+| P0 | Breite DB-Allowlist in formaler Freigabetabelle führen | Gate A2 als **Offen** dokumentiert (`aeb82aa`, CI `43709288536` grün) | Betreiber klärt bis 20.11. tatsächliche interne/externe DB-Clients, Ausfallschutz und Rollback; **keine Konfigurationsänderung ohne Freigabe** |
+| P0 | A2 gegen versehentliches Streichen oder vorzeitige Zustimmung schützen | Neuer Offline-Validator mit drei Negativmutationen: ganze A2-Sektion entfernen, `0.0.0.0/0` in A2 verdecken, Tabellenstatus auf `Bestanden` setzen (`f1b8d9b`). Erste Testfassung `e8b87d0` rot, Regex-Korrektur `4b46d01` nachgeschoben | **CI auf aktuellem Code- und Dokumentations-HEAD nachweisen**, keine Freigabe allein aus Teständerungen ableiten |
+| P0 | Echter Produktions-Backup-/isolierter Restore | Weiterhin **GESPERRT**, nur Dokumentations- und Offline-Tests | Gesondert autorisierte verschlüsselte Sicherung und isolierter Wiederherstellungsbeweis |
+| P0 | Staging-DB-Isolation, Ledger und Migrationsfreigaben | Weiterhin **GESPERRT** | Erst Betreiberentscheidung und echte technische Nachweise, dann geplanter isolierter Test |
+| P1 | PR #91 Review und ggf. Integration | Vorheriger HEAD `7761e78` CI `43709000473` grün, ungemergt | Finale CI + Review; **ausdrückliche Mergefreigabe nötig**; danach Gesamt-CI auf `main` |
+
+**Nächste Schritte:** CI des A2-Validators und finalen Heads prüfen; bei Fehler gezielt korrigieren. Am 20.11. kostenfreies Fortführungsziel und konkrete Berechtigung zur Netzwerkeinschränkung durch den Betreiber klären. Der Ablauf der kostenlosen DB ist `2026-12-09T18:36:16Z`. Kein automatisches Monitoring oder garantierter Datenexport wurde eingerichtet.
