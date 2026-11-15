@@ -225,6 +225,22 @@ function validateBackupRunbook(markdown) {
   assert.match(markdown, /--exit-on-error/);
   assert.match(markdown, /kein.*automatischen Migrationen/i);
   assert.match(markdown, /09\.12\.2026/);
+  // With --no-owner/--no-acl the archive cannot restore original object
+  // owners or GRANT/REVOKE commands. A successful restore is not app-ready.
+  const restoreSection = markdown.split("## 4. Getrennter Restore")[1]
+    ?.split("## 5. Entscheidung")[0] ?? "";
+  assert.match(restoreSection, /--no-owner.*--no-acl/,
+    "Runbook must disclose omitted object owners and privileges");
+  assert.match(restoreSection, /GRANT/,
+    "Runbook must require separate database role and privilege validation");
+  assert.match(restoreSection, /Indizes.*Foreign Keys.*Constraints.*Trigger.*Sequenzstände.*Erweiterungen/,
+    "Runbook must require non-column schema dependency checks");
+  assert.match(restoreSection, /Test-Anwendungsrolle/,
+    "Runbook must require an isolated minimal-privilege app check");
+  assert.match(restoreSection, /STOPP/,
+    "Missing restore role or dependency checks must block release");
+  assert.match(markdown, /globale Clusterobjekte/,
+    "Single-database dumps must not be mistaken for role backups");
 }
 validateBackupRunbook(backupRunbook);
 for (const line of backupRows(backupRunbook)) {
@@ -237,6 +253,10 @@ for (const line of backupRows(backupRunbook)) {
   assert.throws(() => validateBackupRunbook(removed),
     /Operator backup prerequisites changed/);
 }
+assert.match(gates, /--no-owner --no-acl.*nicht.*wieder her/,
+  "Gate C must flag missing restored owner/privilege grants");
+assert.match(gates, /Rechte-\/Abhängigkeitsprüfung/,
+  "Gate C cannot pass on a simple dump/restore exitcode alone");
 assert.match(gates, /PRODUCTION_BACKUP_RESTORE_OPERATOR_RUNBOOK\.md/,
   "Gate C must link to the operator-only backup runbook");
 assert.match(gates, /Produktivdeploy erst nach allen Gates/i);
