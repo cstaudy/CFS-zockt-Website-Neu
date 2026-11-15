@@ -31,3 +31,17 @@
 | **P0** | Operative Free-DB-Risiken getrennt halten | [Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) **OFFEN**, keine echten Backup-/Restore-Nachweise; keine Render-, DB- oder Deploy-Aktionen durch den Testbranch. |
 
 **Entscheidungsgrenze:** User hat ausdrücklich den Merge von PR #91 genehmigt, **nicht** #89/#90/#92/#94. PR #94 bleibt ein Draft ohne Mergeschritt. Vor jeder eigenständigen Integration die konkrete Code-Kombination prüfen und separate Nutzerfreigabe abwarten.
+
+## 16.11.2026 – Finaler #92-Merge nach #89/#90
+
+| Gate | Status |
+| --- | --- |
+| Nutzerfreigabe für Merges #89/#90/#92 | **Erteilt** nach Einzel- und gemeinsamem Test |
+| #89-Merge und Main-CI | **Erledigt** `336427d`, [CI 43774832762](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43774832762) **success** |
+| #90-Merge und Main-CI | **Erledigt** `504af605`, [CI 43775213418](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43775213418) **success** |
+| #92-Synchronisierung mit neuer Main-Basis | **In dieser Änderung**: Quellcode/Test aus der zuvor [grünen Integration #94](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43766460488), sodass `nosniff` und Own-Key-Guards **gemeinsam** erhalten bleiben |
+| #92-Sync-CI, konfliktfreier und rückstandsfreier Vergleich | **Vor Merge erneut prüfen**, Erfolg nicht vorwegnehmen |
+| #92 nach Erfolg mergen und Main-CI prüfen | **Freigegeben, aber nur nach grüner #92-CI**; kein Prod-Deploy |
+| Echte Produktiv-DB-Sicherung und Staging-Trennung | **Nicht ausgeführt/GESPERRT** – P0-[Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) |
+
+Bei roten Checks abwarten und gezielt korrigieren. Keine produktiven Migrationen, Render-Änderungen, Tarife oder Deployments.

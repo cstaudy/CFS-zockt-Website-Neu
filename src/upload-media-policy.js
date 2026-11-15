@@ -30,9 +30,10 @@ export function uploadDeliveryHeaders(path) {
   const extension = extname(path).toLowerCase();
   const mime = Object.hasOwn(deliveryTypes, extension) ? deliveryTypes[extension] : null;
   return mime
-    ? { "content-type": mime }
+    ? { "content-type": mime, "x-content-type-options": "nosniff" }
     : {
         "content-type": "application/octet-stream",
+        "x-content-type-options": "nosniff",
         "content-disposition": 'attachment; filename="download"'
       };
 }
