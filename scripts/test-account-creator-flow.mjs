@@ -936,6 +936,10 @@ try {
     assert.equal(response.status, 200, 'Published OBS image must be accessible without a login');
     assert.equal(response.headers.get('cache-control'), 'private, no-store',
       'Uploads should not persist in public caches after unpublish');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+      'Publicly referenced OBS images must disable MIME sniffing for GET and HEAD');
+    assert.equal(response.headers.get('content-type'), 'image/png',
+      'Published OBS images must retain the validated image MIME type');
     if (method === 'GET') assert.deepEqual(Buffer.from(await response.arrayBuffer()), privateImage);
   }
   assert.equal((await fetch(base + media.data.media.url)).status, 401,
