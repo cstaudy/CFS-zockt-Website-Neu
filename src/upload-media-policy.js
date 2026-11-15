@@ -19,7 +19,8 @@ const deliveryTypes = Object.fromEntries(
 deliveryTypes[".jpeg"] = "image/jpeg";
 
 export function uploadStorageExtension(mime) {
-  return typeof mime === "string" ? uploadExtensions[mime] || null : null;
+  return typeof mime === "string" && Object.hasOwn(uploadExtensions, mime)
+    ? uploadExtensions[mime] : null;
 }
 
 // Never interpret legacy, user-named .html/.svg/.js/.xml/etc. uploads as
