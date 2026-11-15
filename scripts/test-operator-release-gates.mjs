@@ -223,7 +223,7 @@ function validateBackupRunbook(markdown) {
   assert.match(markdown, /pg_dump -Fc/);
   assert.match(markdown, /pg_restore --list/);
   assert.match(markdown, /--exit-on-error/);
-  assert.match(markdown, /nicht.*automatischen Migrationen/i);
+  assert.match(markdown, /kein.*automatischen Migrationen/i);
   assert.match(markdown, /09\.12\.2026/);
 }
 validateBackupRunbook(backupRunbook);
