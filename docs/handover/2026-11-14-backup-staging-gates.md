@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | [PR #89](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/89) | Upload-Größen- und Quota-Fehlerfälle sicher abweisen; separater Security-PR | HEAD `23c9fd1`, [CI 43631464741](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43631464741) |
 | [PR #90](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/90) | `nosniff`, sicherer Download für Legacy-HTML/SVG und echte GET/HEAD-Autorisierungsregressionen | HEAD `53a7ad8`, [CI 43708581500](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43708581500) |
-| [PR #91](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/91) | Produktions-Stop-Gates, Betreiber-Checklisten, kostenfreie DB-Frist, Offline-Evidenzguard und synthetische PG18-Rechteprobe | Codecommit **`ad3db97`**, [CI 43736178157](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43736178157) |
+| [PR #91](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/91) | Produktions-Stop-Gates, Betreiber-Checklisten, kostenfreie DB-Frist, Offline-Evidenzguard und synthetische PG18-Rechteprobe | Codecommit **`0c16553`**, [CI 43749157681](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43749157681) |
 
 Alle drei PRs bei der letzten Prüfung **GitHub mergeable/clean** und review-bereit; **kein formales Review, Merge oder kombinierter CI-Nachweis**. Grün auf einem PR ist weder ein freigegebener Merge noch eine Produktionsfreigabe.
 
