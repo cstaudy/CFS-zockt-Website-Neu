@@ -49,3 +49,8 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 - #89 und #90 berühren beide `scripts/test-account-creator-flow.mjs`, jedoch verschiedene Abschnitte. Zusammenführbarkeit muss nach **jedem** autorisierten Merge durch neue CI auf `main` nachgewiesen werden; Einzel-PR-Grün allein genügt nicht.
 - #91 fügt Dokumentations-/Release-Gates und `npm run check`-Guard hinzu; kein direkter Dateiüberschneidungsbefund mit #89/#90.
 - Alle drei PRs auf aktuellem Stand clean und grün (#90 `502625f`, CI `43640019169`). Keine Reihenfolge ist freigegeben; ohne ausdrückliche Zustimmung kein Merge.
+
+## Hunk-basierte Integrationsbewertung
+- #89 fügt Tests um Basiszeile 772 hinzu; #90 fügt Headerprüfungen um Basiszeile 890 derselben Datei hinzu. Keine überschneidenden Patch-Kontexte; voraussichtlich textuell kompatibel.
+- Nicht als kombinierten Test oder Merge-Beweis werten. Erst nach ausdrücklich autorisiertem Merge CI auf aktualisiertem `main` abwarten und ggf. Folge-PR rebasen/neu prüfen.
+- PR #90 letzter erfolgreich getesteter Stand `305d179`, Run `43644681889`. Review/Browser/Produktions-Gates bleiben unverändert offen.
