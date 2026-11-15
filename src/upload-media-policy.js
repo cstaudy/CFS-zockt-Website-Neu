@@ -27,7 +27,8 @@ export function uploadStorageExtension(mime) {
 // executable same-origin documents, even if the DB authorizes their bytes.
 // Unknown extensions can still be downloaded by their owner.
 export function uploadDeliveryHeaders(path) {
-  const mime = deliveryTypes[extname(path).toLowerCase()];
+  const extension = extname(path).toLowerCase();
+  const mime = Object.hasOwn(deliveryTypes, extension) ? deliveryTypes[extension] : null;
   return mime
     ? { "content-type": mime }
     : {
