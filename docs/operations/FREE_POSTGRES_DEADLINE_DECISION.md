@@ -9,12 +9,22 @@ Die schreibgeschützte Render-Abfrage vom 15.11.2026 bestätigt `cfs-zockt-db` a
 
 | Option | Voraussetzung | Hauptrisiko | Entscheidung |
 | --- | --- | --- | --- |
-| A: Weiterbetrieb bei Render | Betreiber bestätigt ausdrücklich kostenlose Verlängerung/weiteres Free-Angebot und konkrete Bedingungen | Nicht garantiert; Ablauf bleibt möglich | Offen |
+| A: Weiterbetrieb bei Render | Nur bei belegter **Ausnahme** oder nachweislich verfügbarem kostenfreiem Angebot; Render dokumentiert **keine reguläre Free-Verlängerung** | 30-Tage-Ablauf; nur ein aktives Free-Postgres pro Workspace; kein gesicherter Ersatz in demselben Workspace | Nicht nachgewiesen |
 | B: Wechsel zu anderem kostenlosen PostgreSQL-Ziel | Aktuelles Angebot, Kontingente, Datenschutz/Region, Verbindungssicherheit, Betriebsgrenzen und Restore vorher nachweisen | Datenmigration, Ausfallzeit, Einschränkungen, mögliches späteres Pricing | Offen |
 | C: Kontrollierte Stilllegung mit gesichertem Export | Echter verschlüsselter Dump, isolierter Restore und geklärte Datenaufbewahrung | Website-/Account-Funktionen ohne DB nicht verfügbar | Nur nach ausdrücklicher Betreiberentscheidung |
 | D: Kostenpflichtiger Tarif | **Nicht innerhalb des vereinbarten kostenlosen Entwicklungsrahmens** | Zusätzliche Kosten | Nicht autorisiert |
 
 Keine Option ist durch diese Tabelle als verfügbar oder technisch erfolgreich bestätigt. Besonders bei kostenlosen Drittanbietern dürfen keine Garantien zu Speicher, Dauer, Datenschutz oder Importfähigkeit angenommen werden.
+
+## Bestätigte Render-Free-Grenzen (offizielle Dokumentation, geprüft am 15.11.2026)
+
+- Free-PostgreSQL endet regulär **30 Tage nach Erstellung** und wird danach **unzugänglich**. Die folgende **14-tägige Kulanzfrist** dient laut Render einer **kostenpflichtigen Hochstufung**, nicht einer weiteren kostenlosen Betriebsperiode. Anschließend löscht Render die Datenbank samt Daten. **Nicht bis zur Kulanzfrist mit einem kostenlosen Datenexport warten.**
+- Pro Render-Workspace darf nur **eine aktive Free-Postgres-Datenbank** existieren. Eine zweite gleichzeitig laufende kostenlose Render-Datenbank ist daher **keine nachgewiesene Staging- oder Migrationsoption**. Die bestehende Datenbank zum Freimachen eines Slots zu löschen ist **nicht zulässig**.
+- Render bietet für den Free-Compute-Plan **weder automatische logische Exporte noch Point-in-Time-Recovery** an. Die offizielle kostenlose Exportmöglichkeit ist ein `pg_dump` durch einen **autorisierten Betreiber vom eigenen Client**, solange die Datenbank erreichbar und zugänglich ist. Die Sicherung muss separat verschlüsselt und durch einen Restore in isolierter Umgebung geprüft werden; weder Befehl noch Sicherung wurden hier ausgeführt.
+- Die DB-Allowlist beschränkt laut Render **externe** Verbindungen; interne Verbindungen vom berechtigten Render-Service im selben Workspace/in derselben Region über die interne URL werden dadurch nicht geregelt. **Vor** jeder Einschränkung prüfen, ob die produktive Anwendung tatsächlich den internen oder den externen Verbindungsweg verwendet. Keine DB-URLs oder Secrets veröffentlichen.
+- Angaben basieren auf [Render: Deploy for Free](https://render.com/docs/free), [Render: Postgres Recovery and Backups](https://render.com/docs/postgresql-backups) und [Render: Create and Connect to Render Postgres](https://render.com/docs/postgresql-creating-connecting). Anbieterbedingungen können sich ändern; bei der Betreiberentscheidung erneut prüfen.
+
+**Konsequenz:** Betreiber soll den authorisierten, konsistenten `pg_dump` **rechtzeitig vor dem 09.12.2026** einplanen; Planungsziel **25.11.** bleibt bestehen. Ohne unabhängige Sicherung und getesteten isolierten Restore besteht ein reales Datenverlustrisiko. Ein kostenpflichtiges Upgrade ist **nicht autorisiert** und darf nicht stillschweigend erfolgen.
 
 ## Rückwärtsplanung
 
