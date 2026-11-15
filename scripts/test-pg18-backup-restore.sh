@@ -5,7 +5,10 @@ set -euo pipefail
 umask 077
 
 if [[ "${CFS_CI_DATABASE_ACCEPTANCE:-}" != "yes" ||
-      "${DATABASE_URL:-}" != "postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci" ]]; then
+      "${DATABASE_URL:-}" != "postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci" ||
+      "${GITHUB_ACTIONS:-}" != "true" ||
+      "${GITHUB_REPOSITORY:-}" != "cstaudy/CFS-zockt-Website-Neu" ||
+      "${GITHUB_JOB:-}" != "check" ]]; then
   echo "REFUSED: backup/restore acceptance requires the exact disposable CI database." >&2
   exit 2
 fi
@@ -16,6 +19,15 @@ if [[ "${#containers[@]}" -ne 1 ]]; then
   exit 2
 fi
 container="${containers[0]}"
+# Confirm the selected container advertises the test-only PostgreSQL service.
+# Checking ancestor=postgres:18 alone would not distinguish another PG18 DB.
+service_env="$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$container")"
+if ! grep -Fxq "POSTGRES_DB=cfs_ci" <<< "$service_env" ||
+   ! grep -Fxq "POSTGRES_USER=cfs_ci" <<< "$service_env"; then
+  echo "REFUSED: selected postgres:18 container is not the CI test service." >&2
+  exit 2
+fi
+unset service_env
 archive_dir="$(mktemp -d)"
 archive="${archive_dir}/cfs-ci.pgdump"
 # All temporary database names are unique per run: never drop a previous run's
