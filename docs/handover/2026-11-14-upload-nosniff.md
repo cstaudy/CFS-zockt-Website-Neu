@@ -57,3 +57,9 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - PR #90 ergänzt dieselbe Datei erst bei Basiszeile 890 (GET/HEAD-HTTP-200-Header-Assertions innerhalb der Owner-Schleife).
 - Die GitHub-Patches sind räumlich getrennt, ihre jeweiligen Kontexte überschneiden sich nicht; damit ist ein textueller Hunk-Konflikt **nicht zu erwarten**. Das ist keine simulierte Merge- oder kombinierte CI-Ausführung; nach autorisiertem Merge weiter prüfen.
 - Letzte grüne CI #90: `43644681889` auf HEAD `305d179`. #89/#90/#91 weiterhin offen, clean, ohne Merge-Freigabe.
+
+## Öffentliche OBS-Bildauslieferung: Header-Test ergänzt
+- Vorheriger HEAD `1516661`: CI `43700236823` erfolgreich, PR clean.
+- Der vorhandene PG18-End-to-End-Test prüfte veröffentlichte, anonym abrufbare OBS-Bilder bereits auf GET/HEAD, HTTP 200, `private, no-store` und Originalbytes. Er prüfte dort aber noch nicht `nosniff` und den validierten MIME-Typ.
+- Commit `acc3f5e` ergänzt beide Headerprüfungen **für GET und HEAD** im bestehenden Published-Owner-Widget-Test. Autorisierungslogik, Veröffentlichungsregeln und Serverantwort bleiben unverändert. Kein öffentliches Testasset außerhalb der ephemeren CI.
+- Abnahme: CI für neuen Testcommit und aktuellen Dokumentations-HEAD abwarten; PR weiterhin ungemergt.
