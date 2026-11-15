@@ -145,3 +145,9 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 | **P0** | Staging-/Netzwerk-/Migrations-/Deploy-Gates beachten | Unverändert **OFFEN/GESPERRT**, inklusive offenem A2-Netzwerk-Check, fehlender Ledger-Baseline und nicht isoliertem Staging | Keine Live-Allowlist-Änderung, Secrets, Migration, neuer Dienst, Tarifwechsel oder Merge ohne ausdrückliche Betreiberfreigabe |
 
 **Sicherheitsgrenze:** `pg_restore --no-owner --no-acl --exit-on-error` ist eine geeignete Beschreibung für einen eingeschränkten **isolierten Test-Restore**, aber **kein** automatischer Beleg für Rechtegleichheit oder Betriebsfähigkeit. Weder ausgeführte Test-Backups noch GitHub-CI können den echten Produktionsbackup-/Restore-/Freigabenachweis ersetzen. Rollback in dieser Runde: Dokumentations-/Testcommit gezielt revertieren; keine laufenden Services wurden verändert.
+
+### CI-Abnahme und nächster Betreiber-Schritt (15.11.2026)
+
+- Der Rollen-/ACL-/Struktur-Guard ist nach der **reinen Regex-Wortlautkorrektur** `31dc0ff` im vollständigen [GitHub-CI-Lauf 43726607304](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43726607304) **grün**. Die unmittelbar vorherigen roten Läufe waren kein Produktivfehler, sondern eine falsche deutsche Deklinationsannahme im Offline-Test.
+- **Nächste Entscheidung bleibt P0 und extern:** spätestens **20.11.2026** Betreiber, kostenloses, datenschutzkonformes Fortführungsziel und Export-/Restore-/Testberechtigungen bestätigen; **25.11.** autorisierte verschlüsselte Sicherung, **30.11.** getrenntes Restore mit Rolle/Grant-/Struktur-/read-only-App-Test. Keine Schritte gelten als durchgeführt.
+- Vor einer eventuellen, **separat freizugebenden** Integration #91 Abschluss-CI auf dem neuen Dokumentations-HEAD prüfen. Staging-/Migration-/Deploy-Gates weiterhin **GESPERRT**; keine zusätzlichen Tests ohne Befund, keine eigenständige Produktionsaktion.
