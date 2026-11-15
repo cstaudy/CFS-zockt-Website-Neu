@@ -63,6 +63,17 @@ Die neue Prüfung ruft ausschließlich eine gefälschte `docker`-Datei aus einem
 
 **Stop-Regel:** Erfolgreiche GnuPG-CI oder valide SHA-256 beweisen keine externe Datensicherung, keine sichere langfristige Schlüsselaufbewahrung und keinen erfolgreichen Restore von Live-Daten. Keine Datenbank-/Render-/Staging-/Deployment-Änderung und keine Kosten. Die weitere operative Umsetzung liegt ausschließlich bei berechtigten Betreibern.
 
+## 15.11.2026 – Negativtests für verschlüsselte Backup-Artefakte
+
+| Priorität | Konkrete Verbesserung | Stand / nächster Nachweis |
+| --- | --- | --- |
+| **P0 – manipulierte Sicherung zurückweisen** | Separates Kopieren und Verändern des **synthetischen** GnuPG-Ciphertexts: die zuvor erstellte SHA-256-Referenz muss den Inhalt **vor** jeder Entschlüsselung/Restore ablehnen. Das unbeschädigte Artefakt wird weiterhin im positiven Restore-Test verwendet. Code `0c16553`. | Vollständige CI des neuen Codes und anschließend des Dokumentations-HEAD prüfen; kein Erfolg vor CI behaupten. |
+| **P0 – falschen Schlüssel zurückweisen** | GnuPG-Entschlüsselung mit bewusst falscher, kurzlebiger CI-Testpassphrase **muss fehlschlagen**. Symmetrischen GnuPG-Schlüsselcache für Verschlüsselung und beide Entschlüsselungen deaktiviert, um falsches Bestehen des Tests zu vermeiden. | Test muss zusammen mit positiver GnuPG-/PG18-Restore-Abnahme und den sechs CI-/Docker-Verweigerungen grün sein. |
+| **P0 – richtige Betreiber-Stoppfolge** | `PRODUCTION_BACKUP_RESTORE_OPERATOR_RUNBOOK.md` verlangt vor autorisiertem Restore den Vergleich der **verschlüsselten** Sicherung mit dem **getrennt gespeicherten** SHA-256-Wert. Falscher Schlüssel, Manipulation oder ungeklärte Authentizität ⇒ **STOPP**. | Kein echter Datenexport/-restore. Prüfsumme schützt gegen erkennbaren Integritätsfehler, nicht automatisch gegen gleichzeitigen Austausch von Datei und Referenz. |
+| **P0 – reale DB vor Ablauf retten** | Unverändert **GESPERRT**; [Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) offen. Bestätigter Render-Free-Ablauf **09.12.2026 18:36 UTC**. | Bis **20.11.** Betreiber- und Kostenentscheidung; Ziele **25.11.** autorisierter verschlüsselter Dump und **30.11.** isolierter Restore inkl. Rollen/ACL. |
+
+**Grenze:** Die Negativtests manipulieren ausschließlich synthetische GnuPG-CI-Daten im temporären Verzeichnis, **keine** produktiven Artefakte. Keine Produktion, kein Deployment, kein Merge, keine neuen Render-Ressourcen und keine zusätzlichen Kosten. Übergabe mit Testbefund: `docs/handover/2026-11-14-backup-staging-gates.md`.
+
 ## Nächste Entwicklungsrunde
 
 1. **Aktuellen CI-Lauf** nach dieser Übergabe-/Planänderung prüfen; Fehler ausschließlich begründet korrigieren. **Kein** automatisches „grün“, bevor GitHub Actions für den neuen HEAD Erfolg gemeldet hat.
