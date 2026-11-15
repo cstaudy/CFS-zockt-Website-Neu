@@ -3,7 +3,7 @@
 Stand: 15.11.2026. **Nur Planung; keine Produktionszugriffe, Datenexporte, Migrationen oder Deployments.**
 
 ## Bekannte Ausgangslage
-- Render PostgreSQL `cfs-zockt-db`: Free-Plan, Ablauf laut Render-Konsole am **09.12.2026**. Frühzeitig Fortführung oder kostenfreie Migration mit Betreiber klären; niemals annehmen, dass kostenlose Verlängerung oder Export garantiert sind.
+- Render PostgreSQL `cfs-zockt-db`: Free-Plan, Ablauf laut Render-Metadaten am **09.12.2026 um 18:36 UTC**. Laut aktueller [Render-Free-Dokumentation](https://render.com/docs/free) endet Free-Postgres nach 30 Tagen; danach ist die DB unzugänglich, die 14-tägige Nachfrist dient einem **kostenpflichtigen Upgrade**, danach droht Datenlöschung. **Keine reguläre kostenlose Verlängerung**, keine zweite gleichzeitige Free-DB pro Workspace bestätigt. Sicherung vor Ablauf und kostenfreie Migration mit Betreiber rechtzeitig klären.
 - Read-only-Befund vom 14.11.: bestehende `accounts`-Tabelle, aber kein `schema_migrations`-Ledger und keine MFA-Challenge-Tabelle. Historische Baseline ist **nicht** automatisch erlaubt.
 - **Read-only-Render-Befund vom 15.11.2026:** DB `cfs-zockt-db` ist verfügbar, PostgreSQL 18, Free, tatsächlicher Render-Ablauf `2026-12-09T18:36:16Z`. Der DB-`ipAllowList` enthält `0.0.0.0/0` (`everywhere`). Dies erlaubt Netzwerk-Verbindungsversuche aus dem gesamten IPv4-Raum, **nicht** automatisch authentifizierten Datenzugriff. Ohne überprüfte benötigte Verbindungswege und gesonderte Betreiberfreigabe die Allowlist **nicht** live ändern.
 - Render-Staging hat derzeit **keine nachgewiesen isolierte Datenbank**. Staging-Dienst und Produktionsdienst haben Auto-Deploy deaktiviert.
@@ -17,14 +17,14 @@ Stand: 15.11.2026. **Nur Planung; keine Produktionszugriffe, Datenexporte, Migra
 ## Gate A2: Datenbank-Netzwerkzugang risikobewusst eingrenzen (neu 15.11.)
 
 1. Betreiber erfasst **ohne Secrets oder interne Verbindungsstrings** die tatsächlich benötigten DB-Verbindungswege (produktive Render-Web-Services, berechtigter Wartungs-/Backup-Client, eventuelle weitere ausdrücklich autorisierte Clients). Öffentlich erreichbare **Web-Service-URLs** nicht mit DB-Netzwerkregeln verwechseln.
-2. Für die derzeit offene IPv4-Allowlist `0.0.0.0/0` einen begründeten Minimalzugangsplan erstellen. Prüfen, ob interne Render-Verbindungen weiterhin erreichbar sind und welche externen festen Adressen überhaupt benötigt werden; dynamische IPs und Recovery-/Notfallzugriffe berücksichtigen.
+2. Für die derzeit offene IPv4-Allowlist `0.0.0.0/0` einen begründeten Minimalzugangsplan erstellen. Die [Render-Dokumentation](https://render.com/docs/postgresql-creating-connecting) bestätigt: **Die DB-IP-Allowlist betrifft nur externe Verbindungen**; interne Datenbankverbindungen von Render-Diensten im selben Workspace und derselben Region über die **interne URL** sind davon nicht abhängig. Tatsächlich verwendete URL-Klasse (intern/extern) **ohne Secrets** durch den Betreiber prüfen; externe feste/dynamische Client-Adressen, Backup- und Notfallzugang berücksichtigen.
 3. Vor jeder Änderung eine autorisierte, sichere Probe und einen konkreten Rückweg dokumentieren. Die Allowlist erst nach eigener ausdrücklicher Freigabe anpassen; keine produktive Verbindung durch einen ungeprüften Sofort-Fix aussperren.
 4. Bis zur dokumentierten Prüfung bleibt dieses Sicherheitsthema **OFFEN**. Eine zugängliche Netzwerkadresse beweist keine fehlende Passwortprüfung, ist aber eine unnötig breite Angriffsfläche, sofern weniger Zugriff benötigt wird.
 5. Der konkrete, **noch nicht freigegebene** Prüf- und Rückwegplan steht in `DB_NETWORK_ALLOWLIST_OPERATOR_CHECKLIST.md`. Er ersetzt weder echte Verbindungsvalidierung noch eine Betreiberfreigabe.
 
 ## Gate B: Echter Sicherungsnachweis
 Nur ein autorisierter Betreiber darf eine echte Sicherung erstellen. Das Verfahren muss **nachweisbar**:
-- einen konsistenten PostgreSQL-Dump aus der autorisierten Quelle erzeugen, Zugangsdaten nicht ausgeben und den Dump verschlüsselt in einem zugriffsgeschützten, vom Live-Dienst unabhängigen Speicher ablegen;
+- einen konsistenten PostgreSQL-Dump aus der autorisierten Quelle **vor deren Ablauf** erzeugen, Zugangsdaten nicht ausgeben und den Dump verschlüsselt in einem zugriffsgeschützten, vom Live-Dienst unabhängigen Speicher ablegen. Render bietet für Free-Postgres [keine eigenen logischen Exporte oder PITR](https://render.com/docs/postgresql-backups); dafür kann ein **autorisierter Betreiber** von einem geeigneten Client `pg_dump` verwenden. **Das ist nur eine dokumentierte Möglichkeit, kein ausgeführter Export**;
 - Zeitpunkt, PostgreSQL-/Tool-Version, verschlüsselte Dateigröße, SHA-256-Prüfsumme der **verschlüsselten** Datei, Aufbewahrungsort (ohne Secrets) und verantwortliche Person festhalten;
 - sensible personenbezogene Daten ausschließlich gemäß Betreiber- und Datenschutzvorgaben behandeln. **Keine** Dumps, Klartext-Exporte, Token oder Verbindungsstrings in das Repository, CI-Artefakte oder Chat hochladen.
 
