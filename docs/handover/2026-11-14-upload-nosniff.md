@@ -79,3 +79,8 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Die bestehende authentifizierte PG18-E2E-Matrix deckt Bild und Video, GET und HEAD sowie anonymous `401`, foreign creator `404`, owner `200` ab.
 - Neuer Commit `5740633`: Für beide abgewiesenen Fälle werden nun zusätzlich `cache-control: no-store` und `x-content-type-options: nosniff` verlangt. Erfolgreiche Owner-Antworten bleiben wie bisher geprüft.
 - Ausschließlich Teständerung; keine Berechtigungs-/Server-/Produktionsänderung. Aktuelle CI abwarten.
+
+## Gelöschtes Video: GET/HEAD-Negativtest
+- Letzter HEAD `469d941`: GitHub Actions `43701356829` **success**; vorheriger Testcommit `5740633` ebenfalls grün (`43701338143`).
+- Neuer Testcommit `0341ac3`: Nach autorisierter Videolöschung und bestätigter physischer Dateientfernung wird die alte private URL mit Eigentümer-Cookie sowohl per GET als auch HEAD geprüft. Erwartet: `404`, `cache-control: no-store`, `x-content-type-options: nosniff`.
+- Nur CI-Regression, keine Änderungen an Löschlogik, Berechtigungen oder Produktivsystem. Neue CI abwarten.
