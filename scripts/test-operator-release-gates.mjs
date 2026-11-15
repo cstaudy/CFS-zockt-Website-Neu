@@ -142,24 +142,56 @@ assert.match(networkChecklist, /Gesamtstatus:\s*GESPERRT/);
 assert.match(networkChecklist, /0\.0\.0\.0\/0/);
 assert.match(networkChecklist, /20\.11\.2026/);
 assert.match(networkChecklist, /Rückweg/);
+const requiredNetworkChecklistLabels = [
+  "Verantwortliche Betreiberrolle und ausdrückliche Prüferlaubnis dokumentiert",
+  "Produktive Render-interne DB-Verbindung und ihr Geltungsbereich bestätigt",
+  "Alle berechtigt externen Clients (Wartung, Export, Restore, Monitoring) nach Funktion inventarisiert",
+  "Relevante feste oder wechselnde Client-IP-Adressen **außerhalb des Repositories** geschützt verifiziert",
+  "Staging-Zugriff und Staging-DB **technisch getrennt** von Produktion belegt",
+  "Abhängigkeiten von Backups, Notfallzugriff und Anwendungsstart bewertet",
+  "Erforderliche Verbindungswege und geeignete sichere Einschränkung bestätigt?",
+  "Betreiber und Rückweg für geplante Netzwerkänderung ausdrücklich freigegeben?",
+  "Durchgeführte Änderung, Verbindungstests und Fehlerfreiheit nachgewiesen?",
+  "Produktionsbackup mit isoliertem Restore erfolgreich nachgewiesen?",
+  "Freigabe von Migration, Staging und Produktivdeployment erteilt?"
+];
+const networkChecklistRows = markdown => markdown.split("\n")
+  .filter(line => /^\| .+ \| .+ \|$/.test(line))
+  .filter(line => !/^\| (?:Nachweis|Entscheidung|---)/.test(line));
 function validateNetworkChecklist(markdown) {
-  const rows = markdown.split("\n").filter(line => /^\| .+ \| .+ \|$/.test(line))
-    .filter(line => !/^\| (?:Nachweis|Entscheidung|---)/.test(line));
-  assert.equal(rows.length, 11, "Network checklist evidence/decision rows changed");
-  for (const line of rows) {
-    const cells = line.slice(1, -1).split("|").map(cell => cell.trim());
-    assert.equal(cells.length, 2, "Unexpected network checklist column count");
-    assert.match(cells[1], /^(?:OFFEN|NEIN)(?:$|\s)/,
-      `Network checklist must remain unapproved: ${cells[0]}`);
+  const rows = networkChecklistRows(markdown);
+  assert.equal(rows.length, requiredNetworkChecklistLabels.length,
+    "Network checklist evidence/decision rows changed");
+  const cells = rows.map(line => line.slice(1, -1).split("|").map(cell => cell.trim()));
+  for (const columns of cells) {
+    assert.equal(columns.length, 2, "Unexpected network checklist column count");
+  }
+  assert.deepEqual(cells.map(columns => columns[0]), requiredNetworkChecklistLabels,
+    "Network checklist labels missing, duplicated or reordered");
+  for (const [label, status] of cells) {
+    assert.match(status, /^(?:OFFEN|NEIN)(?:$|\s)/,
+      `Network checklist must remain unapproved: ${label}`);
   }
 }
 validateNetworkChecklist(networkChecklist);
-const prematureNetworkApproval = networkChecklist.replace(
-  "| Verantwortliche Betreiberrolle und ausdrückliche Prüferlaubnis dokumentiert | OFFEN |",
-  "| Verantwortliche Betreiberrolle und ausdrückliche Prüferlaubnis dokumentiert | JA |"
-);
-assert.notEqual(prematureNetworkApproval, networkChecklist, "Network checklist mutation failed");
-assert.throws(() => validateNetworkChecklist(prematureNetworkApproval));
+for (const row of networkChecklistRows(networkChecklist)) {
+  const label = row.slice(1, -1).split("|")[0].trim();
+  const prematurelyApproved = networkChecklist.replace(row, `| ${label} | JA |`);
+  assert.notEqual(prematurelyApproved, networkChecklist, "Checklist approval mutation failed");
+  assert.throws(() => validateNetworkChecklist(prematurelyApproved),
+    /Network checklist must remain unapproved/,
+    `Unapproved network checklist row must fail: ${label}`);
+
+  const removed = networkChecklist.replace(row + "\n", "");
+  assert.notEqual(removed, networkChecklist, "Checklist row removal mutation failed");
+  assert.throws(() => validateNetworkChecklist(removed),
+    /Network checklist evidence\/decision rows changed/,
+    `Removing network checklist row must fail: ${label}`);
+}
+assert.match(gates, /DB_NETWORK_ALLOWLIST_OPERATOR_CHECKLIST\.md/,
+  "Release Gate A2 must link to the operator checklist");
+assert.match(networkChecklist, /Gate A2/,
+  "Operator checklist must refer back to release Gate A2");
 assert.match(gates, /Produktivdeploy erst nach allen Gates/i);
 assert.match(deadline, /Keine Änderung an Render/i);
 console.log("Operator release-gate docs: blocked defaults, deadline, backup/restore and staging controls.");
