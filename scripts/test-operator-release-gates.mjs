@@ -101,24 +101,24 @@ function validateNetworkGate(document) {
   assert.ok(end > start, "Gate A2 must be a standalone section");
   const section = document.slice(start, end);
   for (const [description, required] of [
-    ["existing wide IPv4 allowlist", /0\\.0\\.0\\.0\\/0/],
+    ["existing wide IPv4 allowlist", /0\.0\.0\.0\/0/],
     ["actual required database connections", /DB-Verbindungswege/],
     ["separate web and database access", /Web-Service-URLs/],
     ["rollback before restriction", /Rückweg/],
     ["explicit operator authorization", /ausdrücklicher Freigabe/],
-    ["unapproved default", /\\*\\*OFFEN\\*\\*/]
+    ["unapproved default", /\*\*OFFEN\*\*/]
   ]) {
     assert.match(section, required, `Network gate missing: ${description}`);
   }
   const summary = document.split("\n").find(line =>
     line.startsWith("| A2 – DB-Netzwerkzugang |"));
   assert.ok(summary, "Network gate missing from formal status table");
-  assert.match(summary, /\\| Offen \\|/,
+  assert.match(summary, /\| Offen \|/,
     "Network gate must remain open until an authorized decision");
 }
 validateNetworkGate(gates);
 const missingNetworkGate = gates.replace(
-  /## Gate A2:[\\s\\S]*?(?=\\n## Gate B:)/, ""
+  /## Gate A2:[\s\S]*?(?=\n## Gate B:)/, ""
 );
 assert.notEqual(missingNetworkGate, gates, "Network gate removal fixture failed");
 assert.throws(() => validateNetworkGate(missingNetworkGate), /Gate A2/);
