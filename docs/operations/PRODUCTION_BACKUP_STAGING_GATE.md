@@ -29,6 +29,8 @@ Nur ein autorisierter Betreiber darf eine echte Sicherung erstellen. Das Verfahr
 - Zeitpunkt, PostgreSQL-/Tool-Version, verschlüsselte Dateigröße, SHA-256-Prüfsumme der **verschlüsselten** Datei, Aufbewahrungsort (ohne Secrets) und verantwortliche Person festhalten;
 - sensible personenbezogene Daten ausschließlich gemäß Betreiber- und Datenschutzvorgaben behandeln. **Keine** Dumps, Klartext-Exporte, Token oder Verbindungsstrings in das Repository, CI-Artefakte oder Chat hochladen.
 
+**Abgrenzung der CI:** Der synthetische PG18-Test `scripts/test-pg18-backup-restore.sh` prüft inzwischen einen lokalen AES-256-GnuPG-Verschlüsselungs-/Entschlüsselungs-Roundtrip, die SHA-256-Prüfsumme **des verschlüsselten Artefakts** und die Wiederherstellung in eine getrennte CI-Testdatenbank. Das ist **kein** Export produktiver Daten, kein Beleg für externe Aufbewahrung, sichere Betreiber-Schlüsselverwaltung, tatsächliche Kostenfreiheit oder einen autorisierten Produktiv-Restore. Die produktive Verschlüsselungs-/Schlüsselstrategie ist weiterhin gesondert freizugeben.
+
 ## Gate C: Isolierte Wiederherstellung
 1. Vor dem Restore schriftlich nachweisen, dass das Ziel eine **separate Wegwerf-Datenbank** ist und keinerlei produktive Verbindung/Anwendung auf dieses Ziel zeigt.
 2. Verschlüsselten Dump kontrolliert entschlüsseln und mit kompatiblen PostgreSQL-Werkzeugen in die isolierte DB wiederherstellen. Keine Produktionsmigration dabei ausführen.
