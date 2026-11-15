@@ -68,3 +68,8 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - CI für vorherigen HEAD `9ae94ff`: Run `43701057296` **success**, inklusive öffentlich freigegebener GET/HEAD-OBS-Header-Prüfung.
 - Neuer Testcommit `7ee294f`: Nach `published → private` wird das identische OBS-Bild anonym sowohl mit GET als auch HEAD auf HTTP `401` und `cache-control: no-store` geprüft. Die bestehende `json()`-Fehlerantwort setzt diesen Header bereits; kein Servercode und keine Berechtigungen geändert.
 - Die Revocation-Regel bleibt DB-gestützt und wird in ephemerer PG18-CI getestet. Neue CI für diesen Commit/HEAD abwarten.
+
+## Aktualisierung: Draft- und Fremdreferenz-HEAD-Zugriff
+- Vorheriger Testcommit `7ee294f` (Widerruf öffentlicher GET/HEAD-Freigaben): GitHub Actions `43701127023` **success**. Dokumentations-HEAD `817e70d` beim Start dieser Runde noch in CI.
+- Neuer Commit `3b04c82`: Bereits vorhandene 401-Tests für (a) veröffentlichte Fremdreferenz und (b) noch nicht veröffentlichten eigenen Entwurf laufen jetzt jeweils für **GET und HEAD**. Zusätzlich wird `cache-control: no-store` bei beiden Ablehnungen geprüft.
+- Nur isolierter Testcode; kein Servercode, keine Rechteänderung, keine Produktion. Neue CI für diesen Commit/aktuellen HEAD abwarten.
