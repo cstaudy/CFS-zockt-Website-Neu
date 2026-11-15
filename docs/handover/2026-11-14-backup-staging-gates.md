@@ -10,11 +10,11 @@
 | --- | --- | --- |
 | [PR #89](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/89) | Upload-Größen- und Quota-Fehlerfälle sicher abweisen; separater Security-PR | HEAD `23c9fd1`, [CI 43631464741](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43631464741) |
 | [PR #90](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/90) | `nosniff`, sicherer Download für Legacy-HTML/SVG und echte GET/HEAD-Autorisierungsregressionen | HEAD `53a7ad8`, [CI 43708581500](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43708581500) |
-| [PR #91](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/91) | Produktions-Stop-Gates, Betreiber-Checklisten, kostenfreie DB-Frist, offline getestete Evidenzvorlagen | HEAD **`cb2f964`**, [CI 43726769829](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43726769829) |
+| [PR #91](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/91) | Produktions-Stop-Gates, Betreiber-Checklisten, kostenfreie DB-Frist, Offline-Evidenzguard und synthetische PG18-Rechteprobe | Codecommit **`ad3db97`**, [CI 43736178157](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43736178157) |
 
 Alle drei PRs bei der letzten Prüfung **GitHub mergeable/clean** und review-bereit; **kein formales Review, Merge oder kombinierter CI-Nachweis**. Grün auf einem PR ist weder ein freigegebener Merge noch eine Produktionsfreigabe.
 
-Das bestehende `npm run check` ruft in PR #91 `scripts/test-operator-release-gates.mjs` auf. Der Offline-Test schützt die **27** `OFFEN`-/`NEIN`-Nachweisfelder der Backup-/Restore-Vorlage, die **11** offenen Netzwerk-Prüffelder und die **8** vor einem echten Export offenen Backup-Voraussetzungen. Er prüft Pflichtfeldbezeichnungen, Entfernung und simulierte unbelegte `JA`-Freigaben; er ruft **keine** Render- oder Produktions-DB auf. Die PostgreSQL-18-CI nutzt ausschließlich synthetische Wegwerf-Daten.
+Das bestehende `npm run check` ruft in PR #91 `scripts/test-operator-release-gates.mjs` auf. Der Offline-Test schützt die **27** `OFFEN`-/`NEIN`-Nachweisfelder der Backup-/Restore-Vorlage, die **11** offenen Netzwerk-Prüffelder und die **8** vor einem echten Export offenen Backup-Voraussetzungen. Er prüft Pflichtfeldbezeichnungen, Entfernung und simulierte unbelegte `JA`-Freigaben; er ruft **keine** Render- oder Produktions-DB auf. Die PostgreSQL-18-CI nutzt ausschließlich synthetische Wegwerf-Daten. **Neu:** `scripts/test-pg18-backup-restore.sh` erstellt nach der bestehenden Restore-Akzeptanz eine **separate Quelle und Ziel-DB mit zufälligen Testnamen sowie zwei NOLOGIN-Rollen**; geprüft wird, dass bei `--no-owner --no-acl` die Zeile wiederhergestellt wird, aber ursprünglicher Tabelleneigentümer und synthetischer `SELECT`-Grant fehlen. Strenge CI-URL-/Docker-Schutzprüfung und Cleanup bleiben erhalten. Diese technische Reproduktion des ACL-Verlustes ist **kein** wirklicher Produktionsbackup-Nachweis.
 
 ## 2. Produktionsbefund – alles Weitere bleibt GESPERRT
 
@@ -50,6 +50,6 @@ Das bestehende `npm run check` ruft in PR #91 `scripts/test-operator-release-gat
 2. PRs #89/#90/#91 separat technisch reviewen. #89 und #90 ändern Teile der gleichen E2E-Datei; nach einer **ausdrücklich genehmigten** Integration ist vollständige kombinierte CI auf aktualisiertem `main` erforderlich.
 3. **Betreiber** schließt die Checklisten im [Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) erst nach realen externen Nachweisen ab. Keine Secrets, Connection-Strings, Dumps, Schlüssel oder personenbezogenen Daten in GitHub oder Chat.
 4. Bis dahin **kein Merge, kein Render-Upgrade, keine neue kostenpflichtige Ressource, keine produktive IP-Änderung, Datenbankmigration, Datenausleitung oder Deployment** durch diese Entwicklungsarbeit.
-5. Rollback dieser PR #91: ungemergten Branch schließen/verwerfen; es wurden ausschließlich Operationsdokumente und ein lokaler Dokumentationstest geändert, keine produktive Laufzeitlogik.
+5. Rollback dieser PR #91: ungemergten Branch schließen/verwerfen; geändert wurden Operationsdokumente, Offline-Dokumentationstest **und ein ausschließlich auf die isolierte PG18-CI begrenzter Restore-Test**. Keine produktive Laufzeitlogik oder Infrastruktur wurde verändert.
 
 **Übergabestatus: Entwicklung/CI vorbereitend; echter Produktionsbackup-/Restore-/Staging-/Deploynachweis weiterhin GESPERRT.**
