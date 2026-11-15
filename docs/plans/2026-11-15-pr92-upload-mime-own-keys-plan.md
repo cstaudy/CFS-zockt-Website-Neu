@@ -19,3 +19,15 @@
 - [P0-Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) bleibt offen: Betreiberentscheidung zur kostenfreien PostgreSQL-Fortführung bis **20.11.2026**; Ziele **25.11.** echter verschlüsselter Dump und **30.11.** isolierter Restore. Der erfolgreiche Merge von PR #91 hat **keine** dieser Betreiber-Nachweise erbracht.
 - [PR #89](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/89) und [PR #90](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/90) sind unabhängig offen. Ihre Integration nicht vorziehen.
 - Bei unerwartetem Testverhalten: Änderungen ausschließlich in PR #92 korrigieren oder PR-Commits revertieren, keine Live-Änderung. Übergabe: `docs/handover/2026-11-15-pr92-upload-mime-own-keys.md`.
+
+## 15.11.2026 – Gezielter gemeinsamer Security-Integrationstest
+
+| Priorität | Aufgabe | Status / Abnahme |
+| --- | --- | --- |
+| **P0** | PR #90 und #92 überlappen in Upload-Policy und Unit-Test | **Bestätigt:** `src/upload-media-policy.js` und `scripts/test-upload-media-policy.mjs` müssen bei späterem Merge beide Sicherheitsmerkmale (`nosniff` und `Object.hasOwn`) behalten. |
+| **P0** | HTTP-E2E-Erweiterungen #89/#90 gemeinsam überprüfen | **Vorbereitet:** beide getrennt eingefügten Testblöcke sind im nicht produktiven Draft-[PR #94](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/94) erhalten. Nicht von isolierten Einzeltests auf gemeinsame Funktion schließen. |
+| **P0** | Tatsächliche kombinierte CI vor Merge-Empfehlung | Draft #94 Commit `fe9f572`, [Actions 43766460488](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43766460488). **Ergebnis erst nach CI prüfen**, bei roten Checks Ursachen im temporären Integrationsbranch beheben; #94 **nicht mergen**. |
+| **P0** | PR #92 weiterhin eigenständig reviewbar | Einzel-HEAD `ef2df4d` war [CI 43757422261](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43757422261) **success** und zum Zeitpunkt des Integrationschecks ohne Rückstand zu `main`. Nach den Dokumentationsupdates den **neuen PR92-HEAD** erneut per CI bestätigen. |
+| **P0** | Operative Free-DB-Risiken getrennt halten | [Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) **OFFEN**, keine echten Backup-/Restore-Nachweise; keine Render-, DB- oder Deploy-Aktionen durch den Testbranch. |
+
+**Entscheidungsgrenze:** User hat ausdrücklich den Merge von PR #91 genehmigt, **nicht** #89/#90/#92/#94. PR #94 bleibt ein Draft ohne Mergeschritt. Vor jeder eigenständigen Integration die konkrete Code-Kombination prüfen und separate Nutzerfreigabe abwarten.
