@@ -27,6 +27,7 @@ restore_db="cfs_ci_restore_acceptance_${probe_nonce}"
 restore_created=0
 probe_source_created=0
 probe_clone_created=0
+probe_roles_created=0
 probe_source_db="cfs_ci_acl_source_${probe_nonce}"
 probe_clone_db="cfs_ci_acl_clone_${probe_nonce}"
 probe_owner_role="cfs_ci_acl_owner_${probe_nonce}"
@@ -39,8 +40,10 @@ cleanup() {
   if [[ "$probe_source_created" == 1 ]]; then
     docker exec "$container" dropdb -U cfs_ci --if-exists "$probe_source_db" >/dev/null 2>&1 || true
   fi
-  docker exec "$container" psql -U cfs_ci -d cfs_ci -qAt -v ON_ERROR_STOP=1 \
-    -c "DROP ROLE IF EXISTS ${probe_owner_role}; DROP ROLE IF EXISTS ${probe_reader_role};" >/dev/null 2>&1 || true
+  if [[ "$probe_roles_created" == 1 ]]; then
+    docker exec "$container" psql -U cfs_ci -d cfs_ci -qAt -v ON_ERROR_STOP=1 \
+      -c "DROP ROLE IF EXISTS ${probe_owner_role}; DROP ROLE IF EXISTS ${probe_reader_role};" >/dev/null 2>&1 || true
+  fi
   if [[ "$restore_created" == 1 ]]; then
     docker exec "$container" dropdb -U cfs_ci --if-exists "$restore_db" >/dev/null 2>&1 || true
   fi
@@ -99,6 +102,7 @@ restore_catalog="$(docker exec "$container" psql -U cfs_ci -d "$restore_db" -At 
 # deliberately changes. No accounts or application DB tables are touched.
 docker exec "$container" psql -U cfs_ci -d cfs_ci -qAt -v ON_ERROR_STOP=1 \
   -c "CREATE ROLE ${probe_owner_role} NOLOGIN; CREATE ROLE ${probe_reader_role} NOLOGIN;" > /dev/null
+probe_roles_created=1
 docker exec "$container" createdb -U cfs_ci "$probe_source_db"
 probe_source_created=1
 docker exec "$container" createdb -U cfs_ci "$probe_clone_db"
