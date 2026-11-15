@@ -1,6 +1,6 @@
 # Produktiv-Backup, Restore und Staging-Isolation – Freigabegates
 
-Stand: 14.11.2026. **Nur Planung; keine Produktionszugriffe, Datenexporte, Migrationen oder Deployments.**
+Stand: 15.11.2026. **Nur Planung; keine Produktionszugriffe, Datenexporte, Migrationen oder Deployments.**
 
 ## Bekannte Ausgangslage
 - Render PostgreSQL `cfs-zockt-db`: Free-Plan, Ablauf laut Render-Konsole am **09.12.2026**. Frühzeitig Fortführung oder kostenfreie Migration mit Betreiber klären; niemals annehmen, dass kostenlose Verlängerung oder Export garantiert sind.
@@ -47,9 +47,10 @@ Nur ein autorisierter Betreiber darf eine echte Sicherung erstellen. Das Verfahr
 4. Produktivdeploy erst nach allen Gates und ausdrücklicher Betreiberentscheidung. CI-Grün oder ein gemergter PR ersetzen diese Entscheidung nicht.
 
 ## Abnahmeprotokoll (ohne Geheimnisse)
-| Gate | Status 14.11.2026 | Benötigter Nachweis |
+| Gate | Status 15.11.2026 | Benötigter Nachweis |
 | --- | --- | --- |
 | A – kostenfreies Ziel/Frist | Offen | Betreiberentscheidung und Ablaufplan |
+| A2 – DB-Netzwerkzugang | Offen | Benötigte Clients und sichere Allowlist-Änderung mit Rückweg und separater Betreiberfreigabe |
 | B – echter verschlüsselter Dump | Blockiert | Datum, SHA-256 der verschlüsselten Datei, geschützter Speicher |
 | C – isolierter Restore | Blockiert | Wiederherstellungsprotokoll, Schema-/Fingerprint-Abgleich, Rollback |
 | D – Staging getrennt | Blockiert | Technischer Trennungsnachweis und Staging-Testfreigabe |
