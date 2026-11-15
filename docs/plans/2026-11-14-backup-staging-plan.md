@@ -52,6 +52,17 @@ Die Daten sind **Zieltermine, keine automatischen Termine oder Ausführungszusag
 
 Die neue Prüfung ruft ausschließlich eine gefälschte `docker`-Datei aus einem temporären Ordner auf. Sie schützt vor einer versehentlichen Entfernung des CI-Gates, ist aber **keine harte Sicherheitsgrenze gegen absichtlich gefälschte Runner/Env**. Kein SQL, Export, Merge, Render-Change, Deploy oder zusätzliche Kosten. Übergabe: `docs/handover/2026-11-14-backup-staging-gates.md`.
 
+## 15.11.2026 – Verschlüsselten synthetischen Dump bis zum Restore testen
+
+| Priorität | Umsetzung und Abgrenzung | Test und nächster Schritt |
+| --- | --- | --- |
+| **P0 – Verschlüsselung im CI-Backup nachweisen** | `scripts/test-pg18-backup-restore.sh` nutzt nur synthetische Daten, ephemeres GnuPG/AES-256, einen zufällig erzeugten kurzlebigen 64-stelligen Hex-Schlüssel, SHA-256 der **verschlüsselten** Datei, exakten Decrypt-Vergleich und Restore aus dem entschlüsselten Dump. Passphrase und Testartefakte bleiben im restriktiven temporären CI-Verzeichnis und werden bei Script-Exit entfernt. Code `195528a`, Korrektur `0ee443b`. | **Vollständige CI [43743745850](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43743745850) success.** Erster CI-Lauf `195528a` rot wegen fehlerhaftem Hex-Zeichenfilter; korrigiert. |
+| **P0 – produktives Verschlüsselungsverfahren gesondert freigeben** | Synthetische AES-256-GnuPG-CI ist **keine** Entscheidung für Produktionsschlüssel, Speicherung, Entschlüsselungsberechtigte oder datenschutzrechtliche Aufbewahrung. Operator-Runbook und Gate B bleiben **GESPERRT**. | Betreiber bestätigt bis **20.11.** kostenfreie Fortführung, sichere unabhängige Ablage, Key-Management und tatsächliche Exportberechtigung; [P0-Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93). |
+| **P0 – echter Backup-/Restore-Abnahmenachweis** | Weiterhin **nicht durchgeführt**: echtes verschlüsseltes Produktionsbackup, isolierter Restore, Rechte-/ACL-/Schema-Prüfung und getrennte Staging-DB. | Planungsziel **25.11.** autorisierte Sicherung, **30.11.** isolierter Restore. Keine Ausführung ohne eigene Genehmigung und alle acht Runbook-Vorbedingungen. |
+| **P1 – dokumentierte CI-Qualität** | `PRODUCTION_BACKUP_STAGING_GATE.md` und Übergabe unterscheiden synthetischen Verschlüsselungsmechanismus von realer Betreiberabnahme. | Abschluss-CI auf aktuellem Dokumentations-HEAD überprüfen; anschließend #91 nur zum Review bereitstellen, **kein Merge** ohne ausdrückliche Freigabe. |
+
+**Stop-Regel:** Erfolgreiche GnuPG-CI oder valide SHA-256 beweisen keine externe Datensicherung, keine sichere langfristige Schlüsselaufbewahrung und keinen erfolgreichen Restore von Live-Daten. Keine Datenbank-/Render-/Staging-/Deployment-Änderung und keine Kosten. Die weitere operative Umsetzung liegt ausschließlich bei berechtigten Betreibern.
+
 ## Nächste Entwicklungsrunde
 
 1. **Aktuellen CI-Lauf** nach dieser Übergabe-/Planänderung prüfen; Fehler ausschließlich begründet korrigieren. **Kein** automatisches „grün“, bevor GitHub Actions für den neuen HEAD Erfolg gemeldet hat.
