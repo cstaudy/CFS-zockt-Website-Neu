@@ -70,3 +70,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Nächster Security-Check: negative HTTP-Antworten
 - `5740633` erweitert die vorhandene GET/HEAD-Bild-/Video-Matrix für `401` (anonym) und `404` (fremder Creator) um `no-store` und `nosniff`.
 - Ziel: Keine private Medienantwort und auch keine abgewiesene Anfrage darf zwischengespeichert oder MIME-gesnifft werden. CI für neuen Commit abwarten, ggf. Fehler beheben. Danach Review und nur nach ausdrücklicher Freigabe Merge; Browser-/Backup-/Staging-Gates bleiben bestehen.
+
+## Löschpfad: Schutz vor Wiederabruf
+- E2E-Erweiterung `0341ac3` sichert nach erfolgreicher Video-Löschung die ehemalige URL bei authentifiziertem GET+HEAD mit `404`, `no-store`, `nosniff` ab. Physisches Entfernen der Datei wird weiterhin geprüft.
+- Vorheriger HEAD `469d941` grün (CI `43701356829`). Nächster Schritt: CI des neuen Testcommits und Dokumentations-HEAD prüfen, Fehler ggf. korrigieren. Review, Browserabnahme und Backup-/Staging-Gates vor Produktionsfreigabe bleiben offen.
