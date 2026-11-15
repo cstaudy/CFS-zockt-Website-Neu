@@ -84,3 +84,8 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Letzter HEAD `469d941`: GitHub Actions `43701356829` **success**; vorheriger Testcommit `5740633` ebenfalls grün (`43701338143`).
 - Neuer Testcommit `0341ac3`: Nach autorisierter Videolöschung und bestätigter physischer Dateientfernung wird die alte private URL mit Eigentümer-Cookie sowohl per GET als auch HEAD geprüft. Erwartet: `404`, `cache-control: no-store`, `x-content-type-options: nosniff`.
 - Nur CI-Regression, keine Änderungen an Löschlogik, Berechtigungen oder Produktivsystem. Neue CI abwarten.
+
+## Gelöschtes Video: Drei Rollen × zwei HTTP-Methoden
+- Letzter dokumentierter HEAD `4acc33e`: CI `43701460576` **success**; gelöschtes Video GET/HEAD mit Owner-Cookie grün.
+- Neuer Commit `304f841`: Nach physischer Löschung werden die alte Video-URL und die Header bei GET/HEAD für **anonym (401)**, **fremden Creator (404)** und **Eigentümer (404)** geprüft. Für alle sechs Antworten: `cache-control: no-store`, `x-content-type-options: nosniff`.
+- Statuscodes spiegeln die bereits vorhandene Zugriffskontrolle wider; keine Änderung an Server- oder Datenbankcode. CI für den neuen Commit und den aktuellen Dokumentations-HEAD abwarten.
