@@ -1004,6 +1004,20 @@ try {
   assert.equal(foreignDelete.status, 404,
     'A second account may not delete another creator\'s video');
   await access(savedVideoPath);
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + media.data.media.url, {
+      method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+    });
+    assert.equal(response.status, 200,
+      'Rejected foreign deletion must preserve owner GET/HEAD access');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(response.headers.get('content-type'), 'video/mp4');
+    if (method === 'GET') {
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), privateVideo,
+        'Rejected foreign deletion must preserve original video bytes');
+    }
+  }
   const deleted = await request('DELETE', `/api/creator/media/videos/${media.data.media.id}`, {
     cookie: login.cookie
   });
