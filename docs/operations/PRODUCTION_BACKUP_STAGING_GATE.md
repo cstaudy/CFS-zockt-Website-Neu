@@ -31,9 +31,9 @@ Nur ein autorisierter Betreiber darf eine echte Sicherung erstellen. Das Verfahr
 ## Gate C: Isolierte Wiederherstellung
 1. Vor dem Restore schriftlich nachweisen, dass das Ziel eine **separate Wegwerf-Datenbank** ist und keinerlei produktive Verbindung/Anwendung auf dieses Ziel zeigt.
 2. Verschlüsselten Dump kontrolliert entschlüsseln und mit kompatiblen PostgreSQL-Werkzeugen in die isolierte DB wiederherstellen. Keine Produktionsmigration dabei ausführen.
-3. Restore-Erfolg anhand Exitcodes, Schema-/Tabelleninventar, ausgewählten nichtpersonenbezogenen Zählwerten und Schema-Fingerprint verifizieren. Kein Dateninhalt im Prüfprotokoll.
+3. Restore-Erfolg anhand Exitcodes, Schema-/Tabelleninventar, ausgewählten nichtpersonenbezogenen Zählwerten und Schema-Fingerprint verifizieren. **Zusätzlich** die Objekt-Eigentümer-/Rollen-/GRANT-Zuordnung, Indizes, Constraints, Trigger, Sequenzstände, Erweiterungen und erforderliche Funktionen im isolierten Ziel prüfen: `--no-owner --no-acl` stellt alte Berechtigungen **nicht** wieder her und ein Datenbank-Dump enthält keine globalen Rollen. Kein Dateninhalt im Prüfprotokoll, keine produktiven Secrets/Rollen importieren.
 4. Einmaligen Wiederanlauf-/Rollback-Plan festhalten: wer stoppt den Rollout, welche Anwendungsversion bleibt aktiv, wie wird eine fehlerhafte Ziel-DB verworfen, und wie wird auf die gesicherte Ausgangslage zurückgekehrt?
-5. Erst nach dokumentiertem erfolgreichen Restore Gate C als bestanden markieren. Ein erfolgreiches `scripts/test-pg18-backup-restore.sh` in CI genügt ausdrücklich **nicht**.
+5. Erst nach dokumentiertem erfolgreichen Restore **und einer separaten Rechte-/Abhängigkeitsprüfung** Gate C als bestanden markieren. Ein erfolgreicher `pg_restore`-Exitcode, ein Schema-Fingerprint oder `scripts/test-pg18-backup-restore.sh` in CI genügt ausdrücklich **nicht**. Eine isolierte Anwendungsprobe braucht eigene Freigabe, dedizierte Testrolle und deaktivierte externe Integration/Migrationsautomatik.
 6. Das **nur nach separater Genehmigung zu verwendende** Operator-Runbook für tatsächlichen Export, Verschlüsselung und isolierten Restore steht in `PRODUCTION_BACKUP_RESTORE_OPERATOR_RUNBOOK.md`; es enthält keine Ausführungsfreigabe.
 
 ## Gate D: Staging-Isolation
