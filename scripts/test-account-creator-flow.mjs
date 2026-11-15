@@ -887,6 +887,12 @@ try {
           method, headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(8000)
         });
         assert.equal(response.status, status, `${who} ${method} ${path} must return ${status}`);
+        if (status !== 200) {
+          assert.equal(response.headers.get('cache-control'), 'no-store',
+            'Denied private upload GET/HEAD responses must not be cached');
+          assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+            'Denied private upload GET/HEAD responses must disable MIME sniffing');
+        }
         if (status === 200) {
           assert.equal(response.headers.get('cache-control'), 'private, no-store',
             'Private uploads must never be cached as public');
