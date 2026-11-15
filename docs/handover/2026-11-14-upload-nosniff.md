@@ -109,3 +109,8 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Vorheriger HEAD `db7f214` CI `43702065644` **success**, Testcommit `3bd311e` CI `43702054298` **success**.
 - Neuer Testcommit `2848633`: Nach legitimer Löschung und wiederholtem DELETE (`404`) wird erneut das Fehlen der Datei (`ENOENT`) sowie GET/HEAD `404`, `no-store` und `nosniff` mit Eigentümer-Cookie geprüft. Damit wird der Zustand nach einer idempotent abgewiesenen Wiederholung abgesichert.
 - Ausschließlich E2E-Test; CI des neuen HEAD abwarten, keine Produktions-/Serveränderung.
+
+## Widerrufene Bildfreigabe: Header-Test vervollständigt
+- Vorheriger HEAD `c5dbe1b` grün: CI `43702535564`; Testcommit `2848633` grün: `43702523659`.
+- Neuer Commit `31137c3`: Bei einer auf `private` zurückgestellten OBS-Bildfreigabe müssen anonyme GET- und HEAD-Antworten neben `401` und `no-store` nun ausdrücklich `x-content-type-options: nosniff` enthalten. Die Besitzerfreigabe ist separat mit GET/HEAD `200` getestet.
+- Geprüft wurde als nächster risikoarmer Randfall die vorhandene Widerrufsroute; es wurde bewusst kein nicht belegter Statuscode für unbekannte URLs vorausgesetzt. Nur Testcode, CI abwarten.
