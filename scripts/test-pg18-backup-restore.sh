@@ -79,7 +79,7 @@ ci_passphrase="${archive_dir}/ci-only-passphrase"
 export GNUPGHOME="${archive_dir}/gnupg"
 mkdir -m 700 "$GNUPGHOME"
 # Generated for this one disposable CI run only; never log it or use it on real data.
-od -An -tx1 -N 32 /dev/urandom | tr -d ' \\n' > "$ci_passphrase"
+od -An -tx1 -N 32 /dev/urandom | tr -d '[:space:]' > "$ci_passphrase"
 [[ "$(wc -c < "$ci_passphrase")" -eq 64 ]] || {
   echo "Synthetic backup encryption key generation failed." >&2
   exit 1
