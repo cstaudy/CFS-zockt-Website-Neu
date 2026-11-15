@@ -74,3 +74,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Löschpfad: Schutz vor Wiederabruf
 - E2E-Erweiterung `0341ac3` sichert nach erfolgreicher Video-Löschung die ehemalige URL bei authentifiziertem GET+HEAD mit `404`, `no-store`, `nosniff` ab. Physisches Entfernen der Datei wird weiterhin geprüft.
 - Vorheriger HEAD `469d941` grün (CI `43701356829`). Nächster Schritt: CI des neuen Testcommits und Dokumentations-HEAD prüfen, Fehler ggf. korrigieren. Review, Browserabnahme und Backup-/Staging-Gates vor Produktionsfreigabe bleiben offen.
+
+## Testmatrix nach Video-Löschung
+- `304f841` erweitert den Löschpfad auf sechs Fälle: 3 Rollen (anonym/foreign/owner) × 2 Methoden (GET/HEAD). Erwartet `401/404/404` und jeweils `no-store` + `nosniff`.
+- Vorherige CI `43701460576` grün. Nächster Schritt: neuen CI-Lauf prüfen, eventuelle Abweichungen beheben; anschließend Review und Freigabeentscheidung. Browser-, Backup-/Restore- und Staging-Gates bleiben offen.
