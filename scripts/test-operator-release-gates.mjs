@@ -4,11 +4,12 @@ import { readFile } from "node:fs/promises";
 const root = new URL("../docs/operations/", import.meta.url);
 const read = name => readFile(new URL(name, root), "utf8");
 
-const [template, gates, deadline, networkChecklist] = await Promise.all([
+const [template, gates, deadline, networkChecklist, backupRunbook] = await Promise.all([
   read("DB_BACKUP_RESTORE_EVIDENCE_TEMPLATE.md"),
   read("PRODUCTION_BACKUP_STAGING_GATE.md"),
   read("FREE_POSTGRES_DEADLINE_DECISION.md"),
-  read("DB_NETWORK_ALLOWLIST_OPERATOR_CHECKLIST.md")
+  read("DB_NETWORK_ALLOWLIST_OPERATOR_CHECKLIST.md"),
+  read("PRODUCTION_BACKUP_RESTORE_OPERATOR_RUNBOOK.md")
 ]);
 
 // This is a documentation safety contract, NOT evidence of a real backup.
@@ -192,6 +193,52 @@ assert.match(gates, /DB_NETWORK_ALLOWLIST_OPERATOR_CHECKLIST\.md/,
   "Release Gate A2 must link to the operator checklist");
 assert.match(networkChecklist, /Gate A2/,
   "Operator checklist must refer back to release Gate A2");
+// A real production dump is operator-only. Check that the new manual runbook
+// cannot silently lose its STOP gates or imply that CI proves a real restore.
+const requiredBackupApprovalLabels = [
+  "Zuständige Betreiberrolle und ausdrückliche Erlaubnis für **Produktiv-Datenexport** dokumentiert",
+  "Kostenfreie, rechtlich zulässige und zugriffsgeschützte **externe Ablage** bestätigt",
+  "Geeignetes Verschlüsselungsverfahren und getrennte Schlüsselverwaltung bestätigt",
+  "PostgreSQL-18-kompatible Clientwerkzeuge sowie benötigter DB-Netzwerkzugang bestätigt",
+  "Konkretes Backup-Fenster, Speicherplatz und ausreichend Zeit vor 09.12.2026 bestätigt",
+  "Kostenfreie **isolierte Restore-Zielumgebung** und technische Trennung von Produktion belegt",
+  "Datenschutz, Aufbewahrungsdauer, Vertraulichkeit und geregelte Löschung freigegeben",
+  "Rollback-/Notfallverantwortliche und Abbruchweg bestätigt"
+];
+const backupRows = markdown => {
+  const section = markdown.split("## 2. Stop-Gates vor einem echten Export")[1]
+    ?.split("## 3.")[0] ?? "";
+  return section.split("\n").filter(line => /^\| .+ \| .+ \|$/.test(line))
+    .filter(line => !/^\| (?:Zwingende Vorbedingung|---)/.test(line));
+};
+function validateBackupRunbook(markdown) {
+  const rows = backupRows(markdown).map(row =>
+    row.slice(1, -1).split("|").map(cell => cell.trim()));
+  assert.deepEqual(rows.map(row => row[0]), requiredBackupApprovalLabels,
+    "Operator backup prerequisites changed without review");
+  for (const [label, value] of rows) {
+    assert.equal(value, "OFFEN", `Backup prerequisite must remain OFFEN: ${label}`);
+  }
+  assert.match(markdown, /GESAMTSTATUS:\s*GESPERRT/);
+  assert.match(markdown, /pg_dump -Fc/);
+  assert.match(markdown, /pg_restore --list/);
+  assert.match(markdown, /--exit-on-error/);
+  assert.match(markdown, /nicht.*automatischen Migrationen/i);
+  assert.match(markdown, /09\.12\.2026/);
+}
+validateBackupRunbook(backupRunbook);
+for (const line of backupRows(backupRunbook)) {
+  const approved = backupRunbook.replace(line, line.replace("| OFFEN |", "| JA |"));
+  assert.notEqual(approved, backupRunbook, "Backup mutation fixture failed");
+  assert.throws(() => validateBackupRunbook(approved),
+    /Backup prerequisite must remain OFFEN/);
+  const removed = backupRunbook.replace(line + "\n", "");
+  assert.notEqual(removed, backupRunbook, "Backup removal fixture failed");
+  assert.throws(() => validateBackupRunbook(removed),
+    /Operator backup prerequisites changed/);
+}
+assert.match(gates, /PRODUCTION_BACKUP_RESTORE_OPERATOR_RUNBOOK\.md/,
+  "Gate C must link to the operator-only backup runbook");
 assert.match(gates, /Produktivdeploy erst nach allen Gates/i);
 assert.match(deadline, /Keine Änderung an Render/i);
 console.log("Operator release-gate docs: blocked defaults, deadline, backup/restore and staging controls.");
