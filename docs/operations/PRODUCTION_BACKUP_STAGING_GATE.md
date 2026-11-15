@@ -5,6 +5,7 @@ Stand: 14.11.2026. **Nur Planung; keine Produktionszugriffe, Datenexporte, Migra
 ## Bekannte Ausgangslage
 - Render PostgreSQL `cfs-zockt-db`: Free-Plan, Ablauf laut Render-Konsole am **09.12.2026**. Frühzeitig Fortführung oder kostenfreie Migration mit Betreiber klären; niemals annehmen, dass kostenlose Verlängerung oder Export garantiert sind.
 - Read-only-Befund vom 14.11.: bestehende `accounts`-Tabelle, aber kein `schema_migrations`-Ledger und keine MFA-Challenge-Tabelle. Historische Baseline ist **nicht** automatisch erlaubt.
+- **Read-only-Render-Befund vom 15.11.2026:** DB `cfs-zockt-db` ist verfügbar, PostgreSQL 18, Free, tatsächlicher Render-Ablauf `2026-12-09T18:36:16Z`. Der DB-`ipAllowList` enthält `0.0.0.0/0` (`everywhere`). Dies erlaubt Netzwerk-Verbindungsversuche aus dem gesamten IPv4-Raum, **nicht** automatisch authentifizierten Datenzugriff. Ohne überprüfte benötigte Verbindungswege und gesonderte Betreiberfreigabe die Allowlist **nicht** live ändern.
 - Render-Staging hat derzeit **keine nachgewiesen isolierte Datenbank**. Staging-Dienst und Produktionsdienst haben Auto-Deploy deaktiviert.
 - Die CI-Tests nutzen eine **flüchtige, isolierte PostgreSQL-18-Datenbank**. Ihr erfolgreicher Dump/Restore ist kein Nachweis für die echte Produktionsdatenbank.
 
@@ -12,6 +13,13 @@ Stand: 14.11.2026. **Nur Planung; keine Produktionszugriffe, Datenexporte, Migra
 1. Betreiber bestätigt Eigentümer, zulässige Zugriffsmethode, voraussichtliche Datenmenge, Frist und ein **kostenfreies** Fortführungsziel. Keine Zugangsdaten in GitHub, Tickets oder Logs ablegen.
 2. Kein Löschen/Ersetzen der bestehenden Render-DB, kein Upgrade und kein Tarifwechsel ohne gesonderte ausdrückliche Freigabe.
 3. Wenn kein kostenloses Ziel oder verifizierter Restore rechtzeitig verfügbar ist: **keinen** riskanten automatischen Umzug starten; Betreiber über Ablauf-/Verfügbarkeitsrisiko informieren.
+
+## Gate A2: Datenbank-Netzwerkzugang risikobewusst eingrenzen (neu 15.11.)
+
+1. Betreiber erfasst **ohne Secrets oder interne Verbindungsstrings** die tatsächlich benötigten DB-Verbindungswege (produktive Render-Web-Services, berechtigter Wartungs-/Backup-Client, eventuelle weitere ausdrücklich autorisierte Clients). Öffentlich erreichbare **Web-Service-URLs** nicht mit DB-Netzwerkregeln verwechseln.
+2. Für die derzeit offene IPv4-Allowlist `0.0.0.0/0` einen begründeten Minimalzugangsplan erstellen. Prüfen, ob interne Render-Verbindungen weiterhin erreichbar sind und welche externen festen Adressen überhaupt benötigt werden; dynamische IPs und Recovery-/Notfallzugriffe berücksichtigen.
+3. Vor jeder Änderung eine autorisierte, sichere Probe und einen konkreten Rückweg dokumentieren. Die Allowlist erst nach eigener ausdrücklicher Freigabe anpassen; keine produktive Verbindung durch einen ungeprüften Sofort-Fix aussperren.
+4. Bis zur dokumentierten Prüfung bleibt dieses Sicherheitsthema **OFFEN**. Eine zugängliche Netzwerkadresse beweist keine fehlende Passwortprüfung, ist aber eine unnötig breite Angriffsfläche, sofern weniger Zugriff benötigt wird.
 
 ## Gate B: Echter Sicherungsnachweis
 Nur ein autorisierter Betreiber darf eine echte Sicherung erstellen. Das Verfahren muss **nachweisbar**:
