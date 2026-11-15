@@ -99,3 +99,8 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Letzter bestätigter grüner Dokumentations-HEAD `c318749`, CI `43701704791`. Die CI für den Video-Isolationstest `2990c74` und nachfolgenden HEAD `61d555c` war beim Start noch in Bearbeitung; Ergebnis nicht vorwegnehmen.
 - Neuer Testcommit `9b0546f`: Nach `published → private` muss der Creator sein Bild weiter authentifiziert mit GET und HEAD (`200`) abrufen können, inklusive `private, no-store`, `nosniff`, `image/png` und unveränderten GET-Bytes. Anonymer Zugriff bleibt im unmittelbar vorherigen Test `401`.
 - Kein Servercode/Produktionszugriff; neue CI prüfen.
+
+## Fremde Löschung: Eigentümer-Video bleibt unverändert
+- Vorheriger HEAD `dc5eee2` erfolgreich: CI `43701848825`; Codecommit `9b0546f` erfolgreich: `43701835699`.
+- Neuer Commit `3bd311e`: Nach verweigerter Fremdlöschung (`404`) und Prüfung der weiter existierenden Datei wird der Videoabruf durch den Eigentümer mit GET und HEAD (`200`, `private, no-store`, `nosniff`, `video/mp4`) und unveränderten GET-Bytes geprüft. Erst danach erfolgt die legitime Eigentümer-Löschung.
+- Reiner E2E-Test, keine Änderung an produktiver Löschlogik; neue CI abwarten.
