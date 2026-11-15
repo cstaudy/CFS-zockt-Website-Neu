@@ -8,6 +8,8 @@
 - IPv4-`ipAllowList`: `0.0.0.0/0` (`everywhere`). Das erweitert Netzwerk-Erreichbarkeit; es ist **kein Beweis** für Zugang ohne PostgreSQL-Authentifizierung.
 - Produktions-Webservice nutzt `main`, Staging-Service `codex/render-hardening`; beide Auto-Deploy deaktiviert. Staging-DB-Isolation **nicht nachgewiesen**.
 - Die benötigten Datenbank-Verbindungswege, Betreiberberechtigungen und sichere IP-Einschränkungen sind **nicht verifiziert**. Keine laufende Änderung aus dieser Checkliste ableiten.
+- **Herstellerbestätigung (15.11.2026):** Laut [Render-Dokumentation](https://render.com/docs/postgresql-creating-connecting) steuert die DB-IP-Allowlist **nur externe DB-Verbindungen**. Interne URLs von Render-Diensten in derselben Region und demselben Workspace sind davon ausgenommen. **Nicht verifiziert** ist, welchen URL-Typ der konkrete produktive Dienst nutzt; keine Verbindungsdaten dafür ausgeben oder testweise ändern.
+- Render-Free-Postgres hat laut [Herstellerangaben](https://render.com/docs/free) eine 30-Tage-Frist und anschließend nur eine 14-tägige **bezahlte** Upgrade-Nachfrist, keine kostenlose Verlängerungszusage. Laut [Backup-Dokumentation](https://render.com/docs/postgresql-backups) fehlen für Free automatische logische Exporte und Point-in-Time-Recovery; ein autorisierter lokaler `pg_dump` **vor** Ablauf ist möglich und separat mit verschlüsseltem, isoliert geprüftem Restore abzusichern.
 
 ## A. Berechtigung und tatsächliche Verbindungspfade
 
@@ -25,7 +27,7 @@
 ## B. Entscheidungs- und Änderungsfenster
 
 1. Bis zum Planungsziel **20.11.2026** festhalten, welche Clientklassen tatsächlich benötigt werden. Ist eine benötigte IP dynamisch oder ein notwendiger Weg unbekannt, **STOPP**: keine Allowlist-Änderung.
-2. Kostenfreie und technisch verfügbare Einschränkungsoptionen anhand der zum Änderungszeitpunkt geltenden Render-Einstellungen **durch den berechtigten Betreiber** überprüfen; keine Funktion oder Erreichbarkeit voraussetzen.
+2. Kostenfreie und technisch verfügbare Einschränkungsoptionen anhand der zum Änderungszeitpunkt geltenden Render-Einstellungen **durch den berechtigten Betreiber** überprüfen; insbesondere **internen vs. externen** Datenbank-Verbindungstyp des Live-Dienstes ohne Preisgabe der URL klären. Keine Funktion oder Erreichbarkeit voraussetzen.
 3. Vor einem Eingriff Referenzzustand, zuständigen Operator, Kontrollperson, dokumentierten Rückweg und ein genehmigtes Wartungs-/Risikofenster festlegen. Wiederherstellbarkeit des Zugangs muss geklärt sein; kein offener Punkt als bestanden markieren.
 4. Für eine autorisierte spätere Änderung einen minimalen Kontrollplan festlegen: Anwendung verbindet sich weiterhin, autorisierte Backup-/Wartungswege funktionieren, unbefugter Netzwerkzugang ist soweit technisch vorgesehen begrenzt. Keine Produktionsdaten in Prüflogs.
 5. Bei Verbindungsfehlern, ungeklärter Netzwerkroute, fehlendem Rückweg oder nicht bestätigten Kosten **sofort STOPP**, zuvor freigegebenen Ausgangszustand durch Operator wiederherstellen und separat dokumentieren. Keine Migration, kein Tarifwechsel und kein Deployment als vermeintliche Abhilfe.
