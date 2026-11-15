@@ -1,9 +1,9 @@
 # Entscheidungsvorlage: PostgreSQL-Free-Ablauf am 09.12.2026
 
-Stand: 14.11.2026. **Keine Änderung an Render oder der Produktionsdatenbank.**
+Stand: 15.11.2026. **Keine Änderung an Render oder der Produktionsdatenbank.**
 
 ## Entscheidung, die der Betreiber treffen muss
-Die Render-Konsole nennt für `cfs-zockt-db` den **09.12.2026** als Free-Plan-Ablauf. Das bedeutet nicht, dass eine kostenfreie Verlängerung verfügbar ist. Rechtzeitig vor diesem Datum muss der Betreiber eine tatsächlich verfügbare, zulässige und **kostenfreie** Fortführungsoption bestätigen. Ohne diese Bestätigung keine automatische Migration, keine Löschung und kein riskanter Wechsel.
+Die schreibgeschützte Render-Abfrage vom 15.11.2026 bestätigt `cfs-zockt-db` als verfügbar (PostgreSQL 18, Free) und nennt **09.12.2026, 18:36:16 UTC** als konkreten Ablauf. Zugleich ist die DB-IPv4-Allowlist mit `0.0.0.0/0` offen; das ist **kein Nachweis eines unauthentifizierten Zugriffs**, verlangt aber eine von befugtem Betreiber geplante Einschränkungs-/Kompatibilitätsprüfung, ohne laufende Clients auszusperren. Das bedeutet nicht, dass eine kostenfreie Verlängerung verfügbar ist. Rechtzeitig vor diesem Datum muss der Betreiber eine tatsächlich verfügbare, zulässige und **kostenfreie** Fortführungsoption bestätigen. Ohne diese Bestätigung keine automatische Migration, keine Löschung und kein riskanter Wechsel.
 
 ## Optionen – nur nach Verifikation
 
@@ -34,6 +34,12 @@ Diese Daten sind **Planungsziele**, keine automatisierten Termine, Reservierunge
 - Backup: verschlüsseltes Artefakt in unabhängigem geschütztem Speicher, SHA-256 der verschlüsselten Datei, geprüfte Lesbarkeit.
 - Restore: isolierte Zielidentität, erfolgreiches Importprotokoll, Tabellen-/Schema-Inventar, erwartete Zählwerte nur aggregiert, dokumentierter Rollback.
 - Freigabe: getrennte Entscheidungen für Datenbankwechsel, Migrationen, Staging und Produktivdeployment.
+
+## Zusätzlicher Betreiberpunkt: DB-Netzwerkfreigabe (15.11.2026)
+
+- Eintrag `0.0.0.0/0` betrifft die **Datenbank-Allowlist**, nicht die HTTP-Freigabe des Web-Services. Netzwerkzugang allein hebt PostgreSQL-Authentifizierung nicht auf.
+- Bis zur Betreiberentscheidung am **20.11.2026** dokumentieren, welche produktiven internen und berechtigt externen Verbindungen tatsächlich gebraucht werden und wie vor einer Begrenzung Rückfall-/Notfallzugriff geprüft wird.
+- Keine sofortige IP-Sperrung oder Änderung der Render-Einstellungen: falsche Einschränkungen könnten Produktivdienst oder autorisierte Backups aussperren. Eigenständige Freigabe erforderlich. Das Abnahmeprotokoll erhält ein weiteres Pflichtfeld und bleibt **GESPERRT**.
 
 ## Konkrete Stop-Kriterien
 - Kein echter Restore-Nachweis oder nur ein erfolgreicher CI-Dump/Restore.
