@@ -73,3 +73,9 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Vorheriger Testcommit `7ee294f` (Widerruf öffentlicher GET/HEAD-Freigaben): GitHub Actions `43701127023` **success**. Dokumentations-HEAD `817e70d` beim Start dieser Runde noch in CI.
 - Neuer Commit `3b04c82`: Bereits vorhandene 401-Tests für (a) veröffentlichte Fremdreferenz und (b) noch nicht veröffentlichten eigenen Entwurf laufen jetzt jeweils für **GET und HEAD**. Zusätzlich wird `cache-control: no-store` bei beiden Ablehnungen geprüft.
 - Nur isolierter Testcode; kein Servercode, keine Rechteänderung, keine Produktion. Neue CI für diesen Commit/aktuellen HEAD abwarten.
+
+## Abgewiesene private Medienzugriffe: Header-Regression
+- Letzter vollständiger HEAD `0e85f2b`: GitHub Actions `43701234853` **success**; auch Testcommit `3b04c82` grün (`43701223900`).
+- Die bestehende authentifizierte PG18-E2E-Matrix deckt Bild und Video, GET und HEAD sowie anonymous `401`, foreign creator `404`, owner `200` ab.
+- Neuer Commit `5740633`: Für beide abgewiesenen Fälle werden nun zusätzlich `cache-control: no-store` und `x-content-type-options: nosniff` verlangt. Erfolgreiche Owner-Antworten bleiben wie bisher geprüft.
+- Ausschließlich Teständerung; keine Berechtigungs-/Server-/Produktionsänderung. Aktuelle CI abwarten.
