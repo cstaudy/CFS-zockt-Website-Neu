@@ -22,6 +22,38 @@ for (const mime of ["text/html", "application/javascript", "image/svg+xml",
   "application/pdf", "application/octet-stream", "", null, undefined, "IMAGE/PNG", "__proto__", "constructor", "toString", "hasOwnProperty"]) {
   assert.equal(uploadStorageExtension(mime), null, "Unsupported MIME cannot produce a stored upload filename");
 }
+// Simulate another module polluting Object.prototype. Inherited keys must
+// never become approved storage MIME types or same-origin delivery MIME types.
+const inheritedMappings = [
+  [".svg", "image/svg+xml"],
+  [".html", "text/html"],
+  ["application/x-cfs-inherited", ".html"]
+];
+const priorDescriptors = inheritedMappings.map(([key]) =>
+  [key, Object.getOwnPropertyDescriptor(Object.prototype, key)]);
+try {
+  for (const [key, value] of inheritedMappings) {
+    Object.defineProperty(Object.prototype, key, {
+      configurable: true, writable: true, value
+    });
+  }
+  assert.equal(uploadStorageExtension("application/x-cfs-inherited"), null,
+    "Prototype-only MIME extension must never become a supported upload");
+  for (const suffix of [".svg", ".html"]) {
+    assert.deepEqual(uploadDeliveryHeaders("untrusted" + suffix), {
+      "content-type": "application/octet-stream",
+      "content-disposition": 'attachment; filename="download"'
+    }, "Prototype-only delivery MIME must not render a legacy active document");
+  }
+  assert.deepEqual(uploadDeliveryHeaders("trusted.png"),
+    { "content-type": "image/png" },
+    "Explicitly supported media still uses its declared MIME during pollution");
+} finally {
+  for (const [key, previous] of priorDescriptors) {
+    if (previous) Object.defineProperty(Object.prototype, key, previous);
+    else delete Object.prototype[key];
+  }
+}
 const forbidden = [
   "legacy.html", "legacy.HTM", "legacy.svg", "legacy.js", "legacy.css",
   "legacy.xml", "legacy.json", "legacy.txt", "legacy.pdf",
