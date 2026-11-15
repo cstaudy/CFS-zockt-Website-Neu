@@ -58,3 +58,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Öffentliche Widget-Bilder: zusätzliche HTTP-Abnahme
 - Bestehende PG18-CI testet veröffentlichte OBS-Bilder ohne Login und private Videos weiterhin mit `401`. Neuer Test `acc3f5e` verlangt auf öffentlich freigegebenen Bildern bei GET+HEAD zusätzlich `x-content-type-options: nosniff` und `content-type: image/png`.
 - Keine produktive Freigabe oder neue Route. Nächster Schritt: GitHub Actions für den neuen Commit kontrollieren; manueller Browser-Test vor Deployment weiterhin offen.
+
+## Widerruf öffentlicher Widget-Bilder
+- Neuer E2E-Test `7ee294f`: Ein zuvor veröffentlichtes OBS-Bild muss nach Wechsel auf `private` anonym bei GET **und** HEAD `401` sowie `cache-control: no-store` liefern.
+- Vorheriger HEAD `9ae94ff` war grün (Run `43701057296`). Aktuelle CI abwarten; Browser-/Merge-/Backup-Gates bleiben offen.
