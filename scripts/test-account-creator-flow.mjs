@@ -979,6 +979,21 @@ try {
     assert.equal(response.headers.get('cache-control'), 'no-store',
       'Denied public upload requests must not be cached');
   }
+  // Unpublishing revokes public access, not the creator's own access.
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + asset.data.asset.url, {
+      method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
+    });
+    assert.equal(response.status, 200,
+      'Unpublishing must preserve authenticated owner GET/HEAD access');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(response.headers.get('content-type'), 'image/png');
+    if (method === 'GET') {
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), privateImage,
+        'Unpublished owner image bytes must remain intact');
+    }
+  }
   const savedVideoLeaf = media.data.media.url.slice('/assets/uploads/'.length);
   const savedVideoPath = join(uploadRoot, savedVideoLeaf);
   await access(savedVideoPath);
