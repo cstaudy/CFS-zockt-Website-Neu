@@ -51,3 +51,9 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Dateidiff-Abgleich: #89 und #90 ändern beide `scripts/test-account-creator-flow.mjs`, aber unterschiedliche Testabschnitte (#89 Quota-/Uploadvalidierung; #90 GET/HEAD-Auslieferungsheader). Kein Nachweis eines tatsächlichen Mergekonflikts aus Dateinamen allein; **kombinierte CI nach einem autorisierten Merge erforderlich**.
 - #91 berührt keine Dateien der beiden Security-PRs; eigener CI-Check ist in `package.json` ergänzt. Für die Reihenfolge ist erst ein freigegebener Security-PR, dann CI auf `main`, anschließend der nächste PR sinnvoll; keinerlei automatischer Merge.
 - Offene Freigaben: expliziter Mergeentscheid, manueller Browser-Test vor Deploy, echte Produktionsbackup-/Staging-Gates weiterhin GESPERRT.
+
+## Präziser Hunk-Abgleich der gemeinsamen Testdatei
+- PR #89 erweitert `scripts/test-account-creator-flow.mjs` bei Basiszeile 772 (Upload-Quota-/Streaming-/Größengrenztests, vor `const asset = ...`).
+- PR #90 ergänzt dieselbe Datei erst bei Basiszeile 890 (GET/HEAD-HTTP-200-Header-Assertions innerhalb der Owner-Schleife).
+- Die GitHub-Patches sind räumlich getrennt, ihre jeweiligen Kontexte überschneiden sich nicht; damit ist ein textueller Hunk-Konflikt **nicht zu erwarten**. Das ist keine simulierte Merge- oder kombinierte CI-Ausführung; nach autorisiertem Merge weiter prüfen.
+- Letzte grüne CI #90: `43644681889` auf HEAD `305d179`. #89/#90/#91 weiterhin offen, clean, ohne Merge-Freigabe.
