@@ -1,6 +1,6 @@
 # Abnahmeprotokoll: Produktionsbackup und isolierter Restore (Vorlage)
 
-Stand: 14.11.2026. **Unbefüllte Vorlage, kein durchgeführter Backup-/Restore-Test.** Dieses Dokument darf nur **nicht geheime** Metadaten enthalten. Keine DB-URLs, Passwörter, personenbezogenen Daten, Dumps, Schlüssel oder personenbezogene Tabelleninhalte eintragen.
+Stand: 15.11.2026. **Unbefüllte Vorlage, kein durchgeführter Backup-/Restore-Test.** Dieses Dokument darf nur **nicht geheime** Metadaten enthalten. Keine DB-URLs, Passwörter, personenbezogenen Daten, Dumps, Schlüssel oder personenbezogene Tabelleninhalte eintragen.
 
 ## A – Verantwortlichkeit und Kosten
 
@@ -11,6 +11,7 @@ Stand: 14.11.2026. **Unbefüllte Vorlage, kein durchgeführter Backup-/Restore-T
 | Kostenfreie Zieloption und verbindlich geprüfte Bedingungen | OFFEN |
 | Kostenprüfung (0 zusätzliche EUR bestätigt?) | NEIN – nicht nachgewiesen |
 | Export-/Restore-Zugriffsberechtigung geprüft? | NEIN – nicht nachgewiesen |
+| DB-Netzwerkzugang und erforderliche Client-Ausnahmen geprüft? | NEIN – nicht nachgewiesen |
 | Datenschutz-/Aufbewahrungsfreigabe? | NEIN – nicht nachgewiesen |
 
 ## B – Sicherung
