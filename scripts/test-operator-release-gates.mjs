@@ -239,7 +239,7 @@ function validateBackupRunbook(markdown) {
     "Runbook must require an isolated minimal-privilege app check");
   assert.match(restoreSection, /STOPP/,
     "Missing restore role or dependency checks must block release");
-  assert.match(markdown, /globale Clusterobjekte/,
+  assert.match(markdown, /globalen? Clusterobjekte/,
     "Single-database dumps must not be mistaken for role backups");
 }
 validateBackupRunbook(backupRunbook);
