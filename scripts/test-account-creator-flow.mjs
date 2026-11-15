@@ -986,16 +986,22 @@ try {
   assert.equal(deleted.status, 200, 'Owner must be able to delete own media metadata');
   await assert.rejects(access(savedVideoPath), { code: 'ENOENT' },
     'Owned unreferenced video bytes must be physically removed after metadata deletion');
-  for (const method of ['GET', 'HEAD']) {
-    const response = await fetch(base + media.data.media.url, {
-      method, headers: { cookie: login.cookie }, signal: AbortSignal.timeout(8000)
-    });
-    assert.equal(response.status, 404,
-      'Deleted media must no longer be accessible by authenticated GET or HEAD');
-    assert.equal(response.headers.get('cache-control'), 'no-store',
-      'Deleted media responses must not be cached');
-    assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
-      'Deleted media responses must disable MIME sniffing');
+  for (const [who, cookie, expectedStatus] of [
+    ['anonymous', undefined, 401],
+    ['foreign creator', mediaOtherCookie, 404],
+    ['owner', login.cookie, 404]
+  ]) {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(base + media.data.media.url, {
+        method, headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(8000)
+      });
+      assert.equal(response.status, expectedStatus,
+        `Deleted media must deny ${who} ${method} with HTTP ${expectedStatus}`);
+      assert.equal(response.headers.get('cache-control'), 'no-store',
+        'Deleted media responses must not be cached');
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff',
+        'Deleted media responses must disable MIME sniffing');
+    }
   }
   assert.equal((await request('DELETE',
     `/api/creator/media/videos/${media.data.media.id}`, {
