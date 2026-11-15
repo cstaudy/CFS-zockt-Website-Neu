@@ -41,6 +41,17 @@ Die Daten sind **Zieltermine, keine automatischen Termine oder Ausführungszusag
 
 **Review-Kriterium:** Ein erfolgreiches `createdb` ist Voraussetzung dafür, dass ein temporäres Testziel bei `cleanup` gelöscht werden darf. Bei Namenskollision muss der Test mit Fehler abbrechen, statt vorbestehende Daten zu entfernen. Vor einem späteren Merge ist weiterhin ausdrückliche Freigabe und nach kombinierter Integration CI auf aktualisiertem `main` notwendig. Keine Live-SQL-, Backup-, Render-, Tarif- oder Deployment-Aktion.
 
+## 15.11.2026 – Restore-Testgrenze mit negativen, datenbankfreien Fällen nachweisen
+
+| Priorität | Ergebnis / Test | Nachweis und nächste Aufgabe |
+| --- | --- | --- |
+| **P0 – Guard darf keine fremde DB erreichen** | `scripts/test-pg18-backup-refusal.mjs` simuliert 5 unzulässige CI-Konfigurationen: fehlendes Opt-in, abweichende DB-URL, falscher GitHub-Actions-Kontext, Repo und Job. Muss jeweils mit Exitcode **2** ablehnen, **bevor Docker gestartet wird**. | Neuer Testcommit `b745f7d`; vollständigen CI-Lauf für aktuellen Branch kontrollieren. |
+| **P0 – Fremder PG18-Container muss vor jedem SQL-Aufruf scheitern** | Ein fake `docker ps/inspect` meldet einen PG18-Container mit falschem `POSTGRES_DB`; Test erwartet Refusal **vor** `docker exec` oder anderen datenbankverändernden Befehlen. Keine reale Docker-/Postgres-Verbindung. | Negativtests fest in `npm run check` integriert (Commit `daad6f0`); bei Fehlschlag gezielt korrigieren. |
+| **P0 – Korrekte positive Wegwerf-CI bleibt funktionsfähig** | Bisheriger `scripts/test-pg18-backup-restore.sh` prüft weiterhin synthetische PG18-Daten und ACL-Verlust; letzte vollständig grüne Branch-CI vor dieser Arbeit [43740793960](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43740793960). | **Beide** Tests müssen auf dem neuen HEAD grün sein; ein Negativtest allein ersetzt keine positive Restore-Prüfung. |
+| **P0 – reale Daten vor Free-Ablauf sichern** | **GESPERRT**: echte Produktivsicherung, isolierter Restore, Staging-Trennung und Freigaben nicht nachgewiesen. | Bis **20.11.** Betreiberentscheidung, Ziel **25.11.** Sicherung und **30.11.** Restore. [Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93). |
+
+Die neue Prüfung ruft ausschließlich eine gefälschte `docker`-Datei aus einem temporären Ordner auf. Sie schützt vor einer versehentlichen Entfernung des CI-Gates, ist aber **keine harte Sicherheitsgrenze gegen absichtlich gefälschte Runner/Env**. Kein SQL, Export, Merge, Render-Change, Deploy oder zusätzliche Kosten. Übergabe: `docs/handover/2026-11-14-backup-staging-gates.md`.
+
 ## Nächste Entwicklungsrunde
 
 1. **Aktuellen CI-Lauf** nach dieser Übergabe-/Planänderung prüfen; Fehler ausschließlich begründet korrigieren. **Kein** automatisches „grün“, bevor GitHub Actions für den neuen HEAD Erfolg gemeldet hat.
