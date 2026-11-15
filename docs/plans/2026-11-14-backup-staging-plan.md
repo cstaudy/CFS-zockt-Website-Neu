@@ -97,3 +97,14 @@ Referenz: `docs/operations/PRODUCTION_BACKUP_STAGING_GATE.md`.
 **Stop-Entscheid:** Sollte irgendein notwendiger DB-Zugangsweg, eine Backup-Verbindung, die Rückfallmöglichkeit oder die Betreiberfreigabe fehlen, **keine** Live-Allowlist-Änderung. Die Checkliste ist keine tatsächliche Prüfung oder Zusage für die Verfügbarkeit einer kostenfreien Render-Option.
 
 **Nächste Entwicklungsrunde:** die vollständige CI nach `2dc7971` und dem Dokumentations-HEAD verifizieren, bei Befund korrigieren, dann PR #91 als review-bereit belassen. Keine neuen Tests ohne konkrete Fehlstelle; die nächste reale Aktion erfordert Betreiberentscheidung. Weiterhin zu jeder Aktualisierung **Übergabe und Entwicklungsplan** fortschreiben.
+
+## 15.11.2026 – Pflichtfeld-Vertrag für die Netzwerk-Checkliste
+
+| Priorität | Aufgabe | Fortschritt | Nächster Schritt |
+| --- | --- | --- | --- |
+| P0 | Netzwerk-Freigabeformular vollständig halten | `6a29cf1`: 11 exakte Felder und Reihenfolge als Offline-Vertrag; je Feld unerlaubtes `JA` und Löschen negativ getestet | Neue CI für Testcommit und aktuellen Dokumentations-HEAD prüfen; bei Fehler gezielt korrigieren |
+| P0 | Gate A2 und zugehörige Checkliste verknüpfen | Querverweise zwischen `PRODUCTION_BACKUP_STAGING_GATE.md` und `DB_NETWORK_ALLOWLIST_OPERATOR_CHECKLIST.md` automatisch geprüft | Review im offenen PR #91; **keine** Freigabe durch CI |
+| P0 | Kostenfreie DB-Fortführung bis 09.12.2026 absichern | Ablauf 09.12.2026 18:36 UTC bestätigt, Fortsetzung nicht bestätigt | Betreiberentscheidung zu zulässiger kostenfreier Option und DB-Netzwerkzugängen bis Planungsziel **20.11.2026** |
+| P0 | Produktivbackup, isolierter Restore, Staging-Trennung | **GESPERRT**; echte Betriebsnachweise und Genehmigungen fehlen | Nur autorisierte Betreiber können Nachweise erbringen; weder SQL noch Dump, Migration, IP-Änderung oder Deployment eigenständig ausführen |
+
+**Stoppregel:** Grüne CI heißt lediglich, dass die unveränderten, nicht freigegebenen Vorlagen konsistent sind – niemals, dass eine echte Backup-/Netzwerk-/Staging-Prüfung stattfand. Kein Merge von #89/#90/#91 ohne ausdrückliche Freigabe; nach einem genehmigten Merge vollständige CI auf aktualisiertem `main` prüfen. Übergabe: `docs/handover/2026-11-14-backup-staging-gates.md`.
