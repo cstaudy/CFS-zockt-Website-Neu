@@ -13,7 +13,14 @@ Die bestehende Hilfsfunktion `removeDeletedMediaFile()` in `src/media-file-clean
 - In `src/media-file-cleanup.js` erlaubt nur `(await isReferenced(stored)) === false` eine physische Löschung. Alle anderen Rückgaben liefern konservativ `"referenced"`, ohne die Datei zu berühren. Eine geworfene DB-Ausnahme bleibt unverändert eine Ausnahme, ebenfalls ohne Dateilöschung.
 - In `scripts/test-media-file-cleanup.mjs` prüfen neue isolierte Dateisystemtests ausdrücklich `undefined`, `null`, `0`, Leerstring, leeres Objekt, leeres Array und `"false"`: Datei bleibt erhalten, Ergebnis ist `"referenced"`.
 - Bestehende positive Fälle bleiben: echte Referenz (`true`) schützt, nur `false` löscht, fremde Dateien werden nicht angefasst, fehlende Dateien bleiben idempotent, DB-Abfragefehler löscht nicht.
-- Code `120984e`, Test `41a000a`. **CI des finalen PR-HEAD separat nachweisen**; vor Erfolg keine Mergefreigabe behaupten.
+- Code `120984e`, Cleanup-Unit-Test `41a000a`. Die vorherige [vollständige CI 43776094603](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43776094603) war **grün**. Für die zusätzliche HTTP-/PG18-Regressionsrunde und den finalen Dokumentations-HEAD sind **eigene** vollständige CI-Ergebnisse erforderlich.
+
+## Ergänzter realer HTTP-/PostgreSQL-Regressionsnachweis (16.11.2026)
+
+- In `scripts/test-account-creator-flow.mjs` wurde auf dem bereits vorhandenen **isolierten PostgreSQL-18-CI-Backend** ein zweiter, owner-scoped `user_media`-Datensatz mit demselben `storage_path` wie eine zuvor hochgeladene Wegwerf-Videodatei angelegt. Die Test-DB nutzt ausschließlich synthetische Kontodaten und temporäre Bytes.
+- Über die **echten authentifizierten HTTP-DELETE-Endpunkte** wird zunächst der ursprüngliche Medieneintrag gelöscht. Die Datei muss auf Disk erhalten bleiben und der zweite Datensatz weiterhin über `GET /api/creator/media/clips` sichtbar sein. Erst `DELETE` des **letzten** Datensatzes darf die physischen Bytes entfernen. Ein `finally`-Block entfernt ausschließlich die bekannten CI-Fixtures, auch wenn eine Prüfung scheitert.
+- Dieser Test ergänzt den vorhandenen HTTP-Fall, in dem ein `creator_assets`-Datensatz dieselbe Datei referenziert, und die sieben isolierten Fehlwert-Tests des Cleanup-Helpers. Er kontrolliert ausdrücklich die Integration zwischen API, PostgreSQL-Referenzabfrage und Dateisystem, **nicht** nur einen simulierten Callback.
+- Neuer Testcommit `abe2bf3`. Dessen **vollständige** CI sowie der spätere Dokumentations-HEAD müssen vor jeder Review-Empfehlung tatsächlich erfolgreich sein; die vorige vollständige [CI 43776094603](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43776094603) war bereits **grün**, belegt aber den neuen HTTP-Test noch nicht.
 
 ## Operative Grenzen
 
