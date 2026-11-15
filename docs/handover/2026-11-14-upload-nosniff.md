@@ -89,3 +89,8 @@ Code und Tests committet; CI-Nachweis für diesen neuen Branch bei Erstellung no
 - Letzter dokumentierter HEAD `4acc33e`: CI `43701460576` **success**; gelöschtes Video GET/HEAD mit Owner-Cookie grün.
 - Neuer Commit `304f841`: Nach physischer Löschung werden die alte Video-URL und die Header bei GET/HEAD für **anonym (401)**, **fremden Creator (404)** und **Eigentümer (404)** geprüft. Für alle sechs Antworten: `cache-control: no-store`, `x-content-type-options: nosniff`.
 - Statuscodes spiegeln die bereits vorhandene Zugriffskontrolle wider; keine Änderung an Server- oder Datenbankcode. CI für den neuen Commit und den aktuellen Dokumentations-HEAD abwarten.
+
+## Veröffentlichte Bildreferenz darf privates Video nicht freigeben
+- Testcommit `304f841` (gelöschte Videos, 3 Rollen × GET/HEAD) in CI `43701694175` **success**. Dokumentations-HEAD `c318749` beim Start dieser Runde noch in CI.
+- Neuer Commit `2990c74`: Während ein OBS-Widget das Eigentümer-Bild veröffentlicht, muss das separate private Video weiterhin bei anonymem GET und HEAD `401`, `cache-control: no-store` und `x-content-type-options: nosniff` liefern.
+- Kein Servercode und keine Produktionsänderung; neue CI abwarten.
