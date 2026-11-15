@@ -78,3 +78,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Testmatrix nach Video-Löschung
 - `304f841` erweitert den Löschpfad auf sechs Fälle: 3 Rollen (anonym/foreign/owner) × 2 Methoden (GET/HEAD). Erwartet `401/404/404` und jeweils `no-store` + `nosniff`.
 - Vorherige CI `43701460576` grün. Nächster Schritt: neuen CI-Lauf prüfen, eventuelle Abweichungen beheben; anschließend Review und Freigabeentscheidung. Browser-, Backup-/Restore- und Staging-Gates bleiben offen.
+
+## Rechte-Isolation bei veröffentlichten OBS-Bildern
+- Neuer Test `2990c74`: Eine veröffentlichte Bildreferenz darf nicht versehentlich das private Video desselben Creators freigeben. Anonymes GET+HEAD auf Video muss `401`, `no-store` und `nosniff` liefern.
+- Vorherige Löschtest-CI `43701694175` grün. Nächste Schritte: neuen CI-Lauf kontrollieren, dann Review; Browser-/Backup-/Staging-Gates und explizite Mergefreigabe bleiben offen.
