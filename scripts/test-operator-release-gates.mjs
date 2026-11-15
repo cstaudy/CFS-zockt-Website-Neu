@@ -4,10 +4,11 @@ import { readFile } from "node:fs/promises";
 const root = new URL("../docs/operations/", import.meta.url);
 const read = name => readFile(new URL(name, root), "utf8");
 
-const [template, gates, deadline] = await Promise.all([
+const [template, gates, deadline, networkChecklist] = await Promise.all([
   read("DB_BACKUP_RESTORE_EVIDENCE_TEMPLATE.md"),
   read("PRODUCTION_BACKUP_STAGING_GATE.md"),
-  read("FREE_POSTGRES_DEADLINE_DECISION.md")
+  read("FREE_POSTGRES_DEADLINE_DECISION.md"),
+  read("DB_NETWORK_ALLOWLIST_OPERATOR_CHECKLIST.md")
 ]);
 
 // This is a documentation safety contract, NOT evidence of a real backup.
@@ -135,6 +136,30 @@ const prematurelyApprovedNetwork = gates.replace(
 assert.notEqual(prematurelyApprovedNetwork, gates, "Network approval mutation fixture failed");
 assert.throws(() => validateNetworkGate(prematurelyApprovedNetwork),
   /must remain open/);
+// The supplemental network operator checklist is a planning aid, not approval.
+// Its 11 explicit decision/evidence rows must all remain OFFEN or NEIN.
+assert.match(networkChecklist, /Gesamtstatus:\s*GESPERRT/);
+assert.match(networkChecklist, /0\.0\.0\.0\/0/);
+assert.match(networkChecklist, /20\.11\.2026/);
+assert.match(networkChecklist, /Rückweg/);
+function validateNetworkChecklist(markdown) {
+  const rows = markdown.split("\n").filter(line => /^\| .+ \| .+ \|$/.test(line))
+    .filter(line => !/^\| (?:Nachweis|Entscheidung|---)/.test(line));
+  assert.equal(rows.length, 11, "Network checklist evidence/decision rows changed");
+  for (const line of rows) {
+    const cells = line.slice(1, -1).split("|").map(cell => cell.trim());
+    assert.equal(cells.length, 2, "Unexpected network checklist column count");
+    assert.match(cells[1], /^(?:OFFEN|NEIN)(?:$|\s)/,
+      `Network checklist must remain unapproved: ${cells[0]}`);
+  }
+}
+validateNetworkChecklist(networkChecklist);
+const prematureNetworkApproval = networkChecklist.replace(
+  "| Verantwortliche Betreiberrolle und ausdrückliche Prüferlaubnis dokumentiert | OFFEN |",
+  "| Verantwortliche Betreiberrolle und ausdrückliche Prüferlaubnis dokumentiert | JA |"
+);
+assert.notEqual(prematureNetworkApproval, networkChecklist, "Network checklist mutation failed");
+assert.throws(() => validateNetworkChecklist(prematureNetworkApproval));
 assert.match(gates, /Produktivdeploy erst nach allen Gates/i);
 assert.match(deadline, /Keine Änderung an Render/i);
 console.log("Operator release-gate docs: blocked defaults, deadline, backup/restore and staging controls.");
