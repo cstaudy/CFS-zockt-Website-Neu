@@ -44,7 +44,18 @@ Das bestehende `npm run check` ruft in PR #91 `scripts/test-operator-release-gat
 
 **Das sind ausschließlich Planungsziele; sämtliche Betreiber-Nachweise fehlen.** Das Issue und die Dokumente enthalten keinerlei Geheimnisse oder personenbezogene Datensätze.
 
-## 5. Nächste Schritte, Stop- und Rollback-Regel
+## 5. Technischer Sicherheits-Fix am isolierten CI-Restore (15.11.2026)
+
+Bei der PR-Review fiel eine vermeidbare destruktive Testoperation auf: `scripts/test-pg18-backup-restore.sh` verwendete `cfs_ci_restore_acceptance` als **festen** Zieldatenbanknamen und führte vor `createdb` unconditionally `dropdb --if-exists` aus. Auch bei Wegwerf-Tests soll keine möglicherweise bereits existierende Datenbank allein zur Vorbereitung gelöscht werden.
+
+- **Commit `8fc4ccb` – [CI 43740524530 grün](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43740524530):** Der Restore-Test benutzt jetzt einen pro Lauf zufällig benannten `cfs_ci_restore_acceptance_<nonce>`-Zielnamen, **ohne vorheriges `dropdb`**. `cleanup` entfernt Ziel- und ACL-Probe-Datenbanken **nur nach erfolgreichem eigenem `createdb`**. Eine bereits existierende DB führt zu einem Fehler statt zur Löschung.
+- **Commit `6f3554d`:** Auch die beiden `NOLOGIN`-Testrollen werden nur dann aufgeräumt, wenn ihre Erstellung in diesem Lauf erfolgreich war. Kein unbedingtes Löschen zufällig kollidierender Rollen.
+- **Commit `a46eac7`:** Zusätzlicher bewusster CI-Kontextschutz: erforderlich sind das explizite Wegwerf-DB-Opt-in, die exakte Test-URL, `GITHUB_ACTIONS=true`, das erwartete Repository und der Job `check`. Vor jedem Docker-Exec wird zusätzlich die gewählte `postgres:18`-Container-Konfiguration auf `POSTGRES_DB=cfs_ci` und `POSTGRES_USER=cfs_ci` geprüft. Dies ist ein Schutz **gegen versehentliche Fehlbedienung**, kein kryptografischer Schutz gegen absichtlich gefälschte Umgebungsvariablen.
+- Die neuen Codecommits nach `8fc4ccb` und dieser Dokumentationsstand sind **bis zur tatsächlichen vollständigen CI nicht als grün zu deklarieren**. Die Tests bleiben ausschließlich auf die Wegwerf-PostgreSQL-Datenbank in GitHub Actions beschränkt, mit unverändertem synthetischem ACL-/Restore-Nachweis.
+
+**Produktionsgrenzen unverändert:** Issue [#93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) offen; kein echter Render-Dump, Restore, Staging-DB-Isolationsnachweis, Merge, Deployment, Tarifwechsel oder produktive Datenbankänderung.
+
+## 6. Nächste Schritte, Stop- und Rollback-Regel
 
 1. CI für **diesen neuen Dokumentations-HEAD** prüfen und gegebenenfalls korrigieren. Keine neue Testmatrix ohne konkrete Fehlstelle.
 2. PRs #89/#90/#91 separat technisch reviewen. #89 und #90 ändern Teile der gleichen E2E-Datei; nach einer **ausdrücklich genehmigten** Integration ist vollständige kombinierte CI auf aktualisiertem `main` erforderlich.
