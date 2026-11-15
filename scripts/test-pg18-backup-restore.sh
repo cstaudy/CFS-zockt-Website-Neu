@@ -18,21 +18,32 @@ fi
 container="${containers[0]}"
 archive_dir="$(mktemp -d)"
 archive="${archive_dir}/cfs-ci.pgdump"
-restore_db="cfs_ci_restore_acceptance"
+# All temporary database names are unique per run: never drop a previous run's
+# fixed-name DB merely to prepare a new acceptance test.
 # All ACL/owner fixtures are created ONLY inside the guarded ephemeral PG18 CI
 # container. Unique names avoid overwriting any other temporary test database.
 probe_nonce="$(printf '%04x%04x' "$RANDOM" "$RANDOM")"
+restore_db="cfs_ci_restore_acceptance_${probe_nonce}"
+restore_created=0
+probe_source_created=0
+probe_clone_created=0
 probe_source_db="cfs_ci_acl_source_${probe_nonce}"
 probe_clone_db="cfs_ci_acl_clone_${probe_nonce}"
 probe_owner_role="cfs_ci_acl_owner_${probe_nonce}"
 probe_reader_role="cfs_ci_acl_reader_${probe_nonce}"
 probe_archive="${archive_dir}/acl-probe.pgdump"
 cleanup() {
-  docker exec "$container" dropdb -U cfs_ci --if-exists "$probe_clone_db" >/dev/null 2>&1 || true
-  docker exec "$container" dropdb -U cfs_ci --if-exists "$probe_source_db" >/dev/null 2>&1 || true
+  if [[ "$probe_clone_created" == 1 ]]; then
+    docker exec "$container" dropdb -U cfs_ci --if-exists "$probe_clone_db" >/dev/null 2>&1 || true
+  fi
+  if [[ "$probe_source_created" == 1 ]]; then
+    docker exec "$container" dropdb -U cfs_ci --if-exists "$probe_source_db" >/dev/null 2>&1 || true
+  fi
   docker exec "$container" psql -U cfs_ci -d cfs_ci -qAt -v ON_ERROR_STOP=1 \
     -c "DROP ROLE IF EXISTS ${probe_owner_role}; DROP ROLE IF EXISTS ${probe_reader_role};" >/dev/null 2>&1 || true
-  docker exec "$container" dropdb -U cfs_ci --if-exists "$restore_db" >/dev/null 2>&1 || true
+  if [[ "$restore_created" == 1 ]]; then
+    docker exec "$container" dropdb -U cfs_ci --if-exists "$restore_db" >/dev/null 2>&1 || true
+  fi
   rm -rf -- "$archive_dir"
 }
 trap cleanup EXIT
@@ -46,8 +57,8 @@ sha256sum "$archive" > "${archive}.sha256"
 docker exec -i "$container" pg_restore --list < "$archive" > /dev/null
 
 # Restore must be performed into a separate, initially empty database.
-docker exec "$container" dropdb -U cfs_ci --if-exists "$restore_db" > /dev/null
 docker exec "$container" createdb -U cfs_ci "$restore_db"
+restore_created=1
 docker exec -i "$container" pg_restore -U cfs_ci -d "$restore_db" \
   --no-owner --no-acl --exit-on-error < "$archive"
 
@@ -89,7 +100,9 @@ restore_catalog="$(docker exec "$container" psql -U cfs_ci -d "$restore_db" -At 
 docker exec "$container" psql -U cfs_ci -d cfs_ci -qAt -v ON_ERROR_STOP=1 \
   -c "CREATE ROLE ${probe_owner_role} NOLOGIN; CREATE ROLE ${probe_reader_role} NOLOGIN;" > /dev/null
 docker exec "$container" createdb -U cfs_ci "$probe_source_db"
+probe_source_created=1
 docker exec "$container" createdb -U cfs_ci "$probe_clone_db"
+probe_clone_created=1
 docker exec "$container" psql -U cfs_ci -d "$probe_source_db" -qAt -v ON_ERROR_STOP=1 \
   -c "CREATE TABLE public.acl_probe (id integer PRIMARY KEY, label text NOT NULL);
       INSERT INTO public.acl_probe VALUES (1, 'synthetic-fixture');
