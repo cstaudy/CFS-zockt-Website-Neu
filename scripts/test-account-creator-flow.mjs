@@ -947,8 +947,13 @@ try {
   assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
     cookie: login.cookie, body: { status: 'private' }
   })).status, 200);
-  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
-    'Unpublishing the owner widget must immediately revoke anonymous access');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + asset.data.asset.url, { method });
+    assert.equal(response.status, 401,
+      'Unpublishing the owner widget must immediately revoke anonymous GET/HEAD access');
+    assert.equal(response.headers.get('cache-control'), 'no-store',
+      'Denied public upload requests must not be cached');
+  }
   const savedVideoLeaf = media.data.media.url.slice('/assets/uploads/'.length);
   const savedVideoPath = join(uploadRoot, savedVideoLeaf);
   await access(savedVideoPath);
