@@ -19,14 +19,16 @@ const deliveryTypes = Object.fromEntries(
 deliveryTypes[".jpeg"] = "image/jpeg";
 
 export function uploadStorageExtension(mime) {
-  return typeof mime === "string" ? uploadExtensions[mime] || null : null;
+  return typeof mime === "string" && Object.hasOwn(uploadExtensions, mime)
+    ? uploadExtensions[mime] : null;
 }
 
 // Never interpret legacy, user-named .html/.svg/.js/.xml/etc. uploads as
 // executable same-origin documents, even if the DB authorizes their bytes.
 // Unknown extensions can still be downloaded by their owner.
 export function uploadDeliveryHeaders(path) {
-  const mime = deliveryTypes[extname(path).toLowerCase()];
+  const extension = extname(path).toLowerCase();
+  const mime = Object.hasOwn(deliveryTypes, extension) ? deliveryTypes[extension] : null;
   return mime
     ? { "content-type": mime, "x-content-type-options": "nosniff" }
     : {
