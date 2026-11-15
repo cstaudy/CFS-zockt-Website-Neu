@@ -92,6 +92,46 @@ for (const document of [gates, deadline]) {
   assert.match(document, /Staging/i);
   assert.match(document, /Freigabe/i);
 }
+// Protect the new DB-network exposure gate against silent removal or false
+// approval. This tests the documentation contract, not a live Render setting.
+function validateNetworkGate(document) {
+  const start = document.indexOf("## Gate A2:");
+  assert.ok(start >= 0, "Gate A2 for database network exposure is missing");
+  const end = document.indexOf("\n## ", start + 1);
+  assert.ok(end > start, "Gate A2 must be a standalone section");
+  const section = document.slice(start, end);
+  for (const [description, required] of [
+    ["existing wide IPv4 allowlist", /0\\.0\\.0\\.0\\/0/],
+    ["actual required database connections", /DB-Verbindungswege/],
+    ["separate web and database access", /Web-Service-URLs/],
+    ["rollback before restriction", /Rückweg/],
+    ["explicit operator authorization", /ausdrücklicher Freigabe/],
+    ["unapproved default", /\\*\\*OFFEN\\*\\*/]
+  ]) {
+    assert.match(section, required, `Network gate missing: ${description}`);
+  }
+  const summary = document.split("\n").find(line =>
+    line.startsWith("| A2 – DB-Netzwerkzugang |"));
+  assert.ok(summary, "Network gate missing from formal status table");
+  assert.match(summary, /\\| Offen \\|/,
+    "Network gate must remain open until an authorized decision");
+}
+validateNetworkGate(gates);
+const missingNetworkGate = gates.replace(
+  /## Gate A2:[\\s\\S]*?(?=\\n## Gate B:)/, ""
+);
+assert.notEqual(missingNetworkGate, gates, "Network gate removal fixture failed");
+assert.throws(() => validateNetworkGate(missingNetworkGate), /Gate A2/);
+const hiddenWideExposure = gates.replace("`0.0.0.0/0`", "`10.0.0.0/8`");
+assert.notEqual(hiddenWideExposure, gates, "Network exposure mutation fixture failed");
+assert.throws(() => validateNetworkGate(hiddenWideExposure), /Network gate missing/);
+const prematurelyApprovedNetwork = gates.replace(
+  "| A2 – DB-Netzwerkzugang | Offen |",
+  "| A2 – DB-Netzwerkzugang | Bestanden |"
+);
+assert.notEqual(prematurelyApprovedNetwork, gates, "Network approval mutation fixture failed");
+assert.throws(() => validateNetworkGate(prematurelyApprovedNetwork),
+  /must remain open/);
 assert.match(gates, /Produktivdeploy erst nach allen Gates/i);
 assert.match(deadline, /Keine Änderung an Render/i);
 console.log("Operator release-gate docs: blocked defaults, deadline, backup/restore and staging controls.");
