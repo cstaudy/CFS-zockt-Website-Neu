@@ -914,8 +914,13 @@ try {
   assert.equal((await request('PATCH', `/api/creator/projects/${attackerProject.data.project.id}`, {
     cookie: mediaOtherCookie, body: { status: 'published' }
   })).status, 200);
-  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
-    'A published reference from a foreign creator must not expose the private image');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + asset.data.asset.url, { method });
+    assert.equal(response.status, 401,
+      'A foreign creator published reference must not expose an image via GET or HEAD');
+    assert.equal(response.headers.get('cache-control'), 'no-store',
+      'Denied foreign publication references must not be cached');
+  }
 
   const ownerProject = await request('POST', '/api/creator/projects', {
     cookie: login.cookie,
@@ -926,8 +931,13 @@ try {
     }
   });
   assert.equal(ownerProject.status, 201);
-  assert.equal((await fetch(base + asset.data.asset.url)).status, 401,
-    'A draft image reference must not grant public access');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await fetch(base + asset.data.asset.url, { method });
+    assert.equal(response.status, 401,
+      'A draft image reference must not grant anonymous GET or HEAD access');
+    assert.equal(response.headers.get('cache-control'), 'no-store',
+      'Denied draft image requests must not be cached');
+  }
   assert.equal((await request('PATCH', `/api/creator/projects/${ownerProject.data.project.id}`, {
     cookie: login.cookie, body: { status: 'published' }
   })).status, 200);
