@@ -29,7 +29,11 @@ export function isOwnedMediaStorageName(stored, ownerId) {
 export async function removeDeletedMediaFile(stored, ownerId, isReferenced, root = uploadRoot) {
   if (!isOwnedMediaStorageName(stored, ownerId) ||
       typeof isReferenced !== "function") return "unrecognized";
-  if (await isReferenced(stored)) return "referenced";
+  // Only an explicit, verified "no remaining reference" may authorize an
+  // unlink. A missing row, undefined/null or other unexpected query result
+  // must fail closed: keep the physical bytes rather than risk deleting a
+  // still-referenced upload.
+  if ((await isReferenced(stored)) !== false) return "referenced";
   try {
     await unlink(join(root, stored));
     return "removed";
