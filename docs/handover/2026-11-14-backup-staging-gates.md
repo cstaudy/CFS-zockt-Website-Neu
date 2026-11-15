@@ -55,7 +55,18 @@ Bei der PR-Review fiel eine vermeidbare destruktive Testoperation auf: `scripts/
 
 **Produktionsgrenzen unverändert:** Issue [#93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) offen; kein echter Render-Dump, Restore, Staging-DB-Isolationsnachweis, Merge, Deployment, Tarifwechsel oder produktive Datenbankänderung.
 
-## 6. Nächste Schritte, Stop- und Rollback-Regel
+## 6. Negativtest der isolierten CI-Restore-Zugriffsgrenze (15.11.2026)
+
+- **Ausgangslage:** PR #91, HEAD `77ef665`, vollständige [CI 43740793960](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43740793960) **success**; #89/#90/#91 ungemergt und zum Review bereit. P0-[Issue #93](https://github.com/cstaudy/CFS-zockt-Website-Neu/issues/93) weiter offen und nicht als Datensicherungsnachweis zu werten.
+- **Konkreter blinder Fleck:** Der echte synthetische PG18-Restore wurde in CI positiv getestet, aber die kürzlich hinzugefügten Verweigerungsbedingungen gegen einen falschen CI-/Docker-Kontext hatten **keinen isolierten Negativtest**. Dadurch könnte ihr späterer versehentlicher Wegfall unbemerkt bleiben.
+- **Neu:** `scripts/test-pg18-backup-refusal.mjs` (Commit `b745f7d`) startet das reale Shell-Runbook nur unter harmlosen, absichtlich falsch gesetzten Umgebungen mit einem **lokalen Fake-`docker` in `PATH`**. Fünf Fälle müssen mit Exitcode 2 **vor jedem Docker-Aufruf** scheitern: fehlendes Wegwerf-DB-Opt-in, abweichende Datenbank-URL, kein GitHub-Actions-Kontext, falsches Repository, falscher Job.
+- **Zusätzlicher Fall:** Selbst bei passenden CI-Variablen meldet das Fake-`docker` absichtlich einen **fremden PostgreSQL-18-Service** (`POSTGRES_DB=not_ci`). Das Shell-Skript muss nach ausschließlich `docker ps` und `docker inspect` verweigern – **ohne `docker exec`, `pg_dump`, `createdb`, `dropdb` oder Rollenänderung**. Fake-Docker ist kein echter Docker-Daemon und stellt keine Netzwerkverbindung her.
+- `package.json` (Commit `daad6f0`) führt den Verweigerungstest ab sofort in `npm run check` nach `bash -n` aus. Der bisherige positive, auf ephemere PG18-CI begrenzte Restore-Test bleibt unverändert. Beide Kontrollen ergänzen sich, ersetzen **kein** echtes Produktionsbackup oder isolierten Betreiber-Restore.
+- **CI für Code- und neuen Dokumentations-HEAD prüfen:** Erfolge aus der vorherigen Runde dürfen nicht dem neuen Test zugeschrieben werden. Keine Render-Änderung, keine produktiven SQL-Befehle oder Datenexporte.
+
+**Sicherheitsgrenze:** Diese Tests schützen vor versehentlicher Fehlkonfiguration, nicht vor absichtlich manipulierten CI-Runnern oder gefälschten Umgebungsvariablen. Produktive Betriebsfreigaben bleiben `GESPERRT`.
+
+## 7. Nächste Schritte, Stop- und Rollback-Regel
 
 1. CI für **diesen neuen Dokumentations-HEAD** prüfen und gegebenenfalls korrigieren. Keine neue Testmatrix ohne konkrete Fehlstelle.
 2. PRs #89/#90/#91 separat technisch reviewen. #89 und #90 ändern Teile der gleichen E2E-Datei; nach einer **ausdrücklich genehmigten** Integration ist vollständige kombinierte CI auf aktualisiertem `main` erforderlich.
