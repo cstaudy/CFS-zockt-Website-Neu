@@ -122,7 +122,10 @@ const missingNetworkGate = gates.replace(
 );
 assert.notEqual(missingNetworkGate, gates, "Network gate removal fixture failed");
 assert.throws(() => validateNetworkGate(missingNetworkGate), /Gate A2/);
-const hiddenWideExposure = gates.replace("`0.0.0.0/0`", "`10.0.0.0/8`");
+const hiddenWideExposure = gates.replace(
+  "2. Für die derzeit offene IPv4-Allowlist `0.0.0.0/0`",
+  "2. Für die derzeit offene IPv4-Allowlist `10.0.0.0/8`"
+);
 assert.notEqual(hiddenWideExposure, gates, "Network exposure mutation fixture failed");
 assert.throws(() => validateNetworkGate(hiddenWideExposure), /Network gate missing/);
 const prematurelyApprovedNetwork = gates.replace(
