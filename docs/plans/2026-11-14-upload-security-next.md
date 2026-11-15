@@ -62,3 +62,7 @@ Nach jedem Code-Update Übergabe + Entwicklungsplan im selben Branch, CI des let
 ## Widerruf öffentlicher Widget-Bilder
 - Neuer E2E-Test `7ee294f`: Ein zuvor veröffentlichtes OBS-Bild muss nach Wechsel auf `private` anonym bei GET **und** HEAD `401` sowie `cache-control: no-store` liefern.
 - Vorheriger HEAD `9ae94ff` war grün (Run `43701057296`). Aktuelle CI abwarten; Browser-/Merge-/Backup-Gates bleiben offen.
+
+## Nächste Regression: anonyme HEAD-Anfragen
+- Implementiert in `3b04c82`: Fremd-Account kann eigenes veröffentlichtes Widget nicht zum Zugriff auf fremdes Bild verwenden; eigener Draft gibt Bild nicht anonym frei. Beide Fälle nun bei GET und HEAD mit `401` + `no-store` geprüft.
+- Vorheriger Widerrufs-Test `7ee294f` war grün (Run `43701127023`). Nächste Aufgabe: neuen CI-Lauf abwarten und bei Fehlschlag gezielt korrigieren; anschließend Review, manuelle Browserabnahme, nur mit ausdrücklicher Freigabe Merge/Deployment.
