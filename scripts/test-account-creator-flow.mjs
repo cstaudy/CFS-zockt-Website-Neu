@@ -1253,6 +1253,79 @@ try {
       });
     }
 
+    // The 500-item cap advertised for each media folder must be enforced on
+    // real parallel HTTP uploads. All padding rows live only in disposable PG18.
+    const clipsBeforeQuota = await request('GET', '/api/creator/media/clips',
+      { cookie: login.cookie });
+    assert.equal(clipsBeforeQuota.status, 200);
+    assert.equal(clipsBeforeQuota.data.limits.max_items, 500);
+    const mediaQuotaMarker = 'ci-media-quota-' + randomUUID();
+    const padTo499Clips = 499 - clipsBeforeQuota.data.media.length;
+    assert(padTo499Clips > 0, 'Disposable CI account must start below media quota');
+    await testPool.query(
+      "insert into user_media(account_id,folder,name,mime_type,size_bytes,storage_path) " +
+      "select $1, 'clips', $2 || n::text, 'video/mp4', 1, $3 || n::text " +
+      "from generate_series(1,$4::int) as g(n)",
+      [created.data.account.id, mediaQuotaMarker + '-row-',
+        mediaQuotaMarker + '-storage-', padTo499Clips]
+    );
+    const acceptedMediaQuotaUploads = [];
+    try {
+      assert.equal((await request('GET', '/api/creator/media/clips',
+        { cookie: login.cookie })).data.media.length, 499);
+      const filesBefore = new Set(await readdir(uploadRoot));
+      const attempts = await Promise.all([
+        upload('/api/creator/media/clips', 'video/mp4',
+          'ci-media-quota-one.mp4', privateVideo),
+        upload('/api/creator/media/clips', 'video/mp4',
+          'ci-media-quota-two.mp4', privateVideo)
+      ]);
+      acceptedMediaQuotaUploads.push(...attempts.filter(x => x.status === 201)
+        .map(x => ({ folder: 'clips', media: x.data.media })));
+      assert.deepEqual(attempts.map(x => x.status).sort(), [201, 402],
+        'Exactly one parallel upload may take the last clip quota slot');
+      assert.equal(attempts.find(x => x.status === 402).data.error,
+        'MEDIA_LIMIT_REACHED');
+      assert.equal((await request('GET', '/api/creator/media/clips',
+        { cookie: login.cookie })).data.media.length, 500);
+      assert.deepEqual(
+        (await readdir(uploadRoot)).filter(x => !filesBefore.has(x)),
+        [acceptedMediaQuotaUploads[0].media.url.slice('/assets/uploads/'.length)],
+        'Rejected parallel clip upload must not leave orphan bytes'
+      );
+      const denied = await upload('/api/creator/media/clips', 'video/mp4',
+        'ci-media-quota-serial-denied.mp4', privateVideo);
+      assert.equal(denied.status, 402);
+      assert.equal(denied.data.error, 'MEDIA_LIMIT_REACHED');
+      assert.deepEqual(
+        (await readdir(uploadRoot)).filter(x => !filesBefore.has(x)),
+        [acceptedMediaQuotaUploads[0].media.url.slice('/assets/uploads/'.length)],
+        'Serial quota rejection must not leave orphan bytes'
+      );
+      // The two folders have independent advertised item caps.
+      const allowedVideo = await upload('/api/creator/media/videos', 'video/mp4',
+        'ci-media-quota-video.mp4', privateVideo);
+      if (allowedVideo.status === 201) acceptedMediaQuotaUploads.push(
+        { folder: 'videos', media: allowedVideo.data.media });
+      assert.equal(allowedVideo.status, 201,
+        'A full clips folder must not prevent an upload to videos');
+    } finally {
+      await testPool.query(
+        "delete from user_media where account_id=$1 and name like $2",
+        [created.data.account.id, mediaQuotaMarker + '-row-%']
+      );
+      for (const accepted of acceptedMediaQuotaUploads) {
+        const leaf = accepted.media.url.slice('/assets/uploads/'.length);
+        const deletedQuotaUpload = await request('DELETE',
+          '/api/creator/media/' + accepted.folder + '/' + accepted.media.id,
+          { cookie: login.cookie });
+        assert.equal(deletedQuotaUpload.status, 200,
+          'The accepted temporary media upload must be deletable');
+        await assert.rejects(access(join(uploadRoot, leaf)), { code: 'ENOENT' },
+          'Media quota fixture cleanup must remove its own bytes');
+      }
+    }
+
     // The already advertised 120-item limit must be enforced at INSERT.
     // All quota fixtures are metadata-only rows in the disposable local PG18 DB.
     const assetListBeforeQuota = await request('GET',
