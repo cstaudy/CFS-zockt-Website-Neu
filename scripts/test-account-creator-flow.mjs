@@ -1270,6 +1270,7 @@ try {
         mediaQuotaMarker + '-storage-', padTo499Clips]
     );
     const acceptedMediaQuotaUploads = [];
+    let otherAccountQuotaUpload = null;
     try {
       assert.equal((await request('GET', '/api/creator/media/clips',
         { cookie: login.cookie })).data.media.length, 499);
@@ -1302,6 +1303,14 @@ try {
         [acceptedMediaQuotaUploads[0].media.url.slice('/assets/uploads/'.length)],
         'Serial quota rejection must not leave orphan bytes'
       );
+      // Quotas must be account-scoped, not globally shared. The other
+      // creator can still upload a clip even when this account has 500.
+      const otherClip = await upload('/api/creator/media/clips', 'video/mp4',
+        'ci-other-account-quota.mp4', privateVideo, { cookie: mediaOtherCookie });
+      if (otherClip.status === 201) otherAccountQuotaUpload = otherClip.data.media;
+      assert.equal(otherClip.status, 201,
+        'A full clip folder must not exhaust another account quota');
+
       // The two folders have independent advertised item caps.
       const allowedVideo = await upload('/api/creator/media/videos', 'video/mp4',
         'ci-media-quota-video.mp4', privateVideo);
@@ -1314,6 +1323,15 @@ try {
         "delete from user_media where account_id=$1 and name like $2",
         [created.data.account.id, mediaQuotaMarker + '-row-%']
       );
+      if (otherAccountQuotaUpload) {
+        const otherLeaf = otherAccountQuotaUpload.url.slice('/assets/uploads/'.length);
+        const otherDeleted = await request('DELETE',
+          '/api/creator/media/clips/' + otherAccountQuotaUpload.id,
+          { cookie: mediaOtherCookie });
+        assert.equal(otherDeleted.status, 200,
+          'Other-account quota fixture must be removed by its owner');
+        await assert.rejects(access(join(uploadRoot, otherLeaf)), { code: 'ENOENT' });
+      }
       for (const accepted of acceptedMediaQuotaUploads) {
         const leaf = accepted.media.url.slice('/assets/uploads/'.length);
         const deletedQuotaUpload = await request('DELETE',
