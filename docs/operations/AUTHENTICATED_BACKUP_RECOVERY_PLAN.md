@@ -2,6 +2,7 @@
 
 ## Current evidence
 - Synthetic PostgreSQL 18 export/isolated restore test passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43788807489
+- Synthetic AES-256-GCM roundtrip and tamper/wrong-key rejection passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43855794855
 - Website checks passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43788807493
 - No production export, encrypted production artifact, independent restore, deployment or Render change has occurred.
 - Render Free PostgreSQL expiry: **2026-12-09 18:36 UTC**. The deadline makes an approved durable backup urgent.
@@ -25,7 +26,7 @@
 ## Release gates
 - [x] Synthetic PostgreSQL 18 dump/restore test passed
 - [x] Synthetic sequence and UNIQUE/CHECK constraint checks passed
-- [ ] Authenticated encryption and tamper rejection tested with synthetic file
+- [x] AES-256-GCM authenticated encryption, wrong-key and tamper rejection tested with synthetic bytes (GitHub Actions run 43855794855); production encryption packaging and key custody remain unapproved
 - [ ] Independent storage and retrieval tested with synthetic encrypted file
 - [ ] Source TLS and least-privilege access reviewed
 - [ ] Real-data processing and key custody approved
