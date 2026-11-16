@@ -114,3 +114,70 @@ jobs:
                   raise AssertionError('Authenticated decryption accepted a modified input')
           print('Synthetic AES-256-GCM roundtrip and tamper/wrong-key rejection passed')
           PY
+
+  synthetic-artifact-create:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install test-only encryption dependency
+        run: python3 -m pip install --disable-pip-version-check --no-input 'cryptography==46.0.3'
+      - name: Encrypt synthetic-only file
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p synthetic-output
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+          # Public fixed test key: safe ONLY because the plaintext is fake.
+          key = bytes.fromhex('42' * 32)
+          nonce = os.urandom(12)
+          fake = b'SYNTHETIC-BACKUP-TRANSFER-CHECK-v1'
+          blob = b'CFSFAKE1' + nonce + AESGCM(key).encrypt(nonce, fake, b'synthetic-transfer-v1')
+          Path('synthetic-output/synthetic-only.enc').write_bytes(blob)
+          PY
+      - name: Upload encrypted fake artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-only-encrypted-transfer
+          path: synthetic-output/synthetic-only.enc
+          if-no-files-found: error
+          retention-days: 1
+
+  synthetic-artifact-retrieve:
+    needs: synthetic-artifact-create
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download artifact into independent job
+        uses: actions/download-artifact@v4
+        with:
+          name: synthetic-only-encrypted-transfer
+          path: synthetic-input
+      - name: Install test-only encryption dependency
+        run: python3 -m pip install --disable-pip-version-check --no-input 'cryptography==46.0.3'
+      - name: Authenticate and verify independently downloaded fake file
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+          from cryptography.exceptions import InvalidTag
+          blob = Path('synthetic-input/synthetic-only.enc').read_bytes()
+          assert blob[:8] == b'CFSFAKE1'
+          key = bytes.fromhex('42' * 32)  # Public synthetic-only key, NEVER for production.
+          nonce, ciphertext = blob[8:20], blob[20:]
+          assert AESGCM(key).decrypt(nonce, ciphertext, b'synthetic-transfer-v1') == b'SYNTHETIC-BACKUP-TRANSFER-CHECK-v1'
+          modified = bytearray(blob)
+          modified[-1] ^= 1
+          try:
+              AESGCM(key).decrypt(nonce, bytes(modified[20:]), b'synthetic-transfer-v1')
+          except InvalidTag:
+              pass
+          else:
+              raise AssertionError('Tampered downloaded artifact accepted')
+          print('Downloaded synthetic artifact authenticated and verified in a separate job')
+          PY
