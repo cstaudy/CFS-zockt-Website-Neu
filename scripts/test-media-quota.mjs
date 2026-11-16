@@ -75,7 +75,7 @@ assert.equal(passing.released, true);
 for (const [opts, expected, status] of [
   [{ count: "500" }, "MEDIA_LIMIT_REACHED", 402],
   [{ count: "501" }, "MEDIA_LIMIT_REACHED", 402],
-  [{ count: undefined }, "MEDIA_QUOTA_UNAVAILABLE", 503],
+  [{ count: null }, "MEDIA_QUOTA_UNAVAILABLE", 503],
   [{ owner: false }, "AUTHENTICATION_REQUIRED", 401]
 ]) {
   const pool = fakePool(opts);
