@@ -1212,6 +1212,47 @@ try {
       await unlink(sharedPath);
     }
 
+    // A second user_media row can also reference the same historical file.
+    // The first authorized DELETE must preserve shared bytes; only the final
+    // deletion may unlink them. All writes are limited to disposable PG18 CI.
+    const dualUpload = await upload('/api/creator/media/clips', 'video/mp4',
+      'ci-two-media-refs.mp4', privateVideo);
+    assert.equal(dualUpload.status, 201);
+    const dualMedia = dualUpload.data.media;
+    const dualLeaf = dualMedia.url.slice('/assets/uploads/'.length);
+    const dualPath = join(uploadRoot, dualLeaf);
+    const additional = await testPool.query(
+      "insert into user_media(account_id,folder,name,mime_type,size_bytes,storage_path) " +
+      "values($1,'clips',$2,'video/mp4',$3,$4) returning id",
+      [created.data.account.id, 'ci-second-reference', privateVideo.length, dualLeaf]
+    );
+    const additionalId = additional.rows[0].id;
+    try {
+      const firstDeletion = await request('DELETE',
+        '/api/creator/media/clips/' + dualMedia.id, { cookie: login.cookie });
+      assert.equal(firstDeletion.status, 200,
+        'Deleting the first metadata row must still succeed');
+      await access(dualPath);
+      const remainingMedia = await request('GET', '/api/creator/media/clips',
+        { cookie: login.cookie });
+      assert.equal(remainingMedia.status, 200);
+      assert(remainingMedia.data.media.some(item => item.id === additionalId),
+        'The second user_media reference must remain visible to its owner');
+      const lastDeletion = await request('DELETE',
+        '/api/creator/media/clips/' + additionalId, { cookie: login.cookie });
+      assert.equal(lastDeletion.status, 200);
+      await assert.rejects(access(dualPath), { code: 'ENOENT' },
+        'Only deletion of the final user_media reference may remove shared bytes');
+    } finally {
+      await testPool.query(
+        "delete from user_media where account_id=$1 and id = any($2::uuid[])",
+        [created.data.account.id, [dualMedia.id, additionalId]]
+      );
+      await unlink(dualPath).catch(error => {
+        if (error.code !== 'ENOENT') throw error;
+      });
+    }
+
     // The already advertised 120-item limit must be enforced at INSERT.
     // All quota fixtures are metadata-only rows in the disposable local PG18 DB.
     const assetListBeforeQuota = await request('GET',
