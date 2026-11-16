@@ -3,6 +3,7 @@
 ## Current evidence
 - Synthetic PostgreSQL 18 export/isolated restore test passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43788807489
 - Synthetic AES-256-GCM roundtrip and tamper/wrong-key rejection passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43855794855
+- Synthetic encrypted artifact transferred between separate GitHub Actions jobs, retrieved, authenticated and tamper-rejection checked: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43856450742. This is NOT iCloud storage or a restored database from the transferred file.
 - Website checks passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43788807493
 - No production export, encrypted production artifact, independent restore, deployment or Render change has occurred.
 - Render Free PostgreSQL expiry: **2026-12-09 18:36 UTC**. The deadline makes an approved durable backup urgent.
@@ -27,7 +28,9 @@
 - [x] Synthetic PostgreSQL 18 dump/restore test passed
 - [x] Synthetic sequence and UNIQUE/CHECK constraint checks passed
 - [x] AES-256-GCM authenticated encryption, wrong-key and tamper rejection tested with synthetic bytes (GitHub Actions run 43855794855); production encryption packaging and key custody remain unapproved
-- [ ] Independent storage and retrieval tested with synthetic encrypted file
+- [x] Encrypted synthetic file transferred and retrieved across independent GitHub Actions jobs (temporary GitHub artifact only)
+- [ ] Independently controlled durable storage (e.g. approved iCloud Drive folder) and retrieval tested with synthetic encrypted file
+- [ ] Full PostgreSQL restore from retrieved authenticated encrypted synthetic dump verified
 - [ ] Source TLS and least-privilege access reviewed
 - [ ] Real-data processing and key custody approved
 - [ ] Production export authorized and completed
