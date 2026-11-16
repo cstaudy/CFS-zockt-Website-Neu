@@ -17,7 +17,7 @@
 
 ## Abnahme / Nachweise
 
-`npm run check` und die vollständige GitHub-Actions-CI einschließlich PostgreSQL 18, Legacy-Migration und isoliertem Restore müssen auf dem **finalen Folge-PR-HEAD** grün sein. Ein erfolgreicher Lauf von PR #95 darf nicht als Erfolgsnachweis für den neuen Branch verwendet werden. **CI zum Zeitpunkt der Erstellung noch nicht nachgewiesen.**
+`npm run check` und die vollständige GitHub-Actions-CI einschließlich PostgreSQL 18, Legacy-Migration und isoliertem Restore müssen auf dem **finalen Folge-PR-HEAD** grün sein. Ein erfolgreicher Lauf von PR #95 darf nicht als Erfolgsnachweis für den neuen Branch verwendet werden. **Code-/Test-HEAD `da4888908dd9c089ae2c14fe06d2b59ad5db6c27`: vollständige [GitHub-CI 43780335660](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43780335660) `success`, einschließlich `npm run check`, echter HTTP-/PostgreSQL-18-Konkurrenztests und isoliertem Restore.** Nachfolgende Dokumentations-Commits benötigen erneut einen grünen CI-Nachweis auf ihrem finalen HEAD.
 
 ## Risiko, Grenzen und Rücknahme
 
