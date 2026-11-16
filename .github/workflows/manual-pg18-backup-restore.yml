@@ -73,3 +73,44 @@ jobs:
         if: always()
         shell: bash
         run: rm -f /tmp/synthetic.dump
+
+  synthetic-authenticated-encryption:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install test-only authenticated encryption library
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --no-input --user 'cryptography==46.0.3'
+      - name: Test AES-256-GCM roundtrip and tamper rejection with fake bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+          from cryptography.exceptions import InvalidTag
+
+          fake_dump = b'SYNTHETIC-ONLY-FAKE-POSTGRES-DUMP-NO-USER-DATA'
+          key = AESGCM.generate_key(bit_length=256)
+          nonce = os.urandom(12)
+          aad = b'cfs-zockt-synthetic-backup-v1'
+          ciphertext = AESGCM(key).encrypt(nonce, fake_dump, aad)
+          assert AESGCM(key).decrypt(nonce, ciphertext, aad) == fake_dump
+
+          altered = bytearray(ciphertext)
+          altered[0] ^= 1
+          for test_key, test_nonce, test_ciphertext, test_aad in (
+              (key, nonce, bytes(altered), aad),
+              (AESGCM.generate_key(bit_length=256), nonce, ciphertext, aad),
+              (key, nonce, ciphertext, b'wrong-metadata'),
+          ):
+              try:
+                  AESGCM(test_key).decrypt(test_nonce, test_ciphertext, test_aad)
+              except InvalidTag:
+                  pass
+              else:
+                  raise AssertionError('Authenticated decryption accepted a modified input')
+          print('Synthetic AES-256-GCM roundtrip and tamper/wrong-key rejection passed')
+          PY
