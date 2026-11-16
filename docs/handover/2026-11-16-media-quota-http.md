@@ -19,6 +19,14 @@
 
 `npm run check` und die vollständige GitHub-Actions-CI einschließlich PostgreSQL 18, Legacy-Migration und isoliertem Restore müssen auf dem **finalen Folge-PR-HEAD** grün sein. Ein erfolgreicher Lauf von PR #95 darf nicht als Erfolgsnachweis für den neuen Branch verwendet werden. **Code-/Test-HEAD `da4888908dd9c089ae2c14fe06d2b59ad5db6c27`: vollständige [GitHub-CI 43780335660](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43780335660) `success`, einschließlich `npm run check`, echter HTTP-/PostgreSQL-18-Konkurrenztests und isoliertem Restore.** Nachfolgende Dokumentations-Commits benötigen erneut einen grünen CI-Nachweis auf ihrem finalen HEAD.
 
+
+## Zusätzliche Regressionen (Folge-Commits)
+
+- **Kontotrennung:** Ein zweites Creator-Konto kann Clips hochladen, obwohl das erste Konto bereits 500 Clips hat; die zweite Testdatei wird über den eigenen DELETE-Endpunkt bereinigt.
+- **Fail-closed API:** Bei fehlendem oder ungültigem Datenbank-Zähler wird der Upload mit `503 MEDIA_QUOTA_UNAVAILABLE` abgelehnt, statt als generischer HTTP-500-Fehler behandelt zu werden.
+- **Freigabe nach Löschen:** Bei 500 Clips wird ein Clip über den echten DELETE-Endpunkt entfernt, sein Upload-Bytepfad auf Abwesenheit geprüft, anschließend genau ein neuer Clip erfolgreich registriert und die Anzahl 500 erneut geprüft.
+- **Letzter geprüfter Code-HEAD `f851d80974222a6a935406ddbe4a3f9a8dfacbce`: vollständige [GitHub Actions CI #43782069914](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43782069914) erfolgreich.** Enthält HTTP-/PG18-E2E und isolierten CI-Restore. Dieser CI-Nachweis ist kein Produktions-Backup.
+
 ## Risiko, Grenzen und Rücknahme
 
 Eine bislang technisch mögliche Überschreitung über 500 Medien pro Ordner wird bei weiteren Uploads jetzt abgewiesen. Vorhandene Medien bleiben erhalten, Listen und DELETE funktionieren weiterhin. Bei DB-Störung schlägt die Registrierung fehl, nicht die bereits bestehende Datei-Löschlogik. Rücknahme durch Revert des Folge-PRs.
