@@ -7,12 +7,25 @@ import { uploadStorageExtension, validVideoSignature } from "./upload-media-poli
 import { maxBufferedUploadBytes } from "./request-raw.js";
 import { parseUploadDurationMs } from "./media-duration.js";
 import { removeDeletedMediaFile } from "./media-file-cleanup.js";
+import { mediaQuota, registerMediaWithinQuota } from "./media-quota.js";
 
 const allowed=/^video\/(mp4|webm|quicktime|x-matroska)$/;
 const clean=v=>String(v||"video").replace(/[^a-z0-9._-]/gi,"-").slice(0,120)||"video";
 function view(row){return{id:row.id,folder:row.folder,name:row.name,mime_type:row.mime_type,size:Number(row.size_bytes),duration_ms:row.duration_ms,metadata:row.metadata||{},url:`/assets/uploads/${row.storage_path}`,created_at:row.created_at,updated_at:row.updated_at};}
-export async function listUserMedia(req,folder){const a=await requireAccount(req);if(!a)return{error:"AUTHENTICATION_REQUIRED",status:401};const f=["videos","clips"].includes(folder)?folder:null;const r=await getPool().query(`select id,folder,name,mime_type,size_bytes,storage_path,duration_ms,metadata,created_at,updated_at from user_media where account_id=$1${f?" and folder=$2":""} order by created_at desc`,f?[a.id,f]:[a.id]);return{ok:true,folder:f,media:r.rows.map(view),limits:{max_file_bytes:maxBufferedUploadBytes,max_items:500}};}
-export async function uploadUserMedia(req,body,folder){const a=await requireAccount(req);if(!a)return{error:"AUTHENTICATION_REQUIRED",status:401};if(!["videos","clips"].includes(folder))return{error:"INVALID_MEDIA_FOLDER",status:400};const mime=String(req.headers["content-type"]||"").split(";")[0];if(!allowed.test(mime))return{error:"UNSUPPORTED_MEDIA_TYPE",status:415};if(!body?.length||body.length>maxBufferedUploadBytes)return{error:"INVALID_MEDIA_SIZE",status:413};if(!validVideoSignature(mime,body))return{error:"INVALID_MEDIA_SIGNATURE",status:415};const durationMs=parseUploadDurationMs(req.headers["x-cfs-duration-ms"]);if(durationMs===undefined)return{error:"INVALID_MEDIA_DURATION",status:400};const original=decodeUploadFilename(req.headers["x-cfs-file-name"], "video");if(original===null)return{error:"INVALID_FILE_NAME",status:400};const stored=`${a.id}-${randomUUID()}${uploadStorageExtension(mime)}`;const r=await storeUploadWithRecord(stored,body,()=>getPool().query("insert into user_media(account_id,folder,name,mime_type,size_bytes,storage_path,duration_ms,metadata) values($1,$2,$3,$4,$5,$6,$7,$8::jsonb) returning id,folder,name,mime_type,size_bytes,storage_path,duration_ms,metadata,created_at,updated_at",[a.id,folder,clean(original),mime,body.length,stored,durationMs,JSON.stringify({source:"user_upload"})]));return{ok:true,media:view(r.rows[0])};}
+export async function listUserMedia(req,folder){const a=await requireAccount(req);if(!a)return{error:"AUTHENTICATION_REQUIRED",status:401};const f=["videos","clips"].includes(folder)?folder:null;const r=await getPool().query(`select id,folder,name,mime_type,size_bytes,storage_path,duration_ms,metadata,created_at,updated_at from user_media where account_id=$1${f?" and folder=$2":""} order by created_at desc`,f?[a.id,f]:[a.id]);return{ok:true,folder:f,media:r.rows.map(view),limits:{max_file_bytes:maxBufferedUploadBytes,...mediaQuota}};}
+export async function uploadUserMedia(req,body,folder){const a=await requireAccount(req);if(!a)return{error:"AUTHENTICATION_REQUIRED",status:401};if(!["videos","clips"].includes(folder))return{error:"INVALID_MEDIA_FOLDER",status:400};const mime=String(req.headers["content-type"]||"").split(";")[0];if(!allowed.test(mime))return{error:"UNSUPPORTED_MEDIA_TYPE",status:415};if(!body?.length||body.length>maxBufferedUploadBytes)return{error:"INVALID_MEDIA_SIZE",status:413};if(!validVideoSignature(mime,body))return{error:"INVALID_MEDIA_SIGNATURE",status:415};const durationMs=parseUploadDurationMs(req.headers["x-cfs-duration-ms"]);if(durationMs===undefined)return{error:"INVALID_MEDIA_DURATION",status:400};const original=decodeUploadFilename(req.headers["x-cfs-file-name"], "video");if(original===null)return{error:"INVALID_FILE_NAME",status:400};const stored=`${a.id}-${randomUUID()}${uploadStorageExtension(mime)}`;try {
+  const r=await storeUploadWithRecord(stored,body,()=>registerMediaWithinQuota(
+    getPool(),a.id,{folder,name:clean(original),mime,size:body.length,stored,
+      durationMs,metadata:JSON.stringify({source:"user_upload"})}
+  ));
+  return{ok:true,media:view(r.rows[0])};
+}catch(error){
+  if(["MEDIA_LIMIT_REACHED","INVALID_MEDIA_SIZE","INVALID_MEDIA_FOLDER",
+    "AUTHENTICATION_REQUIRED"].includes(error?.code)){
+    return{error:error.code,status:error.status,limits:{max_file_bytes:maxBufferedUploadBytes,...mediaQuota}};
+  }
+  throw error;
+}}
 export async function deleteUserMedia(req, id) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
