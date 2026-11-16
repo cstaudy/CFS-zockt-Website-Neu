@@ -14,6 +14,16 @@ This PR adds a **manual-only** GitHub Actions workflow. It does not run on pushe
 5. After a successful run, securely download the **encrypted** artifact and its SHA-256 to independent, access-restricted storage; verify checksum, encryption-key recoverability and retention. GitHub artifact retention is **only 7 days**, so the artifact is NOT a durable backup.
 6. An authorized operator must separately test decrypting the retained copy in a controlled environment and verify application roles/permissions, sequences, constraints and read-only application functionality. This workflow only checks that pg_restore completes and public table counts agree; it is **not** full recovery acceptance.
 
+## iPhone storage decision (no credentials required)
+
+iCloud Drive can be considered **only as a destination for an already encrypted and authenticated backup**. It is not a PostgreSQL backup tool and cannot execute `pg_dump` or `pg_restore`. Do not save an unencrypted dump, database connection URL or encryption key in the same iCloud folder.
+
+On iPhone, open **Settings → Apple Account → iCloud → Drive** to check whether iCloud Drive is enabled, then open **Files → Browse → iCloud Drive** to check that the destination is accessible. The operator must separately confirm available space, account security, sharing restrictions, retention and ability to recover the file on a second device or environment. This is a preparation check, not an instruction to upload production data.
+
+If iCloud Drive is unavailable or unsuitable, select another independently accessible protected storage service. No storage service is preapproved by this document.
+
+**Before running anything**, a reviewer must resolve the blocking findings in `IPHONE_BACKUP_SECURITY_REVIEW.md`, particularly authenticated encryption and independent recovery from the retained encrypted artifact. Do not configure secrets or dispatch the current draft merely because iCloud Drive is visible.
+
 ## Safety boundaries
 - Uses PostgreSQL 18 client and a separate PostgreSQL 18 service container. Never restores into production.
 - Export uses `pg_dump -Fc --no-owner --no-acl`; restore uses `pg_restore --exit-on-error`.
