@@ -60,7 +60,7 @@ jobs:
           test "$count" = 2
           test "$labels" = 'fake-alpha,fake-beta'
           # Verify that identity sequence, unique constraint and CHECK constraint survived restore.
-          next_id="$(psql -XAt -v ON_ERROR_STOP=1 -h restore -U restore_user -d synthetic_restore -c "INSERT INTO synthetic_backup_check (label) VALUES ('fake-gamma') RETURNING id")"
+          next_id="$(psql -XqAt -v ON_ERROR_STOP=1 -h restore -U restore_user -d synthetic_restore -c "INSERT INTO synthetic_backup_check (label) VALUES ('fake-gamma') RETURNING id")"
           test "$next_id" = 3
           if psql -XAt -v ON_ERROR_STOP=1 -h restore -U restore_user -d synthetic_restore -c "INSERT INTO synthetic_backup_check (label) VALUES ('fake-alpha')" > /dev/null 2>&1; then
             echo 'UNIQUE constraint missing after restore'; exit 1
