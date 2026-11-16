@@ -3,7 +3,8 @@
 ## Current evidence
 - Synthetic PostgreSQL 18 export/isolated restore test passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43788807489
 - Synthetic AES-256-GCM roundtrip and tamper/wrong-key rejection passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43855794855
-- Synthetic encrypted artifact transferred between separate GitHub Actions jobs, retrieved, authenticated and tamper-rejection checked: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43856450742. This is NOT iCloud storage or a restored database from the transferred file.
+- Synthetic encrypted artifact transferred between separate GitHub Actions jobs, retrieved, authenticated and tamper-rejection checked: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43856450742.
+- Full synthetic PostgreSQL 18 dump → AES-256-GCM encryption → GitHub artifact → independent job retrieval → authenticated decryption → isolated PostgreSQL restore and row/identity verification passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43859076418. This does NOT test iCloud Drive or production data.
 - Website checks passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/43788807493
 - No production export, encrypted production artifact, independent restore, deployment or Render change has occurred.
 - Render Free PostgreSQL expiry: **2026-12-09 18:36 UTC**. The deadline makes an approved durable backup urgent.
@@ -30,7 +31,7 @@
 - [x] AES-256-GCM authenticated encryption, wrong-key and tamper rejection tested with synthetic bytes (GitHub Actions run 43855794855); production encryption packaging and key custody remain unapproved
 - [x] Encrypted synthetic file transferred and retrieved across independent GitHub Actions jobs (temporary GitHub artifact only)
 - [ ] Independently controlled durable storage (e.g. approved iCloud Drive folder) and retrieval tested with synthetic encrypted file
-- [ ] Full PostgreSQL restore from retrieved authenticated encrypted synthetic dump verified
+- [x] Full PostgreSQL restore from retrieved authenticated encrypted synthetic dump verified (temporary GitHub artifact; run 43859076418)
 - [ ] Source TLS and least-privilege access reviewed
 - [ ] Real-data processing and key custody approved
 - [ ] Production export authorized and completed
