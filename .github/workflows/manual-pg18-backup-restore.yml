@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/manual-pg18-backup-restore.yml'
+      - 'docs/operations/IPHONE_GITHUB_BACKUP_DRAFT.md'
   workflow_dispatch:
 
 permissions:
