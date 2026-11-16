@@ -20,8 +20,8 @@ export async function uploadUserMedia(req,body,folder){const a=await requireAcco
   ));
   return{ok:true,media:view(r.rows[0])};
 }catch(error){
-  if(["MEDIA_LIMIT_REACHED","INVALID_MEDIA_SIZE","INVALID_MEDIA_FOLDER",
-    "AUTHENTICATION_REQUIRED"].includes(error?.code)){
+  if(["MEDIA_LIMIT_REACHED","MEDIA_QUOTA_UNAVAILABLE","INVALID_MEDIA_SIZE",
+    "INVALID_MEDIA_FOLDER","AUTHENTICATION_REQUIRED"].includes(error?.code)){
     return{error:error.code,status:error.status,limits:{max_file_bytes:maxBufferedUploadBytes,...mediaQuota}};
   }
   throw error;
