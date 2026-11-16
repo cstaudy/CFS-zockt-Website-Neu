@@ -1,0 +1,74 @@
+name: Manual encrypted PostgreSQL 18 backup and isolated restore (draft)
+# Operator-only: NEVER runs on push or pull_request.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type BACKUP_AND_RESTORE to authorize a production data export'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  backup-and-restore:
+    if: ${{ inputs.confirm == 'BACKUP_AND_RESTORE' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-backup
+    container:
+      image: postgres:18
+    services:
+      isolated-postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: isolated-test-only-password
+          POSTGRES_USER: restore_tester
+          POSTGRES_DB: restore_test
+        options: >-
+          --health-cmd "pg_isready -U restore_tester -d restore_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: isolated-postgres
+      PGUSER: restore_tester
+      PGPASSWORD: isolated-test-only-password
+      PGDATABASE: restore_test
+    steps:
+      - name: Check required operator secrets
+        env:
+          SOURCE_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "$SOURCE_DATABASE_URL" ] && [ -n "$ENCRYPTION_PASSPHRASE" ] || { echo 'Required secrets missing'; exit 1; }
+          [ "${#ENCRYPTION_PASSPHRASE}" -ge 24 ] || { echo 'Encryption passphrase must have at least 24 characters'; exit 1; }
+      - name: Export production snapshot and verify isolated restore
+        env:
+          SOURCE_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          trap 'rm -f production.dump' EXIT
+          pg_dump --dbname="$SOURCE_DATABASE_URL" --format=custom --no-owner --no-acl --file=production.dump
+          pg_restore --list production.dump > /dev/null
+          pg_restore --host=isolated-postgres --username=restore_tester --dbname=restore_test --no-owner --no-acl --exit-on-error production.dump
+          expected="$(psql "$SOURCE_DATABASE_URL" -XAtqc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")"
+          actual="$(psql -XAtqc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")"
+          [ "$expected" -gt 0 ] && [ "$expected" = "$actual" ] || { echo 'Restore table inventory mismatch'; exit 1; }
+          echo "Isolated restore completed; public table count: $actual"
+          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -in production.dump -out production.dump.enc -pass env:ENCRYPTION_PASSPHRASE
+          sha256sum production.dump.enc | cut -d' ' -f1 > production.dump.enc.sha256
+          test -s production.dump.enc
+      - name: Upload encrypted temporary artifact only
+        uses: actions/upload-artifact@v4
+        with:
+          name: encrypted-pg18-backup
+          path: |
+            production.dump.enc
+            production.dump.enc.sha256
+          if-no-files-found: error
+          retention-days: 7
