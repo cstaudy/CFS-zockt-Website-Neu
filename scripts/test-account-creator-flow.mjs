@@ -1318,6 +1318,25 @@ try {
         { folder: 'videos', media: allowedVideo.data.media });
       assert.equal(allowedVideo.status, 201,
         'A full clips folder must not prevent an upload to videos');
+      // Deleting one owned clip must immediately free exactly one slot.
+      // Exercise the real DELETE endpoint and subsequent POST at the limit.
+      const filledClip = acceptedMediaQuotaUploads.find(x => x.folder === 'clips');
+      const filledClipLeaf = filledClip.media.url.slice('/assets/uploads/'.length);
+      const removedFilledClip = await request('DELETE',
+        '/api/creator/media/clips/' + filledClip.media.id,
+        { cookie: login.cookie });
+      assert.equal(removedFilledClip.status, 200);
+      await assert.rejects(access(join(uploadRoot, filledClipLeaf)), { code: 'ENOENT' });
+      acceptedMediaQuotaUploads.splice(acceptedMediaQuotaUploads.indexOf(filledClip), 1);
+      const replacementClip = await upload('/api/creator/media/clips', 'video/mp4',
+        'ci-media-quota-after-delete.mp4', privateVideo);
+      if (replacementClip.status === 201) acceptedMediaQuotaUploads.push(
+        { folder: 'clips', media: replacementClip.data.media });
+      assert.equal(replacementClip.status, 201,
+        'Deleting one clip at the quota limit must free one upload slot');
+      assert.equal((await request('GET', '/api/creator/media/clips',
+        { cookie: login.cookie })).data.media.length, 500);
+
     } finally {
       await testPool.query(
         "delete from user_media where account_id=$1 and name like $2",
