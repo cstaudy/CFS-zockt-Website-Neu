@@ -9,7 +9,7 @@
 - No production backup, decryption, or isolated restore has been executed by this PR.
 
 ## Verified synthetic test evidence
-- GitHub Actions run 43784618670 passed on 2026-11-16: synthetic dump, isolated restore and record comparison. A later revision adds identity-sequence and constraint assertions; check its run separately before claiming those passed.
+- GitHub Actions run 43784618670 passed on 2026-11-16: synthetic dump, isolated restore and record comparison. The extended synthetic test run 43788807489 passed, including identity-sequence and UNIQUE/CHECK constraint assertions (commit 8078dcba). Website checks run 43788807493 also passed.
 - This proves only the synthetic restore mechanics; it does not create an independently retained or production backup.
 
 ## Blocking security and reliability issues
