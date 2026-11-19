@@ -27,12 +27,20 @@ Date: 2026-11-19. Owner approved *further preparation* of GitHub-hosted processi
 - [ ] Decide whether a public-repo GitHub-hosted runner meets privacy obligations for any real user data.
 - [ ] Define a safe credential provisioning path with least privilege and verified TLS.
 - [ ] Owner creates and securely retains private encryption key; test independent recovery.
-- [ ] Implement and review separate production-only workflow; test end-to-end with **fake** data.
+- [x] A separate **fake-data-only preflight** workflow passed after a fix to quiet psql output: run #2, https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/44493383664, commit `6934ea1ce9bb09ff633e876cbee0054b2a3fcb11` (2026-11-19). This is **not** a production export workflow and does not test real credentials, TLS or GitHub environment approval.
+- [ ] Implement and review a separate production-only workflow, and independently test all production-specific safety gates with fake data.
 - [x] Owner confirms the prior public iCloud editing link has been disabled (2026-11-19). Independent technical verification of folder sharing remains unavailable; reconfirm privacy before real backup transfer.
 - [ ] Obtain **separate explicit approval** for actual production export.
 - [ ] Perform real encrypted export and isolated restore, and independently verify archived copy.
 
+## Verified fake-data CI results (2026-11-19)
+- Initial preflight run #1 failed in restore assertion because `psql -XAt` printed an extra command status; archive creation and AES-GCM steps had succeeded.
+- Updated assertions to `psql -XqAt`; preflight run #2 succeeded: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/44493383664.
+- Same commit's synthetic backup validation passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/44493383646.
+- Same commit's website checks passed: https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/44493383867.
+- Owner reports previous public iCloud edit link disabled. This is user confirmation, not independent provider verification.
+
 ## Immediate next safe action
-Confirm iCloud public edit-link sharing has been stopped. Next, design and review the separate production workflow *without any production secrets or network access*.
+Design and review a separate production-specific workflow *without any production secrets or network access*. First establish an independently verifiable GitHub environment approval gate, least-privilege credential provisioning, TLS validation, and production-only encryption-key recovery. A passing fake-data preflight is necessary but not sufficient.
 
 **Do not run a production export, merge PR #97, trigger deployment, rotate Render credentials, modify the Render allowlist or upgrade the plan based on this document.**
