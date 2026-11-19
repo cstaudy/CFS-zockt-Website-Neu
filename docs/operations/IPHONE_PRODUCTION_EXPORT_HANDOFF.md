@@ -25,3 +25,9 @@ Updated 2026-11-19. User requested large preparation blocks and no production ex
 - The draft workflow currently assumes a system-trusted certificate and that the database supports it; unverified. It has not been run with real or fake production credentials.
 - The artifact's 1-day retention is a transfer window, **not** long-term storage. Private iCloud is the intended archive.
 - No actual production backup exists yet. Deadline: Render Free PostgreSQL expires 2026-12-09 18:36 UTC.
+
+## New verification evidence
+- Integrated PostgreSQL 18 real custom-format fake-only pipeline, authenticated production-format encryption and isolated restore: **passed** at https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/44497717957.
+- Same revision's existing fake-only preflight, synthetic backup validation and website checks also passed.
+- A standalone manual-only, no-secret GitHub environment gate smoke workflow was created at `.github/workflows/protected-environment-gate-smoke-MANUAL.yml`. **It has NOT been run**, and its existence does not verify the reviewer protection. The workflow does not read any secrets, contact Render, checkout code or upload artifacts.
+- If GitHub does not expose manual dispatch for a workflow absent from the default branch, **do not merge PR #97 just to make it runnable**. A separately reviewed safe test on the default branch or a second trusted reviewer may be needed.
