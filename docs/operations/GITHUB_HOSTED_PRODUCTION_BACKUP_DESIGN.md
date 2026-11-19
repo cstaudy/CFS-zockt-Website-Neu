@@ -28,7 +28,7 @@ Date: 2026-11-19. Owner approved *further preparation* of GitHub-hosted processi
 - [ ] Define a safe credential provisioning path with least privilege and verified TLS.
 - [ ] Owner creates and securely retains private encryption key; test independent recovery.
 - [ ] Implement and review separate production-only workflow; test end-to-end with **fake** data.
-- [ ] Revoke public iCloud editing link and verify backup folder privacy.
+- [x] Owner confirms the prior public iCloud editing link has been disabled (2026-11-19). Independent technical verification of folder sharing remains unavailable; reconfirm privacy before real backup transfer.
 - [ ] Obtain **separate explicit approval** for actual production export.
 - [ ] Perform real encrypted export and isolated restore, and independently verify archived copy.
 
