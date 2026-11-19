@@ -1,0 +1,79 @@
+name: PG18 real-format pipeline validation (FAKE DATA ONLY)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/pg18-real-format-fake-integration.yml'
+      - 'scripts/backup/pg18_backup_crypto.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fake-integrated-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: postgres:18
+    services:
+      source:
+        image: postgres:18
+        env:
+          POSTGRES_USER: source_user
+          POSTGRES_PASSWORD: public-fake-source
+          POSTGRES_DB: fake_source
+        options: >-
+          --health-cmd "pg_isready -U source_user -d fake_source"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+      isolated-restore:
+        image: postgres:18
+        env:
+          POSTGRES_USER: restore_user
+          POSTGRES_PASSWORD: public-fake-restore
+          POSTGRES_DB: fake_restored
+        options: >-
+          --health-cmd "pg_isready -U restore_user -d fake_restored"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create real PG18 custom dump from fake rows
+        shell: bash
+        env:
+          PGPASSWORD: public-fake-source
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p /tmp/cfs-fake
+          psql -X -v ON_ERROR_STOP=1 -h source -U source_user -d fake_source <<'SQL'
+          CREATE TABLE fake_records (id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY, label text UNIQUE NOT NULL);
+          INSERT INTO fake_records(label) VALUES ('fake-alpha'), ('fake-beta');
+          SQL
+          pg_dump -Fc --no-owner --no-acl -h source -U source_user -d fake_source -f /tmp/cfs-fake/source.dump
+          pg_restore --list /tmp/cfs-fake/source.dump >/dev/null
+      - name: Encrypt and decrypt real PG18 custom dump with production-format utility
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          apt-get update -qq
+          apt-get install -y -qq python3-cryptography >/dev/null
+          export CFS_BACKUP_KEY_B64="$(python3 -c 'import base64; print(base64.b64encode(bytes.fromhex("73"*32)).decode())')"
+          python3 scripts/backup/pg18_backup_crypto.py encrypt /tmp/cfs-fake/source.dump /tmp/cfs-fake/backup.enc
+          rm /tmp/cfs-fake/source.dump
+          python3 scripts/backup/pg18_backup_crypto.py decrypt /tmp/cfs-fake/backup.enc /tmp/cfs-fake/recovered.dump
+          pg_restore --list /tmp/cfs-fake/recovered.dump >/dev/null
+          test "$(head -c 5 /tmp/cfs-fake/recovered.dump)" = PGDMP
+      - name: Restore to isolated fake database and verify data and identity
+        shell: bash
+        env:
+          PGPASSWORD: public-fake-restore
+        run: |
+          set -euo pipefail
+          pg_restore --exit-on-error --no-owner --no-acl -h isolated-restore -U restore_user -d fake_restored /tmp/cfs-fake/recovered.dump
+          count="$(psql -XqAt -v ON_ERROR_STOP=1 -h isolated-restore -U restore_user -d fake_restored -c 'SELECT count(*) FROM fake_records')"
+          next_id="$(psql -XqAt -v ON_ERROR_STOP=1 -h isolated-restore -U restore_user -d fake_restored -c "INSERT INTO fake_records(label) VALUES ('fake-gamma') RETURNING id")"
+          test "$count" = 2
+          test "$next_id" = 3
+          echo 'PASS: real PG18 archive, production-format encryption, isolated fake restore'
+      - name: Delete fake archives
+        if: always()
+        shell: bash
+        run: rm -rf /tmp/cfs-fake
