@@ -1,0 +1,19 @@
+name: Protected environment approval smoke test (NO SECRETS)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  protected-gate-smoke:
+    # No repository checkout, no secret references, no DB, no artifacts.
+    # The protected environment is the ONLY resource this job requests.
+    environment: cfs-backup-protected
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Report only approval-gate outcome
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'PASS: protected environment allowed this no-secret, no-data job to run'
+          echo 'This does NOT prove independent reviewer approval unless GitHub deployment history confirms it.'

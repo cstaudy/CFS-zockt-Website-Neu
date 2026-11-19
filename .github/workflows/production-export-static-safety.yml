@@ -1,0 +1,18 @@
+name: Production export draft static safety checks (NO SECRETS)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/production-pg18-encrypted-export-DISABLED.yml'
+      - '.github/workflows/production-export-static-safety.yml'
+      - 'scripts/backup/check_production_draft_safety.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-hard-stop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check production workflow stays hard-disabled and restricted
+        run: python3 scripts/backup/check_production_draft_safety.py
