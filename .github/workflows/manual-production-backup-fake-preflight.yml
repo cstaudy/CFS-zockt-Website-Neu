@@ -92,8 +92,8 @@ jobs:
         run: |
           set -euo pipefail
           pg_restore -h fake-restore -U restore_user -d restored_db --no-owner --no-acl --exit-on-error /tmp/cfs-preflight/recovered.dump
-          count="$(psql -XAt -v ON_ERROR_STOP=1 -h fake-restore -U restore_user -d restored_db -c 'SELECT count(*) FROM fake_preflight')"
-          next_id="$(psql -XAt -v ON_ERROR_STOP=1 -h fake-restore -U restore_user -d restored_db -c "INSERT INTO fake_preflight(label) VALUES ('fake-three') RETURNING id")"
+          count="$(psql -XqAt -v ON_ERROR_STOP=1 -h fake-restore -U restore_user -d restored_db -c 'SELECT count(*) FROM fake_preflight')"
+          next_id="$(psql -XqAt -v ON_ERROR_STOP=1 -h fake-restore -U restore_user -d restored_db -c "INSERT INTO fake_preflight(label) VALUES ('fake-three') RETURNING id")"
           test "$count" = 2
           test "$next_id" = 3
           echo 'PASS: FAKE DATA ONLY; PG18 custom dump, AES-GCM tamper rejection and isolated restore'
