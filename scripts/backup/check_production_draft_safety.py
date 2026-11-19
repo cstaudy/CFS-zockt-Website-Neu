@@ -20,7 +20,7 @@ checks = {
     "TLS hostname verification": "PGSSLMODE: verify-full" in source,
     "system certificate verification": "PGSSLROOTCERT: system" in source,
     "no TLS downgrade": "sslmode=require" not in source.lower() and "sslmode=disable" not in source.lower(),
-    "no source restore or migration commands": not bool(re.search(r"(?m)^\s*(?:pg_restore|psql|npm\s+start|node\s+scripts/migrate)", source)),
+    "no source restore or migration commands": not bool(re.search(r"(?m)^\s*(?:pg_restore(?!\s+--list)|psql|npm\s+start|node\s+scripts/migrate)", source)),
     "encrypted artifact only": "encrypted-output/cfs-pg18.enc" in source and "retention-days: 1" in source,
     "separate environment secrets": all(f"secrets.{s}" in source for s in (
         "CFS_BACKUP_PGHOST", "CFS_BACKUP_PGPORT", "CFS_BACKUP_PGDATABASE",
