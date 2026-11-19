@@ -10,6 +10,8 @@ This document is on the draft backup branch. No production export, secret config
 - iPhone owner created iCloud Drive `CFS Zockt Backup/Datenbank-Backups` and successfully transferred a 249-byte fake encrypted test file.
 - GitHub environment `cfs-backup-protected` was created. User confirmed the settings were saved: required reviewer `cstaudy`, admin bypass unchecked. GitHub environment list displayed `1 protection rule`. Independent API readback and actual approval-enforcement test remain pending.
 - Repository is public; do not commit secrets, plaintext exports, production dumps or recovery keys.
+- Owner confirmed **Selected branches and tags** with exact `codex/iphone-pg18-backup-restore-draft` was saved. Independent API verification remains pending.
+- Render status rechecked 2026-11-19: `available`, `free`, PostgreSQL 18, Frankfurt; network allowlist is `0.0.0.0/0` (all IPv4 sources). This is not anonymous database access, but it is a broad exposure that requires review. Do not change the allowlist before validating backend connectivity and backup access.
 
 ## Hard gates before any production read/export
 1. Verify environment rules actually saved, reviewer requirement works, restrict deployment branches/tags to the audited backup branch, and review GitHub Actions permissions, forks/PR triggers, artifact retention and runner access. A GitHub environment by itself does **not** make a public repo or its runners private.
@@ -29,8 +31,12 @@ This document is on the draft backup branch. No production export, secret config
 - Environment configuration not independently re-read.
 - No authorization to incur charges or run production-connected workflow.
 
-## Next iPhone step
-Open GitHub repository Settings → Environments → `cfs-backup-protected` by selecting the environment from the environments list (a guessed direct URL previously returned 404). Under **Deployment branches and tags**, choose **Selected branches and tags** and add only the exact branch `codex/iphone-pg18-backup-restore-draft`, if supported; do not add wildcards or `main` without a new review. Save and verify the setting persists. This is a preparatory restriction only: the existing synthetic workflow does **not** reference this environment and remains synthetic-only. Do not add secrets or start any production-connected job.
+## Next steps (no secrets yet)
+1. Branch restriction has been saved by owner. Independently verify effective GitHub environment settings and approval behavior when connector capability is available.
+2. Determine whether the owner accepts processing real user data on a third-party GitHub-hosted runner. If not, choose a different isolated environment; no assumption of approval.
+3. Design and review a separate production-only, manual, environment-gated export implementation with a genuinely private encryption key, TLS verification and safe temporary-file handling. Do not attach secrets to the synthetic workflow.
+4. Revoke the previous public iCloud edit-link before storing real backups; keep encryption key separately.
+5. Do not run a production export, modify Render network rules, merge or deploy until all hard gates pass.
 
 ## Audit of current synthetic workflow (2026-11-19)
 - Triggered by pull requests modifying the synthetic workflow or its draft documentation, or manual workflow dispatch; no production trigger.
