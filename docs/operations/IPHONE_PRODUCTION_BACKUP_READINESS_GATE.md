@@ -8,7 +8,7 @@ This document is on the draft backup branch. No production export, secret config
 - Render dashboard's built-in Export and Point-in-Time Recovery are disabled on Free.
 - Existing `manual-pg18-backup-restore.yml` is **synthetic-only** and contains a public, fixed key suitable **only** for fake data.
 - iPhone owner created iCloud Drive `CFS Zockt Backup/Datenbank-Backups` and successfully transferred a 249-byte fake encrypted test file.
-- GitHub environment `cfs-backup-protected` was created. User screenshot showed required reviewer `cstaudy` and admin bypass unchecked; confirm rules are saved and enforced.
+- GitHub environment `cfs-backup-protected` was created. User confirmed the settings were saved: required reviewer `cstaudy`, admin bypass unchecked. GitHub environment list displayed `1 protection rule`. Independent API readback and actual approval-enforcement test remain pending.
 - Repository is public; do not commit secrets, plaintext exports, production dumps or recovery keys.
 
 ## Hard gates before any production read/export
@@ -30,6 +30,13 @@ This document is on the draft backup branch. No production export, secret config
 - No authorization to incur charges or run production-connected workflow.
 
 ## Next iPhone step
-Reopen GitHub repository Settings → Environments → `cfs-backup-protected`; verify the reviewer and bypass controls persisted. Do not add secrets yet. Before setting deployment branch restrictions, select and audit the actual backup workflow branch and trigger. The existing synthetic workflow is safe for fake-data tests only.
+Open GitHub repository Settings → Environments → `cfs-backup-protected` by selecting the environment from the environments list (a guessed direct URL previously returned 404). Under **Deployment branches and tags**, choose **Selected branches and tags** and add only the exact branch `codex/iphone-pg18-backup-restore-draft`, if supported; do not add wildcards or `main` without a new review. Save and verify the setting persists. This is a preparatory restriction only: the existing synthetic workflow does **not** reference this environment and remains synthetic-only. Do not add secrets or start any production-connected job.
+
+## Audit of current synthetic workflow (2026-11-19)
+- Triggered by pull requests modifying the synthetic workflow or its draft documentation, or manual workflow dispatch; no production trigger.
+- Global permissions are `contents: read`; no `environment:` entry, no GitHub secrets, no Render host, no production URL, no external backup destination.
+- Uses PostgreSQL 18 containers with hard-coded *synthetic-only* users/passwords and publicly known *synthetic-only* AES-GCM keys. It validates isolated restores and tamper rejection.
+- Fake encrypted artifacts are retained for one day. This is **not** durable backup storage.
+- This workflow must not be repurposed to connect to production by simply adding `DATABASE_URL` or a secret. A separate reviewed production-specific design is required.
 
 Deadline: prioritize a real verified backup before Render Free expiration on **2026-12-09**.
