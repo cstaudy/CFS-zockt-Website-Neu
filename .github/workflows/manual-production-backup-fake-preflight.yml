@@ -1,8 +1,11 @@
 name: Production-backup design preflight (FAKE DATA ONLY)
 
-# MANUAL TEST ONLY. No Render access, no production secrets, no environment secrets.
+# FAKE-DATA TEST ONLY. No Render access, no production secrets, no environment secrets.
 # This file must not be adapted for production without a separate security review.
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/manual-production-backup-fake-preflight.yml'
   workflow_dispatch:
 
 permissions:
