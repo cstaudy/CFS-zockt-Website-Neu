@@ -24,11 +24,12 @@
     $("resetPasswordForm").addEventListener("submit",async event=>{
       event.preventDefault();
       if(!event.currentTarget.reportValidity()||!update()) return;
+      const form=event.currentTarget;
       const button=$("resetPasswordBtn");button.disabled=true;
       try{
         const result=await CFS.json("/api/account/password/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:recoveryToken,new_password:$("resetPassword").value})});
         recoveryToken="";
-        event.currentTarget.reset();
+        form.reset();
         show(result?.message||"Passwort geändert. Bitte melde dich neu an.");
         window.setTimeout(()=>location.replace("/pages/login.html?password=reset"),1200);
       }catch(error){show(error?.message||"Der Recovery-Link ist ungültig oder abgelaufen.",true);button.disabled=false;}
