@@ -1,0 +1,50 @@
+name: Manual Render to Neon database copy
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type COPY to run. Destination must be a NEW EMPTY Neon database."
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  copy:
+    if: ${{ inputs.confirmation == 'COPY' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check required secrets
+        env:
+          SOURCE: ${{ secrets.RENDER_DATABASE_URL }}
+          TARGET: ${{ secrets.NEON_MIGRATION_DATABASE_URL }}
+        run: |
+          test -n "$SOURCE" && test -n "$TARGET" || { echo "Missing database secrets"; exit 1; }
+          test "$SOURCE" != "$TARGET" || { echo "Source and target must differ"; exit 1; }
+      - name: Install PostgreSQL 18 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-18
+      - name: Copy database via encrypted TLS connections
+        env:
+          SOURCE: ${{ secrets.RENDER_DATABASE_URL }}
+          TARGET: ${{ secrets.NEON_MIGRATION_DATABASE_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(psql "$TARGET" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT current_database()")" = "cfs_zockt_render_import" || { echo "Unexpected target database name"; exit 1; }
+          test "$(psql "$SOURCE" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT current_database()")" = "cfs_zockt_db" || { echo "Unexpected source database name"; exit 1; }
+          test "$(psql "$TARGET" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")" = 0 || { echo "Target is not empty; aborting"; exit 1; }
+          test "$(psql "$SOURCE" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")" = 26 || { echo "Source table count changed; review migration"; exit 1; }
+          pg_dump --dbname="$SOURCE" --format=custom --no-owner --no-acl --file=render.dump
+          pg_restore --dbname="$TARGET" --no-owner --no-acl --exit-on-error --single-transaction render.dump
+          SRC_COUNT=$(psql "$SOURCE" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")
+          DST_COUNT=$(psql "$TARGET" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")
+          echo "Source tables: $SRC_COUNT; target tables: $DST_COUNT"
+          test "$SRC_COUNT" = "$DST_COUNT"
+          rm -f render.dump
