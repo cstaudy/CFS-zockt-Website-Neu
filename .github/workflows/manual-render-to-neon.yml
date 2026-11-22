@@ -13,7 +13,6 @@ jobs:
     if: ${{ inputs.confirmation == 'COPY' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: neon-migration
     steps:
       - name: Check required secrets
         env:
@@ -38,6 +37,8 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
+          test "$(psql "$TARGET" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT current_database()")" = "cfs_zockt_render_import" || { echo "Unexpected target database name"; exit 1; }
+          test "$(psql "$SOURCE" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT current_database()")" = "cfs_zockt_db" || { echo "Unexpected source database name"; exit 1; }
           test "$(psql "$TARGET" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")" = 0 || { echo "Target is not empty; aborting"; exit 1; }
           test "$(psql "$SOURCE" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")" = 26 || { echo "Source table count changed; review migration"; exit 1; }
           pg_dump --dbname="$SOURCE" --format=custom --no-owner --no-acl --file=render.dump
