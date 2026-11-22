@@ -253,6 +253,13 @@ async function handle(req, res) {
     return json(res, ready ? 200 : 503, { ok: ready, status: ready ? "ready" : database.configured ? "database_unavailable" : "waiting_for_database", checks: { configuration: true, database }, version });
   }
 
+  // The public homepage ships with complete static copy in index.html.
+  // Until an editable site-content store is implemented, preserve that copy
+  // rather than returning 501 or inventing database-backed content.
+  if (url.pathname === "/api/public/site-content" && ["GET", "HEAD"].includes(method)) {
+    return json(res, 200, { ok: true, available: false, source: "static_page_defaults", content: {} });
+  }
+
   if (url.pathname === "/api/public/status" && ["GET", "HEAD"].includes(method)) {
     // Public status reports real account-store readiness, not a synthetic green light.
     // Do not expose database connection strings or internal errors to visitors.
