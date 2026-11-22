@@ -191,7 +191,7 @@
     try {
       const me = await CFS.json("/api/account/me", { headers:{"Accept":"application/json"} });
       if (!me?.authenticated) return location.replace(loginTarget);
-      if (!me?.admin) return location.replace("/pages/dashboard.html");
+      if (me?.account?.admin !== true) return location.replace("/pages/dashboard.html");
       $("adminDisplayName").textContent = me?.account?.display_name || "CFS Admin";
       $("adminEmail").textContent = me?.account?.email || "Admin-Konto";
       setCard("adminWebsiteStatus", "API ERREICHBAR", "Admin-Konto wurde über die API geprüft.", "ok");
