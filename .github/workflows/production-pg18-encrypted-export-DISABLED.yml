@@ -1,0 +1,71 @@
+name: CFS-Zockt production PG18 encrypted export (DISABLED DRAFT)
+
+# DO NOT ENABLE OR RUN. Explicit separate production-export authorization required.
+# Manual only, no PR trigger. Branch is a draft PR, not merged to main.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-export:
+    # HARD STOP. Requires security review, key custody, access approval,
+    # environment-gate smoke test, and explicit authorization before removal.
+    if: ${{ false }}
+    environment: cfs-backup-protected
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    container:
+      image: postgres:18
+    env:
+      PGHOST: ${{ secrets.CFS_BACKUP_PGHOST }}
+      PGPORT: ${{ secrets.CFS_BACKUP_PGPORT }}
+      PGDATABASE: ${{ secrets.CFS_BACKUP_PGDATABASE }}
+      PGUSER: ${{ secrets.CFS_BACKUP_PGUSER }}
+      PGPASSWORD: ${{ secrets.CFS_BACKUP_PGPASSWORD }}
+      PGSSLMODE: verify-full
+      PGSSLROOTCERT: system
+      CFS_BACKUP_KEY_B64: ${{ secrets.CFS_BACKUP_ENCRYPTION_KEY }}
+    steps:
+      - name: Checkout audited backup code
+        uses: actions/checkout@v4
+      - name: Check required configuration without printing secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for var in PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD CFS_BACKUP_KEY_B64; do
+            if test -z "${!var:-}"; then echo "Missing required secret name: $var"; exit 1; fi
+          done
+      - name: Create encrypted PostgreSQL 18 archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p /tmp/cfs-backup encrypted-output
+          trap 'rm -f /tmp/cfs-backup/production.dump' EXIT
+          # pg_dump reads production only; no migration or restore to source.
+          pg_dump -Fc --no-owner --no-acl -f /tmp/cfs-backup/production.dump
+          pg_restore --list /tmp/cfs-backup/production.dump > /dev/null
+          apt-get update -qq
+          apt-get install -y -qq python3-cryptography > /dev/null
+          python3 scripts/backup/pg18_backup_crypto.py encrypt /tmp/cfs-backup/production.dump encrypted-output/cfs-pg18.enc
+          rm -f /tmp/cfs-backup/production.dump
+          sha256sum encrypted-output/cfs-pg18.enc > encrypted-output/cfs-pg18.enc.sha256
+      - name: Upload ONLY encrypted dump and public checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: cfs-pg18-encrypted-export
+          path: |
+            encrypted-output/cfs-pg18.enc
+            encrypted-output/cfs-pg18.enc.sha256
+          if-no-files-found: error
+          retention-days: 1
+      - name: Remove temporary local files
+        if: always()
+        shell: bash
+        run: rm -rf /tmp/cfs-backup encrypted-output
+
+# No plaintext dump is uploaded. This draft is NOT sufficient for production:
+# environment enforcement, TLS trust, credential coverage, key recovery,
+# protected code review, separate restore, and iCloud transfer remain unverified.
