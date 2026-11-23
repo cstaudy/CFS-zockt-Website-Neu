@@ -30,6 +30,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - name: Password recovery contract
+        run: node scripts/test-password-recovery.mjs
       - name: PostgreSQL registration and creator end-to-end
         env:
           DATABASE_URL: postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci

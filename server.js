@@ -325,7 +325,7 @@ async function handle(req, res) {
     return json(res, 200, { authenticated: Boolean(view), account: view });
   }
   if(url.pathname==="/api/account/mail/status"&&method==="GET")return json(res,200,mailStatus());
-  if(url.pathname==="/api/account/password/forgot"&&method==="POST"){const body=await readJson(req);return json(res,200,await requestPasswordReset(body.email));}
+  if(url.pathname==="/api/account/password/forgot"&&method==="POST"){const body=await readJson(req);return json(res,200,await requestPasswordReset(body.email,req.socket.remoteAddress||"unknown"));}
   if(url.pathname==="/api/account/password/reset"&&method==="POST"){const body=await readJson(req),result=await resetPassword(String(body.token||""),body.new_password);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/email/verification/request"&&method==="POST")return json(res,200,await requestEmailVerification((await readJson(req)).email));
   if(url.pathname==="/api/account/email/verify"&&method==="POST"){const result=await verifyEmail(String((await readJson(req)).token||""));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}

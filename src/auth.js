@@ -1,7 +1,7 @@
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { getPool } from "./db.js";
-import { sendRecoveryMail, sendMail } from "./mail.js";
+import { mailStatus, sendRecoveryMail, sendMail } from "./mail.js";
 import { isPasswordLongEnough } from "./password-policy.js";
 
 const scrypt = promisify(scryptCallback);
@@ -31,6 +31,10 @@ async function verifyPassword(password, stored) {
 
 function tokenHash(token) {
   return createHash("sha256").update(token).digest("hex");
+}
+
+function recoveryIpHash(address) {
+  return createHash("sha256").update(String(process.env.SESSION_SECRET || "cfs-recovery-rate-limit")).update("\0").update(String(address || "unknown").slice(0, 128)).digest("hex");
 }
 
 function cookie(name, value, maxAge) {
@@ -142,13 +146,53 @@ export async function logout(req) {
   return cookie("cfs_session", "", 0);
 }
 
-export async function requestPasswordReset(email) {
-  const pool=getPool(); const normalized=normalizeEmail(email); const generic={ok:true,message:"Wenn ein passendes Konto existiert, wurde ein Recovery-Link angefordert."};
-  const row=(await pool.query("select id,email from accounts where email=$1",[normalized])).rows[0]; if(!row)return generic;
-  const token=randomBytes(32).toString("base64url"); await pool.query("delete from password_recovery_tokens where account_id=$1 or expires_at<=now()",[row.id]); await pool.query("insert into password_recovery_tokens(account_id,token_hash,expires_at) values($1,$2,now()+interval '30 minutes')",[row.id,tokenHash(token)]); await sendRecoveryMail({to:row.email,token}); return generic;
+export async function requestPasswordReset(email, sourceAddress="unknown") {
+  const pool=getPool();
+  const normalized=normalizeEmail(email);
+  const generic={ok:true,message:"Wenn ein passendes Konto existiert, wurde ein Recovery-Link angefordert."};
+  if(!pool || !mailStatus().password_recovery_available)return generic;
+  const row=(await pool.query("select id,email from accounts where email=$1",[normalized])).rows[0];
+  const ipHash=recoveryIpHash(sourceAddress);
+  const client=await pool.connect();
+  let token="";
+  try{
+    await client.query("BEGIN");
+    await client.query("delete from password_recovery_attempts where created_at<=now()-interval '15 minutes'");
+    await client.query("select pg_advisory_xact_lock(hashtext($1))",[`password-recovery-account:${row?.id||normalized}`]);
+    await client.query("select pg_advisory_xact_lock(hashtext($1))",[`password-recovery-ip:${ipHash}`]);
+    const accountCount= row ? Number((await client.query("select count(*) from password_recovery_attempts where account_id=$1 and created_at>now()-interval '15 minutes'",[row.id])).rows[0].count) : 0;
+    const ipCount=Number((await client.query("select count(*) from password_recovery_attempts where ip_hash=$1 and created_at>now()-interval '15 minutes'",[ipHash])).rows[0].count);
+    if(accountCount>=5 || ipCount>=30){ await client.query("ROLLBACK"); return generic; }
+    await client.query("insert into password_recovery_attempts(account_id,ip_hash) values($1,$2)",[row?.id||null,ipHash]);
+    if(!row){ await client.query("COMMIT"); return generic; }
+    token=randomBytes(32).toString("base64url");
+    await client.query("delete from password_recovery_tokens where account_id=$1 or expires_at<=now()",[row.id]);
+    await client.query("insert into password_recovery_tokens(account_id,token_hash,expires_at) values($1,$2,now()+interval '30 minutes')",[row.id,tokenHash(token)]);
+    await client.query("COMMIT");
+  } catch(error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    throw error;
+  } finally { client.release(); }
+  await sendRecoveryMail({to:row.email,token});
+  return generic;
 }
 export async function resetPassword(token,newPassword) {
-  if(!isPasswordLongEnough(newPassword))return{error:"PASSWORD_TOO_SHORT",status:400}; const pool=getPool(),hash=await passwordHash(newPassword),row=(await pool.query("select account_id from password_recovery_tokens where token_hash=$1 and used_at is null and expires_at>now()",[tokenHash(token)])).rows[0]; if(!row)return{error:"RECOVERY_TOKEN_INVALID_OR_EXPIRED",status:400}; await pool.query("update accounts set password_hash=$2,updated_at=now() where id=$1",[row.account_id,hash]); await pool.query("update password_recovery_tokens set used_at=now() where token_hash=$1",[tokenHash(token)]); await pool.query("delete from sessions where account_id=$1",[row.account_id]); await pool.query("delete from mfa_login_challenges where account_id=$1",[row.account_id]); return{ok:true,message:"Passwort wurde zurückgesetzt."};
+  if(!isPasswordLongEnough(newPassword))return{error:"PASSWORD_TOO_SHORT",status:400};
+  const pool=getPool(); if(!pool)return{error:"DATABASE_UNAVAILABLE",status:503};
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    const row=(await client.query("select account_id from password_recovery_tokens where token_hash=$1 and used_at is null and expires_at>now() for update",[tokenHash(token)])).rows[0];
+    if(!row){await client.query("ROLLBACK");return{error:"RECOVERY_TOKEN_INVALID_OR_EXPIRED",status:400};}
+    const hash=await passwordHash(newPassword);
+    await client.query("update accounts set password_hash=$2,updated_at=now() where id=$1",[row.account_id,hash]);
+    await client.query("update password_recovery_tokens set used_at=now() where token_hash=$1 and used_at is null",[tokenHash(token)]);
+    await client.query("delete from sessions where account_id=$1",[row.account_id]);
+    await client.query("delete from mfa_login_challenges where account_id=$1",[row.account_id]);
+    await client.query("COMMIT");
+    return{ok:true,message:"Passwort wurde zurückgesetzt."};
+  } catch(error) { try { await client.query("ROLLBACK"); } catch {} throw error; }
+  finally { client.release(); }
 }
 export async function requestEmailVerification(email){const normalized=normalizeEmail(email),pool=getPool(),row=(await pool.query("select id,email from accounts where email=$1",[normalized])).rows[0];if(!row)return{ok:true,message:"Wenn ein passendes Konto existiert, wurde ein Bestätigungslink angefordert."};const token=randomBytes(32).toString("base64url");await pool.query("delete from email_verification_tokens where account_id=$1 or expires_at<=now()",[row.id]);await pool.query("insert into email_verification_tokens(account_id,token_hash,expires_at) values($1,$2,now()+interval '30 minutes')",[row.id,tokenHash(token)]);await sendMail({to:row.email,token,type:"verification"});return{ok:true,message:"Bestätigungslink wurde angefordert."};}
 export async function verifyEmail(token){const pool=getPool(),row=(await pool.query("select account_id from email_verification_tokens where token_hash=$1 and used_at is null and expires_at>now()",[tokenHash(token)])).rows[0];if(!row)return{error:"VERIFICATION_TOKEN_INVALID_OR_EXPIRED",status:400};await pool.query("update accounts set email_verified_at=now(),updated_at=now() where id=$1",[row.account_id]);await pool.query("update email_verification_tokens set used_at=now() where token_hash=$1",[tokenHash(token)]);return{ok:true,message:"E-Mail-Adresse wurde bestätigt."};}
