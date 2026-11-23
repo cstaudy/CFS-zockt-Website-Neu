@@ -70,7 +70,7 @@ Im verbundenen Workspace wurden read-only folgende relevante Services gefunden:
 - `cfs-zockt-staging` (`srv-dbqn7gon74is73cn7umg`): Branch `fix/staging-site-content-neon-20261122`, live auf Commit `439d7b2`, `autoDeploy=no`, kostenloser Frankfurt-Service. Die Logs zeigen Migrationen bis 025, nicht 026.
 - Render-Postgres `cfs-zockt-db` (`dpg-dbp1583m8hqs73dqovs0-a`): 26 Tabellen, PostgreSQL 18.6, keine `schema_migrations`; `password_recovery_tokens` existiert, `password_recovery_attempts` fehlt.
 
-Die Render-MCP-Schnittstelle liefert Service-Metadaten, aber keine sicheren, nicht offengelegten Environment-Key-Namen/Zuordnungen. Deshalb ist nicht beweisbar, ob der aktive Service seine `DATABASE_URL` auf Render Postgres, Neon oder eine andere Datenbank richtet.
+Die Render-MCP-Schnittstelle liefert selbst keine geschützten Environment-Werte. Die reine Metadatenprüfung konnte die Zuordnung zunächst nicht beweisen; der spätere Laufzeitnachweis weiter unten schließt diese Lücke.
 
 ### Neon
 
@@ -93,7 +93,7 @@ Die öffentlichen, nicht schreibenden Endpunkte wurden zusätzlich geprüft:
 
 ### Freigabestatus
 
-**BLOCKED – nicht mergen, nicht deployen.** Offen sind die eindeutige aktive Datenbankzuordnung, geschützte Resend-/Render-Konfigurationsprüfung, ein vollständiges verschlüsseltes Backup der tatsächlich aktiven Datenbank mit isoliertem Restore und die Prüfung der Migration-026-Kompatibilität auf genau diesem Ziel. Der erfolgreiche CI-Lauf verwendet ausschließlich eine synthetische Wegwerf-PostgreSQL-Datenbank und ersetzt diese Nachweise nicht.
+**BLOCKED – nicht mergen, nicht deployen.** Zu diesem Prüfzeitpunkt waren die aktive Datenbankzuordnung, die geschützte Resend-/Render-Konfiguration, ein vollständiges verschlüsseltes Backup mit isoliertem Restore und die Migration-026-Kompatibilität auf dem echten Ziel offen. Der spätere Laufzeitnachweis klärt ausschließlich die Providerzuordnung; die übrigen Freigabegates bleiben offen.
 
 ## Fortsetzung der Blockerprüfung (23.11.2026)
 
@@ -103,7 +103,7 @@ Die öffentlichen, nicht schreibenden Endpunkte wurden zusätzlich geprüft:
 - Der aktuelle Lauf [45171607859 / Run 664](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/45171607859) ist vollständig erfolgreich; alle Recovery-, PG18-, Dump-/Restore- und Backup-/Restore-Jobs liefen durch.
 - Nach dem Dokumentationscommit `b171fc7fd5fed23f1c29eecafeebcf26816c6a5d` ist auch [Run 45173916293 / Run 665](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/45173916293) vollständig erfolgreich.
 - Render bestätigt erneut: `CFS-TikTok-Backend` ist auf Deploy `dep-dbpq99p5efls738n6mkg` mit Commit `3f8c46e` live; `cfs-zockt-staging` ist auf Deploy `dep-dc1e94l9fdbs73ak0ic0` mit Commit `439d7b2` live. Beide Services haben `autoDeploy=no`.
-- Die gemeinsame Render-`environmentId` von Backend und Render-Postgres belegt eine gemeinsame Render-Umgebung, aber nicht den Inhalt von `DATABASE_URL`. Der geschützte Zielwert ist über die sichere MCP-Schnittstelle nicht abrufbar.
+- Die gemeinsame Render-`environmentId` von Backend und Render-Postgres belegt eine gemeinsame Render-Umgebung, aber allein nicht den Inhalt von `DATABASE_URL`. Der geschützte Zielwert bleibt über die MCP-Schnittstelle nicht abrufbar; die Laufzeitkorrelation unten liefert den sicheren Nachweis.
 
 ### Isolierte Neon-Stagingprüfung
 
@@ -131,9 +131,31 @@ PR #50 reserviert derzeit ebenfalls `026_launcher_job_claims.sql` und `027_twitc
 ### Weiterhin nicht nachweisbar
 
 - Ein vollständiges, verschlüsseltes Backup der tatsächlich aktiven Render-Datenbank mit isoliertem Restore: Render MCP stellt dafür keinen Backup-/Restore-Aufruf bereit; Neon-Snapshots der Produktionskandidaten sind leer.
-- Der konkrete Provider/Branch von `CFS-TikTok-Backend`: Render-Umgebungs-ID und Datenbankname reichen ohne geschützten `DATABASE_URL`-Wert nicht als Beweis.
+- Der konkrete Neon-Provider/Branch ist kein Produktionsziel; der aktive Provider ist durch die unten dokumentierte Render-Laufzeitkorrelation nachgewiesen.
 - Resend-Domain-Verifizierung und synthetische Zustellung: der Backend-Live-Status meldet Recovery deaktiviert; Staging meldet Resend konfiguriert, läuft aber nicht auf PR #103.
 - Ein iPhone-Formular-End-to-End-Lauf gegen eine PR-103-Staging-Instanz: die statischen mobilen Verträge und die isolierte CI-Integration sind grün, aber keine isolierte Render-Instanz mit PR #103 ist aktiv.
 
 **Aktualisierter Status: BLOCKED.** Es wurden nur isolierte Neon-Stagingdaten verändert; keine Produktionsdatenbank, keine Render-Konfiguration, kein Deployment und keine echte E-Mail wurden angefasst.
+
+## Definitiver Laufzeitnachweis der Produktionsdatenbank (23.11.2026)
+
+### Ergebnis: **RENDER VERIFIED**
+
+Die bisherige Zuordnungslücke wurde durch eine zeitnahe, ausschließlich lesende Laufzeitkorrelation geschlossen:
+
+1. Der produktive Service `CFS-TikTok-Backend` antwortete auf `GET /api/ready` mit HTTP 200, `database.configured=true`, `database.connected=true` und Version `3f8c46e`.
+2. Der Code des live laufenden Commits `3f8c46e` verwendet ausschließlich `process.env.DATABASE_URL`; `/api/ready` ruft `databaseCheck()` auf, und `databaseCheck()` führt exakt `select 1` aus.
+3. Unmittelbar nach dem Health-GET erschien auf Render-Postgres `cfs-zockt-db` eine neue Idle-Sitzung mit `query_preview="select 1"`, `usename=cfs_zockt_db_user`, Render-internem `client_addr` und dem Zeitstempel des Health-Aufrufs.
+4. Ein gleichartiger Health-GET auf `cfs-zockt-staging` erzeugte keine entsprechende Render-Postgres-Sitzung. Das trennt die produktive Render-Verbindung vom Staging-Pfad.
+
+Damit verwendet `CFS-TikTok-Backend` nachweislich **Render PostgreSQL `cfs-zockt-db` (`cfs_zockt_db`)**, nicht eines der Neon-Projekte. Die Render-Umgebungs-ID `evm-da5dhsbncjis738jcehg` stimmt zusätzlich zwischen Backend und Render-Postgres überein. Secret-Werte und vollständige Connection-Strings wurden nicht gelesen oder ausgegeben.
+
+### Konsequenzen
+
+- Neon ist derzeit **nicht produktiv verbunden**. Die passenden Legacy-Daten liegen im Neon-Projekt `cfs-zockt-render-migration`, Branch `production` (`br-patient-wind-baf5d6mx`), Datenbank `cfs_zockt_render_import`; dieser Branch ist jedoch kein nachgewiesenes Laufzeit-Ziel.
+- Die alte Render-Datenbank wird aktuell noch benötigt. Sie läuft laut Render-Metadaten am 09.12.2026 ab; eine Umstellung darf erst nach Backup/Restore und kontrolliertem Cutover erfolgen.
+- Die aktive Render-Datenbank hat 26 Tabellen, aber keine `schema_migrations` und keine `password_recovery_attempts`. Migration 026 ist dort nicht installiert und darf nicht beim normalen Start blind angewendet werden.
+- Der isolierte Neon-Kindbranch `br-curly-firefly-bacrjncy` bleibt ausschließlich Testumgebung; seine erfolgreiche Migration-026-Prüfung beweist keine Produktionsmigration.
+
+Der Gesamtfreigabestatus bleibt deshalb **BLOCKED**: Die Providerfrage ist geklärt, aber das verschlüsselte Produktionsbackup mit isoliertem Restore, der sichere Neon-Datenabgleich/Cutover, der Resend-Test und die Rollback-Vorbereitung fehlen weiterhin.
 
