@@ -52,6 +52,7 @@ try {
   await requestPasswordReset(email, ip);
   const token = tokenFromLastMail();
   const pool = getPool();
+  assert.equal((await pool.query("select count(*) from password_recovery_tokens where token_hash=$1 and expires_at>now()", [hash(token)])).rows[0].count, "1", "provider token must be persisted and unexpired");
   await pool.query(
     "insert into mfa_login_challenges(token_hash,account_id,expires_at) values($1,$2,now()+interval '10 minutes')",
     [hash(`challenge-${suffix}`), created.account.id]
