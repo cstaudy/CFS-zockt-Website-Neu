@@ -29,7 +29,7 @@ try {
   await legacy.connect();
 
   assert.equal(legacyBaselineFiles.length, 21);
-  assert.equal(pendingLegacyUpgradeFiles.length, 4);
+  assert.equal(pendingLegacyUpgradeFiles.length, 5);
 
   // Simulate the pre-migration-ledger production era: 001–021 were applied
   // directly, and no schema_migrations table exists.
