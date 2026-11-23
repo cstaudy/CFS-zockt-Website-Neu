@@ -160,3 +160,21 @@ Damit verwendet `CFS-TikTok-Backend` nachweislich **Render PostgreSQL `cfs-zockt
 
 Der Gesamtfreigabestatus bleibt deshalb **BLOCKED**: Die Providerfrage ist geklärt, aber das verschlüsselte Produktionsbackup mit isoliertem Restore, der sichere Neon-Datenabgleich/Cutover, der Resend-Test und die Rollback-Vorbereitung fehlen weiterhin.
 
+## Backup-/Restore-Entscheid und Betreiberaktion (23.11.2026)
+
+Ein vollständiges Produktionsbackup wurde in diesem Lauf **nicht erstellt**. Der Grund ist technisch nachvollziehbar und kein übersprungener Prüfschritt:
+
+- `cfs-zockt-db` läuft im kostenlosen Render-PostgreSQL-Tarif. Render stellt für Free-Postgres keine verwalteten Backups bzw. Point-in-Time-Recovery bereit; ein manueller Export über `pg_dump` ist erforderlich. Siehe [Render PostgreSQL backups](https://render.com/docs/postgresql-backups) und [Render Free-Plan-Limits](https://render.com/docs/free).
+- Die verbundene Render-MCP-Schnittstelle bietet nur Metadaten, Logs und lesende SQL-Abfragen, aber keinen Export-/Restore-Aufruf und keinen Zugriff auf die geschützte externe Datenbank-URL.
+- In der Audit-Umgebung sind `render`, `pg_dump`, `pg_restore` und lokale Verschlüsselungswerkzeuge nicht installiert. Es wurde deshalb weder ein unverschlüsseltes Dump-Artefakt erzeugt noch ein Secret angefordert oder ausgegeben.
+
+Vor jeder produktiven Migration muss der Betreiber den folgenden Ablauf in einer sicheren lokalen/administrativen Umgebung ausführen. Die Datenbank-URL darf ausschließlich als geschützte Umgebungsvariable verwendet werden und darf nicht in Chat, GitHub, Logs oder Dateien im Repository gelangen:
+
+1. Für `cfs-zockt-db` im Render-Dashboard einen manuellen Export anfordern, sofern der aktuelle Tarif dies zulässt; andernfalls die externe PostgreSQL-URL in einem sicheren Terminal hinterlegen und mit PostgreSQL-18-Clienttools einen Directory-Dump erzeugen, zum Beispiel `pg_dump --format=directory --no-owner --no-privileges --jobs=4 --dbname="$RENDER_EXTERNAL_DATABASE_URL" --file=<privater-dump-pfad>`.
+2. Das Dump-Verzeichnis außerhalb des Repositories mit einem separat verwalteten Verschlüsselungsschlüssel verschlüsseln (z. B. `age` oder GPG), anschließend die Integrität des verschlüsselten Archivs per SHA-256 dokumentieren. Schlüssel und Archiv müssen getrennt und privat aufbewahrt werden.
+3. Einen leeren, isolierten PostgreSQL-18-Zielbereich verwenden (bevorzugt einen neuen Neon-Branch/temporäre Datenbank, nicht den produktiven Neon-Branch), das Archiv dort mit `pg_restore --format=directory --no-owner --no-privileges --jobs=4 --dbname="$ISOLATED_RESTORE_URL" <privater-dump-pfad>` wiederherstellen und den Restore anhand von Tabellen, Konten, Sessions, Recovery-Tabellen, Zeilenanzahlen und Constraints prüfen.
+4. Erst wenn dieser Restore erfolgreich ist, darf ein read-only Datenabgleich zwischen Render und dem isolierten Neon-Ziel erfolgen. Die vorhandenen Neon-Branches `production` und `staging-isolated-test` sind kein Ersatz für diesen Nachweis; der PR-103-Kindbranch wurde nur für Migration-026-Tests verwendet. Neon-Branches sind voneinander isoliert, wie in der [Neon-Branching-Dokumentation](https://neon.com/docs/introduction/branching.md) beschrieben.
+5. Für den späteren Cutover einen Wartungs-/Freeze-Zeitpunkt, einen verifizierten Rollback auf Render (`DATABASE_URL` zurücksetzen und Service neu starten) sowie den Restore-Befehl und die Prüfkriterien schriftlich festlegen. Bis dahin bleiben Render-Datenbank, PR #103 und alle Deployments unverändert.
+
+**Freigabefolge:** `Backup erstellt` → `verschlüsselt und Hash dokumentiert` → `isoliert wiederhergestellt` → `Datenabgleich bestanden` → `Resend/PR-103-Staging bestanden` → `Rollback geprobt` → erst dann separate Betreiberfreigabe für Cutover. Der aktuelle Auftrag endet daher weiterhin mit **BLOCKED** und nicht mit `READY FOR CUTOVER`.
+
