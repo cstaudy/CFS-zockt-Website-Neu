@@ -26,11 +26,19 @@ try {
   assert.match(body.html, /https:\/\/cfs-zockt\.example\/pages\/reset-password\.html#token=synthetic-token/);
   assert.doesNotMatch(body.html, /reset-password\.html\?token=/);
 
+  process.env.APP_BASE_URL = "https://cfs-zockt.example/base-path";
+  assert.equal(mailStatus().password_recovery_available, false, "APP_BASE_URL must be an origin, not a path prefix");
+
   const auth = await readFile(new URL("../src/auth.js", import.meta.url), "utf8");
   assert.match(auth, /password_recovery_attempts/);
   assert.match(auth, /pg_advisory_xact_lock/);
   assert.match(auth, /for update/);
   assert.match(auth, /SESSION_SECRET/);
+  assert.match(auth, /if\(!secret\)return null/);
+  assert.match(auth, /sendRecoveryMail/);
+  const server = await readFile(new URL("../server.js", import.meta.url), "utf8");
+  assert.match(server, /requestPasswordReset\(body\.email,req\.socket\.remoteAddress/);
+  assert.doesNotMatch(server, /requestPasswordReset\(body\.email,req\.headers\[['"]x-forwarded-for/);
   const migration = await readFile(new URL("../migrations/026_password_recovery_rate_limit.sql", import.meta.url), "utf8");
   assert.match(migration, /password_recovery_attempts/);
   assert.match(migration, /ip_hash/);

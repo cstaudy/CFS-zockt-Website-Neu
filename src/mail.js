@@ -4,8 +4,8 @@ function baseUrl(){
   try{
     const url=new URL(value);
     if(url.protocol!=="https:" && !(url.protocol==="http:" && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(url.host)))return null;
-    if(url.username||url.password||url.search||url.hash)return null;
-    return url.toString().replace(/\/$/,"");
+    if(url.username||url.password||url.search||url.hash||url.pathname!=="/")return null;
+    return url.origin;
   }catch{return null;}
 }
 export function mailStatus(){const ready=Boolean(process.env.RESEND_API_KEY&&process.env.MAIL_FROM&&baseUrl());return{password_recovery_available:ready,email_verification_available:ready,provider:process.env.RESEND_API_KEY?"resend":null};}

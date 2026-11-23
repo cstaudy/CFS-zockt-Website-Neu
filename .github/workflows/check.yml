@@ -41,6 +41,13 @@ jobs:
         run: |
           npm run migrate
           node scripts/test-account-creator-flow.mjs
+      - name: Password recovery PostgreSQL integration
+        env:
+          DATABASE_URL: postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci
+          DATABASE_SSL: 'false'
+          SESSION_SECRET: ci-password-recovery-secret-only
+          CFS_CI_DATABASE_ACCEPTANCE: 'yes'
+        run: node scripts/test-password-recovery-db.mjs
       - name: Read-only release readiness on isolated PostgreSQL 18 CI database
         env:
           DATABASE_URL: postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci

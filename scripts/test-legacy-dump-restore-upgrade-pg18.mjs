@@ -122,7 +122,7 @@ try {
   assert.deepEqual(await legacyRows(clone, original), before, "All legacy data must survive restore");
 
   // On the restored clone ONLY, perform the verified 21-item baseline and
-  // then the four incremental MFA migrations.
+  // then the incremental MFA/password-recovery migrations.
   await assert.rejects(
     applyMigrations(clone, migrationFiles, loadMigrationSql),
     /Bestehende Datenbank ohne Migrationshistorie/
@@ -131,7 +131,7 @@ try {
   await assertHistoryCount(clone, 21);
   assert.deepEqual(await legacyRows(clone, original), before, "Baseline must not mutate restored data");
   await applyMigrations(clone, migrationFiles, loadMigrationSql);
-  await assertHistoryCount(clone, 25);
+  await assertHistoryCount(clone, 26);
   assert.deepEqual(await legacyRows(clone, original), before, "Upgrade must preserve every preexisting table and column");
 
   const additions = (await clone.query(`
@@ -147,14 +147,14 @@ try {
   ]);
   assert((await clone.query("select to_regclass('public.mfa_login_challenges') as table_name")).rows[0].table_name);
   await applyMigrations(clone, migrationFiles, loadMigrationSql);
-  await assertHistoryCount(clone, 25);
+  await assertHistoryCount(clone, 26);
 
   // Confirm the original source still has its old schema and data: the
   // rehearsal's upgrade must only ever affect the fresh restore clone.
   assert.equal((await source.query("select to_regclass('public.schema_migrations') as history")).rows[0].history, null);
   assert.equal((await source.query("select to_regclass('public.mfa_login_challenges') as table_name")).rows[0].table_name, null);
   assert.deepEqual(await legacyRows(source, original), before);
-  console.log("PostgreSQL 18 legacy dump rehearsal passed: real archive, clean restore, all legacy rows preserved, 21-item baseline, MFA 022-025, source unchanged.");
+  console.log("PostgreSQL 18 legacy dump rehearsal passed: real archive, clean restore, all legacy rows preserved, 21-item baseline, MFA/password-recovery 022-026, source unchanged.");
 } finally {
   try { if (clone) await clone.end(); } finally {
     try { if (source) await source.end(); } finally {

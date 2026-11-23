@@ -34,7 +34,9 @@ function tokenHash(token) {
 }
 
 function recoveryIpHash(address) {
-  return createHash("sha256").update(String(process.env.SESSION_SECRET || "cfs-recovery-rate-limit")).update("\0").update(String(address || "unknown").slice(0, 128)).digest("hex");
+  const secret=String(process.env.SESSION_SECRET||"").trim();
+  if(!secret)return null;
+  return createHash("sha256").update(secret).update("\0").update(String(address || "unknown").slice(0, 128)).digest("hex");
 }
 
 function cookie(name, value, maxAge) {
@@ -151,8 +153,9 @@ export async function requestPasswordReset(email, sourceAddress="unknown") {
   const normalized=normalizeEmail(email);
   const generic={ok:true,message:"Wenn ein passendes Konto existiert, wurde ein Recovery-Link angefordert."};
   if(!pool || !mailStatus().password_recovery_available)return generic;
-  const row=(await pool.query("select id,email from accounts where email=$1",[normalized])).rows[0];
   const ipHash=recoveryIpHash(sourceAddress);
+  if(!ipHash)return generic;
+  const row=(await pool.query("select id,email from accounts where email=$1",[normalized])).rows[0];
   const client=await pool.connect();
   let token="";
   try{
@@ -173,7 +176,11 @@ export async function requestPasswordReset(email, sourceAddress="unknown") {
     try { await client.query("ROLLBACK"); } catch {}
     throw error;
   } finally { client.release(); }
-  await sendRecoveryMail({to:row.email,token});
+  const delivered=await sendRecoveryMail({to:row.email,token});
+  if(!delivered){
+    try{await pool.query("delete from password_recovery_tokens where account_id=$1 and token_hash=$2 and used_at is null",[row.id,tokenHash(token)]);}catch{}
+    console.warn("Password recovery provider rejected a message",{account_id:row.id});
+  }
   return generic;
 }
 export async function resetPassword(token,newPassword) {
