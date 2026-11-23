@@ -29,7 +29,7 @@ try {
   await legacy.connect();
 
   assert.equal(legacyBaselineFiles.length, 21);
-  assert.equal(pendingLegacyUpgradeFiles.length, 4);
+  assert.equal(pendingLegacyUpgradeFiles.length, 5);
 
   // Simulate the pre-migration-ledger production era: 001–021 were applied
   // directly, and no schema_migrations table exists.
@@ -113,7 +113,7 @@ try {
   assert.deepEqual(await snapshot(), before, "Guarded refusal must preserve account state");
 
   // Historical equivalence baseline records ONLY 001–021, without changing
-  // any application data or pretending 022–025 are already installed.
+  // any application data or pretending 022+ are already installed.
   await baselineMigrations(legacy, legacyBaselineFiles, loadMigrationSql);
   assert.equal(Number((await legacy.query("select count(*) as n from schema_migrations")).rows[0].n), 21);
   assert.equal((await legacy.query("select to_regclass('public.mfa_login_challenges') as name")).rows[0].name, null);
@@ -123,7 +123,7 @@ try {
   await baselineMigrations(legacy, legacyBaselineFiles, loadMigrationSql);
   assert.equal(Number((await legacy.query("select count(*) as n from schema_migrations")).rows[0].n), 21);
 
-  // A corrupted ledger must fail before applying any of 022–025.
+  // A corrupted ledger must fail before applying any pending 022+ migration.
   // This takes place only in the disposable PostgreSQL 18 CI database.
   await legacy.query(
     "insert into schema_migrations(name, checksum) values($1, $2)",
@@ -133,7 +133,7 @@ try {
   await assert.rejects(
     applyMigrations(legacy, migrationFiles, loadMigrationSql),
     /nicht lückenlos|unbekannte Migrationen|unvollständig, unbekannt/,
-    "Unknown future migration must block an otherwise pending 022–025 upgrade"
+    "Unknown future migration must block an otherwise pending upgrade"
   );
   assert.equal((await legacy.query(
     "select to_regclass('public.mfa_login_challenges') as name")).rows[0].name, null,
@@ -146,7 +146,7 @@ try {
     "select count(*) as n from schema_migrations")).rows[0].n), 21);
 
   // After the correct 21-item baseline, the normal migration runner may
-  // apply the four pending MFA schema upgrades.
+  // apply all pending MFA/password-recovery schema upgrades.
   await applyMigrations(legacy, migrationFiles, loadMigrationSql);
   const applied = (await legacy.query("select name from schema_migrations order by name")).rows.map(row => row.name);
   assert.deepEqual(applied, migrationFiles);
@@ -168,7 +168,7 @@ try {
 
   // All migrations must be safely repeatable on a second server startup.
   await applyMigrations(legacy, migrationFiles, loadMigrationSql);
-  assert.equal(Number((await legacy.query("select count(*) as n from schema_migrations")).rows[0].n), 25);
+  assert.equal(Number((await legacy.query("select count(*) as n from schema_migrations")).rows[0].n), 26);
   assert.deepEqual(await snapshot(), before);
 
   // A modified already-recorded migration is rejected by the checksum guard.
@@ -179,7 +179,7 @@ try {
   );
   assert.deepEqual(await snapshot(), before);
 
-  console.log("PG18 real legacy upgrade passed: historical 001–021, schema-drift refusal, 21-item baseline, pending MFA 022–025, unchanged account data, idempotence and checksum guard.");
+  console.log("PG18 real legacy upgrade passed: historical 001–021, schema-drift refusal, 21-item baseline, pending MFA/password-recovery 022–026, unchanged account data, idempotence and checksum guard.");
 } finally {
   try { if (legacy) await legacy.end(); } finally {
     try {

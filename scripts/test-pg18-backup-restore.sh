@@ -134,7 +134,7 @@ docker exec -i "$container" pg_restore -U cfs_ci -d "$restore_db" \
 sql="select count(*) from public.schema_migrations"
 source_migrations="$(docker exec "$container" psql -U cfs_ci -d cfs_ci -At -v ON_ERROR_STOP=1 -c "$sql")"
 restored_migrations="$(docker exec "$container" psql -U cfs_ci -d "$restore_db" -At -v ON_ERROR_STOP=1 -c "$sql")"
-[[ "$source_migrations" == "25" && "$restored_migrations" == "25" ]] || {
+[[ "$source_migrations" == "26" && "$restored_migrations" == "26" ]] || {
   echo "Migrations ledger did not survive restore." >&2
   exit 1
 }
@@ -202,5 +202,5 @@ restored_count="$(docker exec "$container" psql -U cfs_ci -d "$probe_clone_db" -
 }
 echo "PostgreSQL 18 CI ACL rehearsal: synthetic row restored, original owner and reader grant intentionally absent; real migrations still require operator role checks."
 
-echo "PostgreSQL 18 CI backup verified: pg_dump, AES256-GPG synthetic encryption/decryption, SHA-256 of ciphertext, clean pg_restore, 25 migrations, application rows and schema."
+echo "PostgreSQL 18 CI backup verified: pg_dump, AES256-GPG synthetic encryption/decryption, SHA-256 of ciphertext, clean pg_restore, 26 migrations, application rows and schema."
 echo "Only disposable CI data was used; temporary archive and restore DB will be deleted."
