@@ -28,7 +28,7 @@ globalThis.fetch = async (_url, options) => {
 };
 
 function tokenFromLastMail() {
-  const match = String(sent.at(-1)?.html || "").match(/#token=([^<]+)/);
+  const match = String(sent.at(-1)?.html || "").match(/#token=([^"'<]+)/);
   assert(match, "synthetic provider mail must contain a fragment token");
   return decodeURIComponent(match[1]);
 }
