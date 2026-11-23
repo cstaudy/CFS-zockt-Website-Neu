@@ -99,9 +99,10 @@ Die öffentlichen, nicht schreibenden Endpunkte wurden zusätzlich geprüft:
 
 ### Aktueller GitHub-/Render-Stand
 
-- PR #103 bleibt auf aktuellem Head `b171fc7fd5fed23f1c29eecafeebcf26816c6a5d` Draft, offen und ungemergt.
+- PR #103 bleibt auf aktuellem Head `8110da70cca4ab0ff57d7903cdaf79eaa8b52cfc` Draft, offen und ungemergt.
 - Der aktuelle Lauf [45171607859 / Run 664](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/45171607859) ist vollständig erfolgreich; alle Recovery-, PG18-, Dump-/Restore- und Backup-/Restore-Jobs liefen durch.
 - Nach dem Dokumentationscommit `b171fc7fd5fed23f1c29eecafeebcf26816c6a5d` ist auch [Run 45173916293 / Run 665](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/45173916293) vollständig erfolgreich.
+- Der anschließende Lauf [45178220175 / Run 667](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/45178220175) auf dem aktuellen Head ist ebenfalls vollständig erfolgreich.
 - Render bestätigt erneut: `CFS-TikTok-Backend` ist auf Deploy `dep-dbpq99p5efls738n6mkg` mit Commit `3f8c46e` live; `cfs-zockt-staging` ist auf Deploy `dep-dc1e94l9fdbs73ak0ic0` mit Commit `439d7b2` live. Beide Services haben `autoDeploy=no`.
 - Die gemeinsame Render-`environmentId` von Backend und Render-Postgres belegt eine gemeinsame Render-Umgebung, aber allein nicht den Inhalt von `DATABASE_URL`. Der geschützte Zielwert bleibt über die MCP-Schnittstelle nicht abrufbar; die Laufzeitkorrelation unten liefert den sicheren Nachweis.
 
