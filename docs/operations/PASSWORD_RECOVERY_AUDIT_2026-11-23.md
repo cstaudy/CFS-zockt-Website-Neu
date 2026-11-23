@@ -85,6 +85,12 @@ Damit ist Migration 026 auf keiner nachweislich aktiven Produktionsdatenbank ins
 
 Der Code prüft `RESEND_API_KEY`, `MAIL_FROM` und eine HTTPS-Origin fail-closed; Provider-Fehler entfernen den unverbrauchten Token. Eine tatsächliche Render-Konfiguration, verifizierte Resend-Domain oder Zustellung konnte ohne Zugriff auf die geschützten Environment-Werte und ohne echte Testmail nicht bestätigt werden. Die beiden gefundenen Render-Services haben `autoDeploy=no`; ein Merge würde dort nach aktuellem Read-only-Stand kein automatisches Deployment auslösen. `npm start` führt bei gesetzter `DATABASE_URL` Migrationen beim Start aus, daher wäre ein unkontrollierter Deploy mit Migration 026 ein Datenbankrisiko.
 
+Die öffentlichen, nicht schreibenden Endpunkte wurden zusätzlich geprüft:
+
+- `CFS-TikTok-Backend`: `/api/health` und `/api/ready` erfolgreich, `/api/account/mail/status` meldet `password_recovery_available=false` und `provider=null`; `/api/integrations/status` meldet Datenbank und Session-Secret konfiguriert.
+- `cfs-zockt-staging`: `/api/health` und `/api/ready` erfolgreich, `/api/account/mail/status` meldet Resend konfiguriert; die Seite läuft aber auf dem älteren Commit `439d7b2` ohne Migration 026.
+- Login-, Forgot-Password- und Reset-Seiten liefern in Staging und im aktuellen Backend HTTP 200. Es wurden keine Formulare abgesendet und keine E-Mails ausgelöst.
+
 ### Freigabestatus
 
 **BLOCKED – nicht mergen, nicht deployen.** Offen sind die eindeutige aktive Datenbankzuordnung, geschützte Resend-/Render-Konfigurationsprüfung, ein vollständiges verschlüsseltes Backup der tatsächlich aktiven Datenbank mit isoliertem Restore und die Prüfung der Migration-026-Kompatibilität auf genau diesem Ziel. Der erfolgreiche CI-Lauf verwendet ausschließlich eine synthetische Wegwerf-PostgreSQL-Datenbank und ersetzt diese Nachweise nicht.
