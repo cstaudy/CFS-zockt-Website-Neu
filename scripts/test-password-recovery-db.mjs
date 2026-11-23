@@ -57,7 +57,7 @@ try {
     [hash(`challenge-${suffix}`), created.account.id]
   );
   const reset = await resetPassword(token, "New secure password 456!");
-  assert.equal(reset.ok, true);
+  assert.equal(reset.ok, true, `reset failed: ${JSON.stringify(reset)}`);
   assert.equal((await pool.query("select count(*) from sessions where account_id=$1", [created.account.id])).rows[0].count, "0");
   assert.equal((await pool.query("select count(*) from mfa_login_challenges where account_id=$1", [created.account.id])).rows[0].count, "0");
   assert.equal((await resetPassword(token, "Another secure password 789!")).error, "RECOVERY_TOKEN_INVALID_OR_EXPIRED");
