@@ -1,6 +1,6 @@
 # CFS Identity – visueller Vorschlag V1
 
-**Status:** Freigabevorschlag, noch keine websiteweite Umsetzung  
+**Status:** Designrichtung freigegeben; konkrete Mockup-Abnahme noch offen  
 **Basis:** Arctic Signal + Creator-Grid-Arbeitsflächen  
 **Logo:** bereitgestelltes CFS-Logo, unverändert und verbindlich
 
@@ -35,10 +35,14 @@ Die V1 nutzt eine geometrische Display-Schrift für Titel und eine neutrale Sans
 
 ## Freigabepunkt
 
-Bitte bestätige vor der Umsetzung:
+Die grundsätzliche Richtung **Arctic Signal + Creator Grid** ist freigegeben. Das Original-CFS-Logo bleibt unverändert und verbindlich.
 
-1. **Freigabe V1** – Desktop-/iPhone-Richtung, Farben, Kartenkontur und Studio-Navigation passen.
+Vor der Umsetzung der konkreten Komponenten ist weiterhin die Bildabnahme erforderlich:
+
+1. **Bildabnahme** – Desktop-/iPhone-Mockup, Typografie, Dichte, Bildanteil und Navigation bestätigen.
 2. **Korrekturschleife** – konkrete Änderung an Palette, Dichte, Bildanteil oder Navigation.
 
-Erst nach Freigabe werden Design-Tokens und Komponenten in einem separaten Entwicklungs-PR implementiert. Neon-, Backup- und Produktionsgrenzen bleiben dabei unverändert.
+Besondere Umsetzungsanforderungen: charakterstarke, lesbare Typografie; professionelle Studio-Arbeitsflächen; sehr gute iPhone-Bedienbarkeit; dezente Lichteffekte; eine einheitliche Navigation über Website, Launcher und Studios.
+
+Erst nach der Bildabnahme werden Design-Tokens und Komponenten in einem separaten Entwicklungs-PR implementiert. Neon-, Backup- und Produktionsgrenzen bleiben dabei unverändert.
 
