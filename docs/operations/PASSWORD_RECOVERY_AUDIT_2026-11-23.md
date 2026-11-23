@@ -47,11 +47,11 @@ node --check src/mail.js
 node --check server.js
 ```
 
-`npm run check` und einzelne Child-Process-Tests bleiben in der Windows-Audit-Umgebung durch das bereits dokumentierte `spawn EPERM`/fehlende Bash blockiert. Der Contract-Test und der isolierte PostgreSQL-Recovery-Test sind für Ubuntu-GitHub-CI als eigene Schritte hinterlegt; die ersten Linux-Läufe scheiterten an veralteten Migrationszählern bzw. einem Test-Token-Parser und sind im aktuellen Commit `1b3fe50` korrigiert. Ein echter Provider-Versand bleibt ohne freigegebene Resend-Konfiguration bewusst **BLOCKED**.
+`npm run check` und einzelne Child-Process-Tests bleiben in der Windows-Audit-Umgebung durch das bereits dokumentierte `spawn EPERM`/fehlende Bash blockiert. Der Contract-Test und der isolierte PostgreSQL-Recovery-Test sind für Ubuntu-GitHub-CI als eigene Schritte hinterlegt; die früheren Linux-Fehler (veraltete Migrationszähler und Test-Token-Parser) sind in den Folgecommits bis `01fb171e` korrigiert. Ein echter Provider-Versand bleibt ohne freigegebene Resend-Konfiguration bewusst **BLOCKED**.
 
 ## Noch erforderliche Betreiber-/CI-Schritte
 
-1. GitHub-CI-Lauf auf Linux nach Commit `1b3fe50` abwarten und die Migration 026 nur in der isolierten CI-/Staging-Datenbank ausführen.
+1. GitHub-CI-Lauf auf Linux nach Commit `01fb171e` beziehungsweise dem aktuellen PR-Head abwarten und die Migration 026 nur in der isolierten CI-/Staging-Datenbank ausführen.
 2. Resend-API-Key, verifizierten `MAIL_FROM`-Absender und HTTPS-`APP_BASE_URL` ausschließlich als geschützte Environment-Variablen konfigurieren.
 3. Mit einer synthetischen Testadresse den E-Mail-Inhalt und den vollständigen Reset auf einem isolierten Neon-Branch abnehmen. Keine echten Nutzer-E-Mails senden.
 4. Erst nach Freigabe darf ein separater Produktions-Rollout geplant werden; kein automatischer Merge/Deploy ist Teil dieses PRs.
@@ -60,7 +60,7 @@ node --check server.js
 
 ### GitHub
 
-PR #103 ist weiterhin Draft, offen und nicht gemergt. Commit `01fb171e3378588407f3d46e3c9cb73549168e7a` ist aktuell. GitHub Actions Lauf [45167398052](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/45167398052), Run 662, ist vollständig erfolgreich: `npm run check`, Recovery-Contract, PostgreSQL-Recovery-Integration, Legacy-Upgrade, Dump/Restore und verschlüsselter CI-Backup-/Restore-Test.
+PR #103 ist weiterhin Draft, offen und nicht gemergt. Die Sicherheitsimplementierung wurde in `01fb171e3378588407f3d46e3c9cb73549168e7a` getestet; der aktuelle PR-Head ist `9864c484dc0cd5419a85ad334b354be8076d65dc`. GitHub Actions Lauf [45167398052](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/45167398052), Run 662, und der aktuelle Lauf [45171607859](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/45171607859), Run 664, sind vollständig erfolgreich: `npm run check`, Recovery-Contract, PostgreSQL-Recovery-Integration, Legacy-Upgrade, Dump/Restore und verschlüsselter CI-Backup-/Restore-Test.
 
 ### Render
 
@@ -94,4 +94,45 @@ Die öffentlichen, nicht schreibenden Endpunkte wurden zusätzlich geprüft:
 ### Freigabestatus
 
 **BLOCKED – nicht mergen, nicht deployen.** Offen sind die eindeutige aktive Datenbankzuordnung, geschützte Resend-/Render-Konfigurationsprüfung, ein vollständiges verschlüsseltes Backup der tatsächlich aktiven Datenbank mit isoliertem Restore und die Prüfung der Migration-026-Kompatibilität auf genau diesem Ziel. Der erfolgreiche CI-Lauf verwendet ausschließlich eine synthetische Wegwerf-PostgreSQL-Datenbank und ersetzt diese Nachweise nicht.
+
+## Fortsetzung der Blockerprüfung (23.11.2026)
+
+### Aktueller GitHub-/Render-Stand
+
+- PR #103 bleibt auf `9864c484dc0cd5419a85ad334b354be8076d65dc` Draft, offen und ungemergt.
+- Der aktuelle Lauf [45171607859 / Run 664](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/45171607859) ist vollständig erfolgreich; alle Recovery-, PG18-, Dump-/Restore- und Backup-/Restore-Jobs liefen durch.
+- Render bestätigt erneut: `CFS-TikTok-Backend` ist auf Deploy `dep-dbpq99p5efls738n6mkg` mit Commit `3f8c46e` live; `cfs-zockt-staging` ist auf Deploy `dep-dc1e94l9fdbs73ak0ic0` mit Commit `439d7b2` live. Beide Services haben `autoDeploy=no`.
+- Die gemeinsame Render-`environmentId` von Backend und Render-Postgres belegt eine gemeinsame Render-Umgebung, aber nicht den Inhalt von `DATABASE_URL`. Der geschützte Zielwert ist über die sichere MCP-Schnittstelle nicht abrufbar.
+
+### Isolierte Neon-Stagingprüfung
+
+Der bestehende Neon-Branch `staging-isolated-test` (`br-plain-thunder-baw1h5fi`) wurde nicht direkt verändert. Daraus wurde der isolierte Kind-Branch `pr103-recovery-validation-20261123` (`br-curly-firefly-bacrjncy`) erstellt.
+
+Auf diesem Kind-Branch wurde ausschließlich die PR-103-Migration in einer Transaktion ausgeführt und registriert:
+
+- `schema_migrations`: 26 Einträge, letzter Eintrag `026_password_recovery_rate_limit.sql`.
+- `password_recovery_attempts` und beide vorgesehenen Indizes sind vorhanden.
+- Synthetische Rate-Limit-Testzeilen (5 Einträge) wurden erzeugt, gezählt und anschließend wieder gelöscht.
+- Ein synthetischer Recovery-Token wurde einmal erfolgreich als `used_at` markiert; ein zweiter Verbrauchsversuch lieferte keine Zeile. Der Token wurde anschließend gelöscht.
+- Konten- und Session-Bestände des Elternbranches wurden nicht verändert. Der Elternbranch bleibt bei 25 Migrationen.
+
+Damit ist Migration 026 auf einem nachweislich isolierten Neon-Branch kompatibel. Das ist kein Produktionsnachweis und ersetzt weder ein Backup der aktiven Produktionsdatenbank noch einen Resend-Versandtest. Ein Snapshot konnte auf dem nicht-root Kind-Branch nicht angelegt werden (`not allowed to snapshot non-root branch`); es wurde deshalb kein Produktionssnapshot erzeugt.
+
+### Migration-Nummerierung mit PR #50
+
+PR #50 reserviert derzeit ebenfalls `026_launcher_job_claims.sql` und `027_twitch_follow_eventsub.sql`. PR #50 bleibt unverändert und ungemergt. Sichere Reihenfolge für eine spätere Integration:
+
+1. PR #103 zuerst fachlich und datenbankseitig abnehmen; `026_password_recovery_rate_limit.sql` bleibt in diesem PR reserviert.
+2. Vor einer Integration von PR #50 dessen Launcher-Migration auf die nächste freie Nummer nach dem dann gemeinsamen Stand umbenennen (mindestens `027_launcher_job_claims.sql`) und die nachfolgende Twitch-Migration entsprechend fortlaufend neu nummerieren.
+3. Checksums, Migrationslisten, Legacy-Baseline, Dump-/Restore-Tests und Rollback-Rehearsal von PR #50 in einem isolierten Branch neu erzeugen.
+4. Erst nach separater Prüfung beider PRs integrieren; keine historische `schema_migrations`-Zeile nachträglich umnummerieren oder in Produktion überschreiben.
+
+### Weiterhin nicht nachweisbar
+
+- Ein vollständiges, verschlüsseltes Backup der tatsächlich aktiven Render-Datenbank mit isoliertem Restore: Render MCP stellt dafür keinen Backup-/Restore-Aufruf bereit; Neon-Snapshots der Produktionskandidaten sind leer.
+- Der konkrete Provider/Branch von `CFS-TikTok-Backend`: Render-Umgebungs-ID und Datenbankname reichen ohne geschützten `DATABASE_URL`-Wert nicht als Beweis.
+- Resend-Domain-Verifizierung und synthetische Zustellung: der Backend-Live-Status meldet Recovery deaktiviert; Staging meldet Resend konfiguriert, läuft aber nicht auf PR #103.
+- Ein iPhone-Formular-End-to-End-Lauf gegen eine PR-103-Staging-Instanz: die statischen mobilen Verträge und die isolierte CI-Integration sind grün, aber keine isolierte Render-Instanz mit PR #103 ist aktiv.
+
+**Aktualisierter Status: BLOCKED.** Es wurden nur isolierte Neon-Stagingdaten verändert; keine Produktionsdatenbank, keine Render-Konfiguration, kein Deployment und keine echte E-Mail wurden angefasst.
 
