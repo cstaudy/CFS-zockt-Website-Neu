@@ -29,6 +29,17 @@ function sourceQuality(sw,sh,p,fill=false){
  const r=rectangle(sw,sh,p.width,p.height,fill),scale=r[2]/sw;
  return {scale,visibleWidth:Math.min(sw,p.width/scale),visibleHeight:Math.min(sh,p.height/scale),drawWidth:Math.round(r[2]),drawHeight:Math.round(r[3])};
 }
+// Keep the low-resolution backdrop in the same aspect ratio as the final canvas.
+function backgroundPlan(w,h,strength=65,darkness=45){
+ const amount=clamp(Number(strength)||0,0,100),shade=clamp(Number(darkness)||0,0,85)/100;
+ const short=Math.round(160-amount*1.48),ratio=w/h;
+ return {width:Math.max(1,Math.round(ratio>=1?short*ratio:short)),height:Math.max(1,Math.round(ratio>=1?short:short/ratio)),shade};
+}
+function playbackDelta(before,after){
+ if(!before||!after)return null;
+ const total=after.totalVideoFrames-before.totalVideoFrames,dropped=after.droppedVideoFrames-before.droppedVideoFrames;
+ return Number.isFinite(total)&&Number.isFinite(dropped)&&total>0&&dropped>=0&&dropped<=total?{total,dropped,percent:100*dropped/total}:null;
+}
 function mount(){
  const host=document.getElementById('cutMobileGaming');if(!host||host.dataset.ready)return;host.dataset.ready='1';
  host.innerHTML=`<div class="cut-section-head"><div><span>PS5 · IPHONE</span><h3>Gaming Cutter · direkt auf dem Handy</h3><p>Lokaler Clip- und Reel-Export ohne Launcher, Upload oder KI-Credits. Der bestehende Profi-Schnitt bleibt unverändert.</p></div></div>
@@ -43,7 +54,12 @@ function mount(){
  <label><span>FORMAT</span><select data-mobile="format"><option value="vertical">9:16 TikTok / Shorts</option><option value="landscape">16:9 YouTube</option><option value="square">1:1</option></select></label>
  <label><span>BILDAUFBAU</span><select data-mobile="fit"><option value="fit">Ganzes Gameplay + Hintergrund</option><option value="fill">Bildfüllend (Zuschnitt)</option></select></label>
  <label><span>GAMING-DESIGN</span><select data-mobile="preset"><option value="clean">Clean · unverändert</option><option value="dark">Dark / DBD</option><option value="neon">Neon</option><option value="funny">Funny Moments</option></select></label>
- <label><span>HINTERGRUND</span><select data-mobile="background"><option value="blur">Weicher Spielhintergrund</option><option value="black">Schwarz</option></select></label>
+ <label><span>HINTERGRUND</span><select data-mobile="background"><option value="blur">Weicher Spielhintergrund</option><option value="black">Schwarz</option><option value="solid">Eigene Farbe</option></select></label>
+ <div class="full cut-mobile-backdrop"><strong>Hintergrundstudio</strong><small>Dasselbe Gameplay läuft vergrößert und weich hinter dem scharfen Original. Die Einstellungen wirken ausschließlich auf den Hintergrund.</small>
+ <div class="cut-project-grid"><label><span>UNSCHÄRFE <output data-mobile="blurValue">65 %</output></span><input data-mobile="blurAmount" type="range" min="0" max="100" value="65"></label>
+ <label><span>ABDUNKELUNG <output data-mobile="darkValue">45 %</output></span><input data-mobile="darkness" type="range" min="0" max="85" value="45"></label>
+ <label><span>HINTERGRUNDFARBE</span><input data-mobile="bgColor" type="color" value="#101820"></label>
+ <button class="btn" type="button" data-mobile="dbdLook">DBD-Hintergrund übernehmen</button></div></div>
  <label class="full"><span>TITEL (OPTIONAL)</span><input data-mobile="title" maxlength="100" placeholder="Das war so nicht geplant."></label>
  <label><span>TITELPOSITION</span><select data-mobile="position"><option value="top">Oben</option><option value="bottom">Unten</option></select></label>
  <label><span>TITELDAUER</span><select data-mobile="titleDuration"><option value="0">Durchgehend</option><option value="3">3 Sekunden</option><option value="5">5 Sekunden</option></select></label>
@@ -54,7 +70,8 @@ function mount(){
  <label><span>AUFLÖSUNG</span><select data-mobile="resolution"><option value="1080">1080p Full HD</option><option value="720">720p (leichter)</option></select></label>
  <label><span>FPS (ZIEL)</span><select data-mobile="fps"><option value="30">30</option><option value="60">60 (bei 60-FPS-Quelle)</option></select></label>
  <label><span>VIDEO-BITRATE (ZIEL)</span><select data-mobile="rate"><option value="8">8 Mbit/s</option><option value="12">12 Mbit/s</option><option value="16" selected>16 Mbit/s</option><option value="20">20 Mbit/s</option></select></label>
- <label><span>TON</span><select data-mobile="audio"><option value="on">Originalton</option><option value="off">Stumm</option></select></label></div>
+ <label><span>TON</span><select data-mobile="audio"><option value="on">Originalton</option><option value="off">Stumm</option></select></label>
+ <label><span>ORIGINALTON <output data-mobile="volumeValue">100 %</output></span><input data-mobile="volume" type="range" min="0" max="100" value="100"></label></div>
  <p data-mobile="quality" class="notice compact"></p><video data-mobile="resultPreview" controls playsinline preload="metadata" hidden aria-label="Fertiges Exportvideo prüfen"></video><p data-mobile="resultAudit" class="notice compact" hidden></p><progress data-mobile="progress" max="1" value="0" aria-label="Exportfortschritt"></progress>
  <div class="cut-mobile-actions"><button class="btn primary" type="button" data-mobile="export" disabled>Video lokal erstellen</button><button class="btn" type="button" data-mobile="cancel" hidden>Abbrechen</button><button class="btn" type="button" data-mobile="share" hidden>Teilen / in Fotos sichern</button><a class="btn" data-mobile="download" hidden>Video herunterladen</a></div>
  <p data-mobile="status" role="status" aria-live="polite">Wähle eine lokale Datei. MP4 wird bevorzugt; Browser können Format, Bildrate und Bitrate begrenzen.</p>
@@ -66,7 +83,7 @@ function mount(){
  let filter=false;try{mg.fillStyle='#fff';mg.fillRect(0,0,1,1);mg.filter='brightness(0%)';mg.fillRect(0,0,1,1);filter=mg.getImageData(0,0,1,1).data[0]===0;mg.filter='none'}catch{}
  for(const k of ['brightness','contrast','saturation'])$(k).disabled=!filter;
  const supported=typeof MediaRecorder!=='undefined'&&typeof c.captureStream==='function'&&typeof MediaRecorder.isTypeSupported==='function';
- let ownUrl='',resultUrl='',resultFile=null,ready=false,busy=false,recording=false,job=null,raf=0,ac=null,source=null,monitor=null,ranges=[];
+ let ownUrl='',resultUrl='',resultFile=null,ready=false,busy=false,recording=false,job=null,raf=0,ac=null,source=null,monitor=null,exportGain=null,ranges=[];
  const status=s=>$('status').textContent=s;
  const options=()=>({duration:v.duration,...Object.fromEntries(['start','end','format','resolution','fps','rate'].map(k=>[k,$(k).value]))});
  const currentPlan=()=>timelinePlan(options(),ranges);
@@ -83,7 +100,7 @@ function mount(){
  for(const k of ['resolution','fps','rate'])$(k).addEventListener('change',()=>$('profile').value='custom');
  const palette={clean:'#f1f4f8',dark:'#ff4864',neon:'#ad8cff',funny:'#ffc74b'};
  const presets={clean:[0,0,0],dark:[8,3,4],neon:[3,6,12],funny:[5,4,8]};
- function report(){let p;try{p=currentPlan()}catch{} const loaded=ready&&p;let s=loaded?`${v.videoWidth} × ${v.videoHeight} → ${p.width} × ${p.height} · ${p.fps} FPS Ziel · ca. ${Math.ceil(p.total*(p.rate+.192)/8)} MB. `:'Quelle und gültigen Schnittbereich wählen. ';
+ function report(){$('blurValue').textContent=$('blurAmount').value+' %';$('darkValue').textContent=$('darkness').value+' %';$('volumeValue').textContent=$('volume').value+' %';let p;try{p=currentPlan()}catch{} const loaded=ready&&p;let s=loaded?`${v.videoWidth} × ${v.videoHeight} → ${p.width} × ${p.height} · ${p.fps} FPS Ziel · ca. ${Math.ceil(p.total*(p.rate+.192)/8)} MB. `:'Quelle und gültigen Schnittbereich wählen. ';
  if(loaded){const q=sourceQuality(v.videoWidth,v.videoHeight,p,$('fit').value==='fill');if(q.scale>1.01)s+=`Gameplay wird ${q.scale.toFixed(2)}× vergrößert: keine neuen Bilddetails. `;if($('fit').value==='fill')s+=`Sichtbarer Quellausschnitt: ${Math.round(q.visibleWidth)} × ${Math.round(q.visibleHeight)} px; HUD prüfen. `;if(p.fps===60)s+='60 FPS nur bei passender Quelle sinnvoll; Quell-FPS unbekannt. ';}
  if(!filter)s+='Farbkorrektur in diesem Browser nicht verfügbar. ';
  if(!supported)s+='Direkter Export nicht unterstützt; Launcher bleibt verfügbar.';
@@ -92,7 +109,14 @@ function mount(){
  function draw(){
  const w=c.width,h=c.height,b=Math.min(w,h);g.fillStyle='#080b11';g.fillRect(0,0,w,h);
  if(ready&&v.readyState>=2&&v.videoWidth){
- if($('background').value==='blur'){mg.drawImage(v,...rectangle(v.videoWidth,v.videoHeight,48,48,true));g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(mini,0,0,w,h);g.fillStyle='rgba(0,0,0,.60)';g.fillRect(0,0,w,h)}
+ if($('background').value==='solid'){g.fillStyle=$('bgColor').value;g.fillRect(0,0,w,h)}
+ if($('background').value==='black'){g.fillStyle='#000';g.fillRect(0,0,w,h)}
+ if($('background').value==='blur'){
+ const bg=backgroundPlan(w,h,$('blurAmount').value,$('darkness').value);
+ if(mini.width!==bg.width||mini.height!==bg.height){mini.width=bg.width;mini.height=bg.height}
+ mg.imageSmoothingEnabled=true;mg.imageSmoothingQuality='high';mg.drawImage(v,...rectangle(v.videoWidth,v.videoHeight,bg.width,bg.height,true));
+ g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(mini,0,0,w,h);g.fillStyle='rgba(0,0,0,'+bg.shade+')';g.fillRect(0,0,w,h)
+ }
  g.imageSmoothingQuality='high';if(filter&&(busy||!$('compare').checked))g.filter=`brightness(${100+Number($('brightness').value)}%) contrast(${100+Number($('contrast').value)}%) saturate(${100+Number($('saturation').value)}%)`;
  g.drawImage(v,...rectangle(v.videoWidth,v.videoHeight,w,h,$('fit').value==='fill'));if(filter)g.filter='none';
  }else{g.textAlign='center';g.font=`600 ${b*.045}px sans-serif`;g.fillStyle='#aeb8c7';g.fillText('Gameplay importieren',w/2,h/2,w*.85)}
@@ -137,15 +161,18 @@ function mount(){
  $('seek').oninput=()=>{if(ready&&!busy)v.currentTime=Number($('seek').value)};
  for(const [button,input] of [['in','start'],['out','end']])$(button).onclick=()=>{if(ready&&!busy){$(input).value=v.currentTime.toFixed(3);report();draw()}};
  $('preset').onchange=()=>{['brightness','contrast','saturation'].forEach((k,i)=>$(k).value=filter?presets[$('preset').value][i]:0);draw();report()};
- for(const k of ['start','end','fit','background','title','position','titleDuration','brightness','contrast','saturation','resolution','fps','rate','audio','compare','safe'])$(k).addEventListener('input',()=>{report();draw()});
+ $('dbdLook').onclick=()=>{if(busy)return;$('background').value='blur';$('blurAmount').value='65';$('darkness').value='45';$('preset').value='dark';$('preset').dispatchEvent(new Event('change'));report();draw()};
+ function syncVolume(){const gain=$('audio').value==='on'?Number($('volume').value)/100:0;if(monitor){monitor.gain.value=busy?0:gain;v.muted=false;v.volume=1}else{v.muted=gain===0;try{v.volume=gain}catch{}}}
+ for(const k of ['audio','volume'])$(k).addEventListener('input',syncVolume);
+ for(const k of ['start','end','fit','background','blurAmount','darkness','bgColor','title','position','titleDuration','brightness','contrast','saturation','resolution','fps','rate','audio','volume','compare','safe'])$(k).addEventListener('input',()=>{report();draw()});
  $('format').onchange=()=>{dimensions();draw();report()};
  function lock(on){busy=on;for(const el of host.querySelectorAll('input,select,button'))if(el!==$('cancel')&&el!==$('share'))el.disabled=on;if(!on){$('play').disabled=!ready;for(const k of ['brightness','contrast','saturation'])$(k).disabled=!filter} $('cancel').hidden=!on;renderRanges();report()}
  function seek(t){return new Promise((resolve,reject)=>{if(Math.abs(v.currentTime-t)<.01&&!v.seeking)return resolve();const timer=setTimeout(()=>{v.removeEventListener('seeked',done);reject(Error('Schnittposition nicht erreichbar.'))},5000);function done(){clearTimeout(timer);resolve()}v.addEventListener('seeked',done,{once:true});v.currentTime=t})}
- function cleanup(j){clearTimeout(j?.watchdog);recording=false;cancelAnimationFrame(raf);v.pause();if(j?.stream)j.stream.getTracks().forEach(t=>t.stop());if(j?.dest&&source){try{source.disconnect(j.dest)}catch{}}if(j?.dest)j.dest.stream.getTracks().forEach(t=>t.stop());if(monitor)monitor.gain.value=1;job=null;dimensions();lock(false);draw()}
+ function cleanup(j){clearTimeout(j?.watchdog);recording=false;cancelAnimationFrame(raf);v.pause();if(j?.stream)j.stream.getTracks().forEach(t=>t.stop());if(j?.dest&&exportGain){try{source.disconnect(exportGain);exportGain.disconnect()}catch{}exportGain=null}if(j?.dest)j.dest.stream.getTracks().forEach(t=>t.stop());if(monitor)monitor.gain.value=1;job=null;dimensions();lock(false);syncVolume();draw()}
  function stop(error=''){const j=job;if(!j)return;if(error)j.error=error;recording=false;v.pause();if(j.rec&&j.rec.state!=='inactive'){j.rec.stop()}else if(!j.rec){/* preparation checks j.error after each await */}}
  $('cancel').onclick=()=>stop('Export abgebrochen.');
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&job)stop('Export unterbrochen: Seite während des Exports offen lassen.')});
- async function finalize(j){const chunks=j.chunks;let type=(j.rec.mimeType||chunks[0]?.type||'').split(';')[0];
+ async function finalize(j){const chunks=j.chunks;const motion=playbackDelta(j.playbackStart,v.getVideoPlaybackQuality?.());let type=(j.rec.mimeType||chunks[0]?.type||'').split(';')[0];
  if(j.error||!chunks.length||!['video/mp4','video/webm'].includes(type)){status(j.error||'Kein nutzbares Ausgabeformat erhalten.');cleanup(j);return}
  const extension=type==='video/mp4'?'mp4':'webm';resultFile=new File(chunks,`CFS_Gaming_${Date.now()}.${extension}`,{type});resultUrl=URL.createObjectURL(resultFile);
  const preview=$('resultPreview'),audit=$('resultAudit');preview.hidden=false;audit.hidden=false;audit.textContent='Ausgabedatei wird geprüft …';
@@ -156,22 +183,22 @@ function mount(){
  preview.onerror=()=>complete('Warnung: Ausgabedatei kann im Browser nicht abgespielt werden. Nicht ungeprüft veröffentlichen.');
  preview.src=resultUrl;preview.load();
  $('download').href=resultUrl;$('download').download=resultFile.name;$('download').hidden=false;$('share').hidden=false;$('progress').value=1;
- status(`Datei erstellt: ${extension.toUpperCase()} · ${(resultFile.size/1000000).toFixed(1)} MB · ${j.plan.width} × ${j.plan.height} Ziel. Vor Veröffentlichung abspielen und Ton prüfen.${extension==='webm'?' WebM ist nicht mit jeder iPhone-/TikTok-Version kompatibel.':''}`);cleanup(j);
+ status(`Datei erstellt: ${extension.toUpperCase()} · ${(resultFile.size/1000000).toFixed(1)} MB · ${j.plan.width} × ${j.plan.height} Ziel. Vor Veröffentlichung abspielen und Ton prüfen.${motion&&motion.dropped?` Quellwiedergabe: ${motion.dropped} von ${motion.total} Frames verworfen. Bei Rucklern niedrigere Exportlast wählen.`:''}${extension==='webm'?' WebM ist nicht mit jeder iPhone-/TikTok-Version kompatibel.':''}`);cleanup(j);
  }
  $('export').onclick=async()=>{if(busy||!ready||!supported)return;let p;try{p=currentPlan()}catch(e){status(e.message);return}
  clearResult();v.pause();lock(true);$('progress').value=0;const j=job={plan:p,index:0,offset:0,switching:false,chunks:[],error:'',rec:null,stream:null,dest:null};status('Export wird vorbereitet …');
  try{if($('audio').value==='on'){const AC=root.AudioContext||root.webkitAudioContext;if(!AC)throw Error('Originalton nicht unterstützt; stumm exportieren oder Launcher verwenden.');
- if(!ac){ac=new AC();source=ac.createMediaElementSource(v);monitor=ac.createGain();source.connect(monitor);monitor.connect(ac.destination)}await ac.resume();if(ac.state!=='running')throw Error('Audiofreigabe fehlgeschlagen.');j.dest=ac.createMediaStreamDestination();source.connect(j.dest);monitor.gain.value=0;}else if(monitor)monitor.gain.value=0;
+ if(!ac){ac=new AC();source=ac.createMediaElementSource(v);monitor=ac.createGain();source.connect(monitor);monitor.connect(ac.destination)}await ac.resume();if(ac.state!=='running')throw Error('Audiofreigabe fehlgeschlagen.');j.dest=ac.createMediaStreamDestination();exportGain=ac.createGain();exportGain.gain.value=Number($('volume').value)/100;source.connect(exportGain);exportGain.connect(j.dest);v.muted=false;v.volume=1;monitor.gain.value=0;}else if(monitor)monitor.gain.value=0;
  await seek(p.start);if(j.error)throw Error(j.error);dimensions(true);draw();j.stream=c.captureStream(p.fps);if(j.dest)j.dest.stream.getAudioTracks().forEach(t=>j.stream.addTrack(t));const type=mime(MediaRecorder);if(!type)throw Error('Kein kompatibler MP4-/WebM-Recorder gefunden.');
  j.rec=new MediaRecorder(j.stream,{mimeType:type,videoBitsPerSecond:p.rate*1000000,audioBitsPerSecond:192000});
  if(p.segments.length>1&&(typeof j.rec.pause!=='function'||typeof j.rec.resume!=='function'))throw Error('Dieser Browser unterstützt keine Reel-Schnitte. Einzelclip verwenden.');
  j.rec.ondataavailable=e=>{if(e.data.size)j.chunks.push(e.data)};j.rec.onstop=()=>finalize(j);j.rec.onerror=()=>stop('Recorderfehler. Versuche 720p / 30 FPS oder den Launcher.');
- j.rec.start(500);recording=true;await v.play();if(j.error){stop(j.error);return}
+ j.playbackStart=v.getVideoPlaybackQuality?.();j.rec.start(500);recording=true;await v.play();if(j.error){stop(j.error);return}
  status('Video wird lokal in Echtzeit erstellt. Seite geöffnet lassen.');j.watchdog=setTimeout(()=>{if(job===j)stop('Export-Zeitlimit erreicht. Kleinere Auflösung oder kürzeren Clip wählen.')},p.total*1000+20000+7000*(p.segments.length-1));tick();
  }catch(e){j.error=e.message;if(j.rec&&j.rec.state!=='inactive')stop(j.error);else{cleanup(j);status(j.error)}}};
  $('share').onclick=async()=>{if(!resultFile)return;try{if(navigator.canShare?.({files:[resultFile]}))await navigator.share({files:[resultFile]});else $('download').click()}catch(e){if(e.name!=='AbortError')status('Teilen nicht möglich. Nutze den Download.')}};
- dimensions();draw();renderRanges();report();
+ dimensions();draw();renderRanges();report();syncVolume();
 }
 if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount()}
-return {plan,timelinePlan,inspectOutput,sourceQuality,rectangle,mime};
+return {plan,timelinePlan,inspectOutput,sourceQuality,backgroundPlan,playbackDelta,rectangle,mime};
 });
