@@ -1,4 +1,4 @@
-// Prepared browser adapter. Not loaded by index.html until the public route exists.
+// Public browser adapter; defaults remain active when the endpoint is unavailable.
 // Scope to hero only; never replace logo, text, navigation or global theme.
 export function applyPublicDesign(hero,payload){
  if(!hero?.style)return false;
@@ -14,4 +14,13 @@ export function applyPublicDesign(hero,payload){
  hero.style.setProperty(keys[3],d.position);
  hero.style.setProperty(keys[4],d.accent.toLowerCase());
  return true;
+}
+
+export async function loadPublicDesign(hero,request=fetch){
+ if(!hero?.style)return false;
+ try{
+  const response=await request("/api/public/website-design",{method:"GET",cache:"no-store",credentials:"omit",redirect:"error"});
+  if(!response.ok)return applyPublicDesign(hero,null);
+  return applyPublicDesign(hero,await response.json());
+ }catch{return applyPublicDesign(hero,null)}
 }
