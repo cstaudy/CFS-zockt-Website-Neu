@@ -66,3 +66,21 @@ html body.public-auth-page .auth-entry-shell .cfs-auth-tabs button[aria-selected
    Future published settings must use validated image assets and bounded opacity. */
 body.public-home .cfs-about-copy{min-width:0;flex:1;overflow-wrap:anywhere}
 body.public-home .cfs-about-copy p+p{margin-top:12px}
+
+/* Mobile community and product entry: scoped to public pages. */
+@media(max-width:760px){
+ body.public-home header.site-header .r104-header-actions button.r104-toggle{min-height:44px}
+ body.public-home .r104-nav.open{max-height:70vh;overflow-y:auto;overscroll-behavior:contain}
+ body.public-home .r104-nav.open a{display:flex;align-items:center;min-height:44px;white-space:normal}
+ body.public-home .ref-section-head{flex-wrap:wrap;gap:8px}
+ body.public-home .cfs-community-card-info>span:not(.cfs-community-card-link){font-size:14px;line-height:1.5;max-width:none}
+ body.public-home #community-server .cfs-about-card{display:block}
+ body.public-home #community-server a{display:inline-flex;align-items:center;min-height:44px;color:var(--cfs-cyan);text-decoration:underline}
+ body.public-home #community-server{scroll-margin-top:90px}
+ body.public-suite-page #cfsR21Suite .r194-path{margin-inline:0}
+ body.public-suite-page #cfsR21Suite .r194-path-steps a{min-height:64px}
+}
+@media(max-width:420px){
+ body.public-home #ueber-mich .cfs-about-card{flex-direction:column}
+ body.public-home .r104-feature-grid{grid-template-columns:minmax(0,1fr)!important}
+}
