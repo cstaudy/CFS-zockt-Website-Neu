@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import {createWebsiteDesignRepository as create} from "../src/website-design-pg-repository.js";
+const calls=[];let failCommit=false,failRollback=false;
+const client={async query(sql){calls.push(sql);if(sql==="COMMIT"&&failCommit)throw Error("commit failed");if(sql==="ROLLBACK"&&failRollback)throw Error("rollback failed")},release(discard){calls.push(discard?"discard":"release")}};
+const repo=create({async connect(){return client}},{async loadForMutation(c){assert.equal(c,client);return {state:{}}},async compareAndSwap(c){assert.equal(c,client);return true}});
+assert.equal((await repo.transaction(async tx=>{await tx.loadForMutation({},{});await tx.compareAndSwap(0,{});return {status:200}})).status,200);
+assert.deepEqual(calls.splice(0),["BEGIN","COMMIT","release"]);
+assert.equal((await repo.transaction(async()=>({status:409}))).status,409);
+assert.deepEqual(calls.splice(0),["BEGIN","ROLLBACK","release"]);
+await assert.rejects(()=>repo.transaction(async()=>{throw Error("write failed")}),/write failed/);
+assert.deepEqual(calls.splice(0),["BEGIN","ROLLBACK","release"]);
+failCommit=true;
+await assert.rejects(()=>repo.transaction(async()=>({status:200})),/commit failed/);
+assert.deepEqual(calls.splice(0),["BEGIN","COMMIT","ROLLBACK","release"]);
+failRollback=true;
+await assert.rejects(()=>repo.transaction(async()=>{throw Error("write failed")}),/write failed/);
+assert.deepEqual(calls.splice(0),["BEGIN","ROLLBACK","discard"]);
+console.log("PostgreSQL transaction adapter contract passed");
