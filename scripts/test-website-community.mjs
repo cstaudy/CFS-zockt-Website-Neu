@@ -29,9 +29,9 @@ console.log('Website community: structure and unavailable CMS controls verified.
 
 async function previewHarness(){
  const node=()=>({value:'',style:{},listeners:{},addEventListener(k,f){this.listeners[k]=f},dispatchEvent(e){this.listeners[e.type]?.()},remove(){mounted=null}});
- const file=node(),shade=node(),preview=node(),status=node(),reset=node(),panel=node(),refresh=node(),size=node(),position=node();
- shade.value='65';size.value='desktop';position.value='center';panel.lastElementChild=preview;
- panel.querySelector=s=>({'input[type=file]':file,'input[type=range]':shade,'[role=status]':status,'button':reset,'[data-preview-size]':size,'[data-preview-position]':position}[s]);
+ const file=node(),shade=node(),preview=node(),status=node(),reset=node(),panel=node(),refresh=node(),size=node(),position=node(),preset=node(),accent=node(),heading=node();
+ shade.value='65';size.value='desktop';position.value='center';preset.value='cfs';accent.value='#28d9f0';panel.lastElementChild=preview;
+ panel.querySelector=s=>({'input[type=file]':file,'input[type=range]':shade,'[role=status]':status,'button':reset,'[data-preview-size]':size,'[data-preview-position]':position,'[data-preview-preset]':preset,'[data-preview-accent]':accent,'[data-preview-heading]':heading}[s]);
  let mounted=null,ready,allowed=true,decoded,serial=0;
  const revoked=[],requests=[];
  const host={after:p=>{mounted=p}};
@@ -44,6 +44,9 @@ async function previewHarness(){
  runInNewContext(script,{document,window,CFS,URL,Image,Event});
  await ready();
  assert.equal(mounted,panel);
+ preset.value="violet";preset.listeners.change();assert.equal(heading.style.color,"#bca0ff");
+ accent.value="#abcdef";accent.listeners.input();assert.equal(preset.value,"custom");assert.equal(heading.style.color,"#abcdef");
+ accent.value="invalid";accent.listeners.input();assert.equal(heading.style.color,"#28d9f0");
  size.value="mobile";size.listeners.change();assert.equal(preview.style.maxWidth,"390px");
  position.value="top";position.listeners.change();assert.equal(preview.style.backgroundPosition,"top");
  file.files=[{type:'image/svg+xml',size:100}];file.listeners.change();assert.match(status.textContent,/PNG/);assert.equal(serial,0);
@@ -51,7 +54,7 @@ async function previewHarness(){
  file.files=[{type:'image/png',size:100}];file.listeners.change();decoded.naturalWidth=6000;decoded.naturalHeight=6000;decoded.onload();assert.match(status.textContent,/zu groß/);assert.deepEqual(revoked,['blob:test-1']);
  file.listeners.change();decoded.onerror();assert.match(status.textContent,/nicht gelesen/);
  file.listeners.change();decoded.naturalWidth=1920;decoded.naturalHeight=1080;decoded.onload();assert.match(preview.style.backgroundImage,/blob:test-3/);
- reset.listeners.click();assert.equal(size.value,"desktop");assert.equal(position.value,"center");assert.match(preview.style.backgroundImage,/cfs-site-background/);assert(revoked.includes('blob:test-3'));
+ reset.listeners.click();assert.equal(size.value,"desktop");assert.equal(preset.value,"cfs");assert.equal(accent.value,"#28d9f0");assert.equal(position.value,"center");assert.match(preview.style.backgroundImage,/cfs-site-background/);assert(revoked.includes('blob:test-3'));
  allowed=false;refresh.listeners.click();await new Promise(resolve=>setImmediate(resolve));assert.equal(mounted,null);
  assert(requests.every(p=>p==='/api/admin/control-center/summary'||p==='/api/admin/site-content'));
 }
