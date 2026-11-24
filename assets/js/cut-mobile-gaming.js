@@ -24,13 +24,17 @@ function inspectOutput({width,height,duration},p){
  return {ok:true,message:'Auflösung und Dauer stimmen. Bildrate und Audio noch manuell prüfen.'};
 }
 function rectangle(sw,sh,w,h,fill=false){const s=(fill?Math.max:Math.min)(w/sw,h/sh);return [(w-sw*s)/2,(h-sh*s)/2,sw*s,sh*s]}
-function mime(Recorder){return ['video/mp4;codecs=avc1.42001f,mp4a.40.2','video/mp4','video/webm;codecs=vp8,opus','video/webm'].find(t=>Recorder.isTypeSupported(t))||''}
+function mime(Recorder){return ['video/mp4','video/mp4;codecs=avc1,mp4a.40.2','video/webm;codecs=vp8,opus','video/webm'].find(t=>Recorder.isTypeSupported(t))||''}
+function sourceQuality(sw,sh,p,fill=false){
+ const r=rectangle(sw,sh,p.width,p.height,fill),scale=r[2]/sw;
+ return {scale,visibleWidth:Math.min(sw,p.width/scale),visibleHeight:Math.min(sh,p.height/scale),drawWidth:Math.round(r[2]),drawHeight:Math.round(r[3])};
+}
 function mount(){
  const host=document.getElementById('cutMobileGaming');if(!host||host.dataset.ready)return;host.dataset.ready='1';
  host.innerHTML=`<div class="cut-section-head"><div><span>PS5 · IPHONE</span><h3>Gaming Cutter · direkt auf dem Handy</h3><p>Lokaler Clip- und Reel-Export ohne Launcher, Upload oder KI-Credits. Der bestehende Profi-Schnitt bleibt unverändert.</p></div></div>
  <div class="cut-mobile-actions"><label>Gameplay auswählen<input data-mobile="file" type="file" accept="video/*,.mov,.mp4"></label><button class="btn" type="button" data-mobile="take">Clip aus Schnittvorschau übernehmen</button></div>
  <div class="cut-mobile-screen"><canvas data-mobile="canvas" width="360" height="640" aria-label="Vorschau des mobilen Exports"></canvas><video data-mobile="video" playsinline preload="metadata" aria-hidden="true"></video></div>
- <div class="cut-mobile-actions"><button class="btn" type="button" data-mobile="play" disabled>Abspielen / Pause</button><output data-mobile="time">0.00 s</output><input data-mobile="seek" aria-label="Videoposition" type="range" min="0" max="0" step=".01" value="0"></div>
+ <div class="cut-mobile-actions"><button class="btn" type="button" data-mobile="play" disabled>Abspielen / Pause</button><label><input data-mobile="compare" type="checkbox"> Originalfarben vergleichen</label><label><input data-mobile="safe" type="checkbox" checked> TikTok-Hilfslinien</label><output data-mobile="time">0.00 s</output><input data-mobile="seek" aria-label="Videoposition" type="range" min="0" max="0" step=".01" value="0"></div>
  <div class="cut-project-grid">
  <label><span>START (S)</span><input data-mobile="start" type="number" min="0" step=".01" value="0"></label>
  <label><span>ENDE (S)</span><input data-mobile="end" type="number" min="0" step=".01" value="0"></label>
@@ -80,7 +84,7 @@ function mount(){
  const palette={clean:'#f1f4f8',dark:'#ff4864',neon:'#ad8cff',funny:'#ffc74b'};
  const presets={clean:[0,0,0],dark:[8,3,4],neon:[3,6,12],funny:[5,4,8]};
  function report(){let p;try{p=currentPlan()}catch{} const loaded=ready&&p;let s=loaded?`${v.videoWidth} × ${v.videoHeight} → ${p.width} × ${p.height} · ${p.fps} FPS Ziel · ca. ${Math.ceil(p.total*(p.rate+.192)/8)} MB. `:'Quelle und gültigen Schnittbereich wählen. ';
- if(loaded){const r=rectangle(v.videoWidth,v.videoHeight,p.width,p.height,$('fit').value==='fill');if(r[2]/v.videoWidth>1.5)s+='Starke Vergrößerung: keine neuen Bilddetails. ';if($('fit').value==='fill')s+='Zuschnitt kann HUD abschneiden. '}
+ if(loaded){const q=sourceQuality(v.videoWidth,v.videoHeight,p,$('fit').value==='fill');if(q.scale>1.01)s+=`Gameplay wird ${q.scale.toFixed(2)}× vergrößert: keine neuen Bilddetails. `;if($('fit').value==='fill')s+=`Sichtbarer Quellausschnitt: ${Math.round(q.visibleWidth)} × ${Math.round(q.visibleHeight)} px; HUD prüfen. `;if(p.fps===60)s+='60 FPS nur bei passender Quelle sinnvoll; Quell-FPS unbekannt. ';}
  if(!filter)s+='Farbkorrektur in diesem Browser nicht verfügbar. ';
  if(!supported)s+='Direkter Export nicht unterstützt; Launcher bleibt verfügbar.';
  $('quality').textContent=s;$('export').disabled=busy||!loaded||!supported;$('time').textContent=(v.currentTime||0).toFixed(2)+' s';$('seek').value=v.currentTime||0;}
@@ -89,16 +93,19 @@ function mount(){
  const w=c.width,h=c.height,b=Math.min(w,h);g.fillStyle='#080b11';g.fillRect(0,0,w,h);
  if(ready&&v.readyState>=2&&v.videoWidth){
  if($('background').value==='blur'){mg.drawImage(v,...rectangle(v.videoWidth,v.videoHeight,48,48,true));g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(mini,0,0,w,h);g.fillStyle='rgba(0,0,0,.60)';g.fillRect(0,0,w,h)}
- g.imageSmoothingQuality='high';if(filter)g.filter=`brightness(${100+Number($('brightness').value)}%) contrast(${100+Number($('contrast').value)}%) saturate(${100+Number($('saturation').value)}%)`;
+ g.imageSmoothingQuality='high';if(filter&&(busy||!$('compare').checked))g.filter=`brightness(${100+Number($('brightness').value)}%) contrast(${100+Number($('contrast').value)}%) saturate(${100+Number($('saturation').value)}%)`;
  g.drawImage(v,...rectangle(v.videoWidth,v.videoHeight,w,h,$('fit').value==='fill'));if(filter)g.filter='none';
  }else{g.textAlign='center';g.font=`600 ${b*.045}px sans-serif`;g.fillStyle='#aeb8c7';g.fillText('Gameplay importieren',w/2,h/2,w*.85)}
  const title=$('title').value.trim(),limit=Number($('titleDuration').value);
  const elapsed=job?job.offset+Math.max(0,v.currentTime-job.plan.segments[job.index].start):v.currentTime-Number($('start').value);
- if(!title||(limit&&elapsed>=limit))return;
+ if(title&&(!limit||elapsed<limit)){
  g.font=`800 ${Math.round(b*.060)}px sans-serif`;g.textAlign='center';g.textBaseline='middle';
  let lines=[],line='';for(const word of title.split(/\s+/)){const next=(line+' '+word).trim();if(line&&g.measureText(next).width>w*.78){lines.push(line);line=word}else line=next}if(line)lines.push(line);lines=lines.slice(0,4);
  const lh=b*.075,y=$('position').value==='bottom'?h*.77-(lines.length-1)*lh:h*.14;
  g.fillStyle='rgba(0,0,0,.72)';g.fillRect(w*.07,y-lh*.7,w*.86,lh*(lines.length+.45));g.fillStyle=palette[$('preset').value];g.fillRect(w*.09,y-lh*.55,b*.007,lh*(lines.length+.1));g.fillStyle='#fff';lines.forEach((l,i)=>g.fillText(l,w/2,y+i*lh,w*.78));
+ }
+ // Preview guides only: never burn platform UI zones into the exported file.
+ if(!busy&&$('safe').checked&&$('format').value==='vertical'){g.save();g.strokeStyle='rgba(255,255,255,.65)';g.lineWidth=Math.max(1,b*.004);g.setLineDash([b*.017,b*.011]);g.strokeRect(w*.07,h*.10,w*.73,h*.68);g.restore()}
  }
  function clearResult(){$('resultPreview').pause();$('resultPreview').removeAttribute('src');$('resultPreview').load();$('resultPreview').hidden=true;$('resultAudit').hidden=true;if(resultUrl)URL.revokeObjectURL(resultUrl);resultUrl='';resultFile=null;$('download').hidden=true;$('share').hidden=true;$('download').removeAttribute('href')}
  function load(url,owned,selection){if(busy)return;v.pause();clearResult();ranges=[];renderRanges();ready=false;if(ownUrl)URL.revokeObjectURL(ownUrl);ownUrl=owned?url:'';v.src=url;v.load();job=null;pending=selection;report();status('Datei wird lokal geöffnet …')}
@@ -130,7 +137,7 @@ function mount(){
  $('seek').oninput=()=>{if(ready&&!busy)v.currentTime=Number($('seek').value)};
  for(const [button,input] of [['in','start'],['out','end']])$(button).onclick=()=>{if(ready&&!busy){$(input).value=v.currentTime.toFixed(3);report();draw()}};
  $('preset').onchange=()=>{['brightness','contrast','saturation'].forEach((k,i)=>$(k).value=filter?presets[$('preset').value][i]:0);draw();report()};
- for(const k of ['start','end','fit','background','title','position','titleDuration','brightness','contrast','saturation','resolution','fps','rate','audio'])$(k).addEventListener('input',()=>{report();draw()});
+ for(const k of ['start','end','fit','background','title','position','titleDuration','brightness','contrast','saturation','resolution','fps','rate','audio','compare','safe'])$(k).addEventListener('input',()=>{report();draw()});
  $('format').onchange=()=>{dimensions();draw();report()};
  function lock(on){busy=on;for(const el of host.querySelectorAll('input,select,button'))if(el!==$('cancel')&&el!==$('share'))el.disabled=on;if(!on){$('play').disabled=!ready;for(const k of ['brightness','contrast','saturation'])$(k).disabled=!filter} $('cancel').hidden=!on;renderRanges();report()}
  function seek(t){return new Promise((resolve,reject)=>{if(Math.abs(v.currentTime-t)<.01&&!v.seeking)return resolve();const timer=setTimeout(()=>{v.removeEventListener('seeked',done);reject(Error('Schnittposition nicht erreichbar.'))},5000);function done(){clearTimeout(timer);resolve()}v.addEventListener('seeked',done,{once:true});v.currentTime=t})}
@@ -166,5 +173,5 @@ function mount(){
  dimensions();draw();renderRanges();report();
 }
 if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount()}
-return {plan,timelinePlan,inspectOutput,rectangle,mime};
+return {plan,timelinePlan,inspectOutput,sourceQuality,rectangle,mime};
 });
