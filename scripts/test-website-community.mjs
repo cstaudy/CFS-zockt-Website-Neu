@@ -14,7 +14,7 @@ assert(home.indexOf('id="games"') < home.indexOf('id="refStreamsTitle"'));
 assert.match(home,/COMMUNITY-PROJEKT · IN PLANUNG/);
 assert.match(home,/Der Server ist noch nicht gestartet/);
 const script=await read('assets/js/admin-control-center-v181.js');
-for(const status of [401,403,404]){
+for(const status of [401,403,404,501]){
  const buttons=Object.fromEntries(['#siteSaveDraft','#sitePublish','#siteRevert','#sitePreview'].map(id=>[id,{disabled:false,addEventListener(){}}]));
  const state={textContent:'',className:''},form={innerHTML:''};
  let ready;
