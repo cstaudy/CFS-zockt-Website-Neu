@@ -1,0 +1,12 @@
+/* Scoped mobile export; existing studio and launcher remain unchanged. */
+#cutMobileGaming .cut-mobile-screen{position:relative;display:grid;place-items:center;background:#080b11;border-radius:12px;padding:10px;overflow:hidden}
+#cutMobileGaming canvas{display:block;max-width:100%;max-height:52vh;width:auto;height:auto;object-fit:contain}
+#cutMobileGaming video{position:absolute;left:0;top:0;width:1px;height:1px;opacity:.01;pointer-events:none}
+#cutMobileGaming .cut-mobile-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}
+#cutMobileGaming .cut-mobile-actions>input[type=range]{flex:1;min-width:100px}
+#cutMobileGaming input[type=file]{max-width:100%;font-size:16px}
+#cutMobileGaming input,#cutMobileGaming select{min-width:0;max-width:100%;font-size:16px}
+#cutMobileGaming button,#cutMobileGaming a.btn{min-height:44px}
+#cutMobileGaming progress{width:100%;accent-color:#e64c6a}
+#cutMobileGaming [hidden]{display:none!important}
+@media(max-width:600px){#cutMobileGaming .cut-project-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#cutMobileGaming .cut-mobile-actions>.btn{flex:1 1 145px}#cutMobileGaming .cut-mobile-actions>label{flex:1 1 100%;min-width:0}}
