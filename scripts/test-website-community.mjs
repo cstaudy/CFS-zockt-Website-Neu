@@ -29,21 +29,21 @@ console.log('Website community: structure and unavailable CMS controls verified.
 
 async function previewHarness(){
  const node=()=>({value:'',style:{},listeners:{},addEventListener(k,f){this.listeners[k]=f},dispatchEvent(e){this.listeners[e.type]?.()},remove(){mounted=null}});
- const file=node(),shade=node(),preview=node(),status=node(),reset=node(),panel=node(),refresh=node(),size=node(),position=node(),preset=node(),accent=node(),heading=node();
+ const file=node(),shade=node(),preview=node(),status=node(),availability=node(),reset=node(),panel=node(),refresh=node(),size=node(),position=node(),preset=node(),accent=node(),heading=node();
  shade.value='65';size.value='desktop';position.value='center';preset.value='cfs';accent.value='#28d9f0';panel.lastElementChild=preview;
- panel.querySelector=s=>({'input[type=file]':file,'input[type=range]':shade,'[role=status]':status,'button':reset,'[data-preview-size]':size,'[data-preview-position]':position,'[data-preview-preset]':preset,'[data-preview-accent]':accent,'[data-preview-heading]':heading}[s]);
+ panel.querySelector=s=>({'input[type=file]':file,'input[type=range]':shade,'[data-preview-feedback]':status,'[data-design-availability]':availability,'button':reset,'[data-preview-size]':size,'[data-preview-position]':position,'[data-preview-preset]':preset,'[data-preview-accent]':accent,'[data-preview-heading]':heading}[s]);
  let mounted=null,ready,allowed=true,decoded,serial=0;
  const revoked=[],requests=[];
  const host={after:p=>{mounted=p}};
  const document={querySelector:s=>({'#sitePreviewHost':host,'#cfsLocalDesignPreview':mounted,'#adminRefresh':refresh}[s]||null),createElement:()=>panel,addEventListener:(k,f)=>{ready=f}};
  const window={addEventListener(){},removeEventListener(){}};
- const CFS={json:async path=>{requests.push(path);if(allowed&&path.endsWith('/summary'))return {ok:true};throw Object.assign(new Error('unavailable'),{status:403})}};
+ const CFS={json:async path=>{requests.push(path);if(allowed&&path.endsWith('/summary'))return {ok:true};if(allowed&&path==='/api/admin/website-design')throw Object.assign(new Error('not configured'),{status:503});throw Object.assign(new Error('unavailable'),{status:403})}};
  const URL={createObjectURL:()=> 'blob:test-'+(++serial),revokeObjectURL:u=>revoked.push(u)};
  class Image{constructor(){decoded=this}}
  class Event{constructor(type){this.type=type}}
  runInNewContext(script,{document,window,CFS,URL,Image,Event});
  await ready();
- assert.equal(mounted,panel);
+ assert.equal(mounted,panel);assert.match(availability.textContent,/noch nicht eingerichtet/);
  preset.value="violet";preset.listeners.change();assert.equal(heading.style.color,"#bca0ff");
  accent.value="#abcdef";accent.listeners.input();assert.equal(preset.value,"custom");assert.equal(heading.style.color,"#abcdef");
  accent.value="invalid";accent.listeners.input();assert.equal(heading.style.color,"#28d9f0");
@@ -56,7 +56,7 @@ async function previewHarness(){
  file.listeners.change();decoded.naturalWidth=1920;decoded.naturalHeight=1080;decoded.onload();assert.match(preview.style.backgroundImage,/blob:test-3/);
  reset.listeners.click();assert.equal(size.value,"desktop");assert.equal(preset.value,"cfs");assert.equal(accent.value,"#28d9f0");assert.equal(position.value,"center");assert.match(preview.style.backgroundImage,/cfs-site-background/);assert(revoked.includes('blob:test-3'));
  allowed=false;refresh.listeners.click();await new Promise(resolve=>setImmediate(resolve));assert.equal(mounted,null);
- assert(requests.every(p=>p==='/api/admin/control-center/summary'||p==='/api/admin/site-content'));
+ assert(requests.every(p=>p==='/api/admin/control-center/summary'||p==='/api/admin/site-content'||p==='/api/admin/website-design'));
 }
 await previewHarness();
 console.log('Local design preview: simulated admin access, image validation, reset and revocation verified.');
