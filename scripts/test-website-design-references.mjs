@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import {initialDesignState} from "../src/website-design-state.js";
+import {collectDesignReferences as collect,checkWebsiteAssetDeletion as remove} from "../src/website-design-references.js";
+const a="12345678-1234-1234-1234-123456789abc",b="22345678-1234-1234-1234-123456789abc",c="32345678-1234-1234-1234-123456789abc",d="42345678-1234-1234-1234-123456789abc";
+const initial=initialDesignState();
+const design=id=>({...initial.draft,backgroundAssetId:id});
+const state={revision:4,draft:design(a),published:{revision:3,design:design(b)},history:[{revision:1,design:design(c)},{revision:3,design:design(b)}]};
+assert.equal(collect(initial).references.length,0);
+assert.equal(collect(state).references.length,4);
+for(const id of [a,b,c,a.toUpperCase()])assert.equal(remove(state,id).error,"MEDIA_IN_USE");
+assert.equal(remove(state,d).ok,true);
+assert.equal(remove(state,"bad").ok,false);
+for(const bad of [null,{...state,history:null},{...state,published:undefined},{...state,draft:{}},{...state,history:[null]},{...state,history:[{revision:99,design:design(c)}]}])assert.equal(remove(bad,d).error,"REFERENCES_UNAVAILABLE");
+console.log("Design reference tests passed");
