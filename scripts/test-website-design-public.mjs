@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import {projectPublicDesign as project} from "../src/website-design-public.js";
+const id="12345678-1234-1234-1234-123456789abc";
+const asset={id,accountId:"owner",mimeType:"image/png",validated:true,deleted:false,publicApproved:true};
+const context={asset,ownerId:"owner"};
+const state={revision:9,draft:{shade:90},history:[{secret:"private"}],published:{revision:4,design:{backgroundAssetId:id,shade:30,position:"top",accent:"#ABCDEF"},internal:"private"}};
+assert.deepEqual(project(state,context),{design:{revision:4,backgroundAssetId:id,shade:30,position:"top",accent:"#abcdef"}});
+assert.deepEqual(project({draft:state.draft},context),{design:null});
+assert.deepEqual(project(null,context),{design:null});
+assert.deepEqual(project(state,{...context,asset:{...asset,publicApproved:false}}),{design:null});
+assert.deepEqual(project(state,{...context,ownerId:"other"}),{design:null});
+assert.deepEqual(project(state,{...context,asset:{...asset,deleted:true}}),{design:null});
+assert.deepEqual(project(state,{}),{design:null});
+assert.deepEqual(project({...state,published:{revision:4,design:{shade:99}}},context),{design:null});
+assert.deepEqual(project({...state,published:{revision:0,design:{}}},context),{design:null});
+assert.deepEqual(project({...state,published:{revision:5,design:{shade:20}}},{}),{design:{revision:5,backgroundAssetId:null,shade:20,position:"center",accent:"#28d9f0"}});
+console.log("Public design projection passed");
