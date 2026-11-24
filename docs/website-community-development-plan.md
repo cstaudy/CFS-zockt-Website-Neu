@@ -87,3 +87,6 @@ Server serveStatic erneut geprüft: Uploads owner-geschützt, Ausnahme veröffen
 
 ## Integrationsphase: CI-Verifikation – 6c64ab8
 Branch-spezifischer Workflow .github/workflows/website-community-verification.yml mit Node 22, npm ci --ignore-scripts und npm run check, nur contents:read, keine Deployment-Schritte, keine DB-/Session-Secrets. Git-Klon im Chat-Container wegen DNS fehlgeschlagen; Workflow-Ausführung/Ergebnis nicht verifiziert (Connector listet nur PR-Workflow-Runs). Actions-Status manuell prüfen; bei Fehlern Logs sichern und beheben, bevor echte CMS-Routen aktiviert werden. Keine Migration oder Produktivfreigabe. Bestehende 184 isolierte Assertions sind kein Ersatz für CI.
+
+## Integrationsabnahme
+Branch-Vergleich vor diesem Abschnitt: 96 voraus, 0 zurück, 28 Dateien. PR-gefilterte Workflow-Abfrage leer; Push-CI-Status unbekannt. Verbindliche Reihenfolge und Nachweise in [website-cms-integration-acceptance.md](website-cms-integration-acceptance.md). HOLD bis vollständiger Testnachweis, isolierter DB und Admin-Elevation. Keine produktive Aktivierung.
