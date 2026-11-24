@@ -4,7 +4,7 @@ html{scroll-behavior:smooth}
 body{background-color:var(--cfs-navy);color:var(--cfs-ink)}
 :where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:3px solid var(--cfs-cyan)!important;outline-offset:3px!important}
 ::selection{background:var(--cfs-cyan);color:#02121d}
-body.public-home .gaming-hero{background-image:linear-gradient(90deg,rgba(2,12,22,.94),rgba(2,12,22,.36)),url('/assets/img/brand/cfs-site-background-r110.webp')!important;background-size:cover!important;background-position:center!important}
+body.public-home .gaming-hero{background-image:linear-gradient(90deg,rgba(2,12,22,var(--cfs-home-shade-start,.94)),rgba(2,12,22,var(--cfs-home-shade-end,.36))),var(--cfs-home-background,url('/assets/img/brand/cfs-site-background-r110.webp'))!important;background-size:cover!important;background-position:center!important}
 body.public-home .r104-hero-copy h1 span{font-size:clamp(24px,3vw,39px);letter-spacing:-.025em;line-height:1.2;display:inline-block}
 .cfs-about{max-width:1120px;margin:48px auto;padding:0 20px}
 .cfs-about-heading{margin-bottom:18px}.cfs-about-heading h2{font-size:clamp(26px,3vw,36px);margin:5px 0}
@@ -61,3 +61,8 @@ html body.public-auth-page .auth-entry-shell .cfs-auth-tabs button[aria-selected
   body.public-suite-page #cfsR21Suite{box-sizing:border-box;width:calc(100% - 32px)!important;max-width:calc(100% - 32px)!important;margin-left:16px!important;margin-right:16px!important}
   body.public-suite-page #cfsR21Suite :where(h1,h2,h3,p){overflow-wrap:anywhere}
 }
+
+/* Homepage branding hooks: defaults preserve the existing CFS artwork.
+   Future published settings must use validated image assets and bounded opacity. */
+body.public-home .cfs-about-copy{min-width:0;flex:1;overflow-wrap:anywhere}
+body.public-home .cfs-about-copy p+p{margin-top:12px}
