@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {applyPublicDesign as apply} from "../assets/js/cfs-public-design.js";
+import {applyPublicDesign as apply,loadPublicDesign} from "../assets/js/cfs-public-design.js";
 const values=new Map(),hero={style:{setProperty:(k,v)=>values.set(k,v),removeProperty:k=>values.delete(k)}};
 const design={revision:1,backgroundAssetId:null,shade:60,position:"top",accent:"#ABCDEF"};
 assert.equal(apply(hero,{design}),true);
@@ -13,3 +13,18 @@ for(const bad of [null,{...design,shade:99},{...design,position:"url(x)"},{...de
 }
 assert.equal(apply(null,{design}),false);
 console.log("Public design adapter passed");
+
+const request=async(url,options)=>{
+ assert.equal(url,"/api/public/website-design");
+ assert.equal(options.credentials,"omit");
+ assert.equal(options.cache,"no-store");
+ assert.equal(options.redirect,"error");
+ return {ok:true,json:async()=>({design})};
+};
+assert.equal(await loadPublicDesign(hero,request),true);
+for(const fail of [async()=>({ok:false}),async()=>{throw Error("offline")},async()=>({ok:true,json:async()=>{throw Error("invalid JSON")}}),async()=>({ok:true,json:async()=>({design:null})})]){
+ apply(hero,{design});
+ assert.equal(await loadPublicDesign(hero,fail),false);
+ assert.equal(values.size,0);
+}
+assert.equal(await loadPublicDesign(null,request),false);
