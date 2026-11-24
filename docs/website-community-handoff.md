@@ -108,3 +108,6 @@ index.html lädt ES-Modul cfs-public-design-entry.js; GET /api/public/website-de
 
 ## PostgreSQL-Transaktionsadapter – 2243054 / 0a224f0 / 27c97a5
 Schemaunabhängiger Adapter mit injiziertem Pool und vertrauenswürdigen Operationen; BEGIN/COMMIT/ROLLBACK, Client-Freigabe und Verwerfen bei fehlgeschlagenem Rollback. 12 isolierte Mock-Assertions bestanden (kumuliert 210). npm check erweitert, nicht vollständig ausgeführt. Kein echter PostgreSQL-Zugriff, keine Migration, keine Serveraktivierung. SQL-Operationen, Zeilensperren, CAS und Autorisierung bleiben mit Migrationseigentümer abzustimmen; unklarer COMMIT-Ausgang darf nicht blind wiederholt werden.
+
+## Speicherformat-Prüfung – b4e8aec / d838bce / 45f98b0
+Schemaunabhängiger Snapshot-Decoder prüft vollständige Designfelder, Revisionen, aufsteigende Historie und Übereinstimmung der letzten Veröffentlichung mit der Historie. 12 isolierte Assertions bestanden, kumuliert 222. Keine SQL-Operationen oder Migration; Decoder noch nicht im Repository verdrahtet. Nächster Schritt: Decoder an Repository-Grenze integrieren und bei inkonsistentem Zustand fail closed; vollständige Node-/PG-Abnahme offen.
