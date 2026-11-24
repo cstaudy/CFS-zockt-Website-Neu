@@ -102,3 +102,6 @@ server.js enthält nun GET/HEAD /api/public/website-design mit design:null und n
 
 ## Admin-Verfügbarkeitsanzeige – cf29326 / 14c5a53
 Lokale Designvorschau fragt nach erfolgreicher Admin-Summary GET /api/admin/website-design ab. 503 zeigt fehlende Einrichtung, 401/403/428 gesperrten Zugriff, sonst Fehlerstatus; auch Erfolg aktiviert keine Schreibfunktionen. Separates aria-live Statusfeld, lokale Bildvorschau bleibt unabhängig. JS-Syntax im Isolate geprüft; Mock-Harness angepasst, noch nicht ausgeführt. Vollständige Node-/HTTP-/Browser-Abnahme offen. Keine DB-/Auth-Änderung.
+
+## Öffentliche Frontend-Anbindung – dd9081c / 83fe8f3 / 76d3040
+index.html lädt ES-Modul cfs-public-design-entry.js; GET /api/public/website-design ohne Credentials, no-store, Redirect abgelehnt. Null, HTTP-Fehler, Netzwerkfehler und ungültiges JSON setzen Hero-CSS-Overrides zurück. Keine fremden Bild-URLs, Medienroute weiterhin gesperrt. Browseradapter 37 Assertions im JS-Isolate bestanden (14 neu); echte Node-, CSP- und Browserabnahme offen. Nächster Schritt persistenter Adapter nach Abstimmung mit Migration und Elevation.
