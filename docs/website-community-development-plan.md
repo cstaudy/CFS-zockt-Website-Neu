@@ -54,3 +54,6 @@ Vor diesem Review: 38 Commits vor main, 0 dahinter, 8 Dateien geändert. Staging
 - Admin-Vorschau mit erlaubtem Testkonto und ohne Berechtigung prüfen; 401/403/501, Refresh, Bildvalidierung, Reset, Farben, Position, Vorschaugröße, CSP und keine Upload-Anfragen.
 - Keine Produktionsdatenbank verwenden; CMS-Speicherung bleibt deaktiviert, bis Backend und Medienfreigabe separat implementiert sind.
 - PR-Diff prüfen, keine automatische Zusammenführung oder Veröffentlichung; ausdrückliche Freigabe abwarten.
+
+## Isolierte Design-Validierung – 46112b0 / 766d287 / 375a249
+Reines Modul src/website-design-validation.js mit vollständigem Einstellungsobjekt: backgroundAssetId (UUID oder null), shade (Ganzzahl 0–90), position (fünf erlaubte Werte), accent (Hex RGB). Unbekannte Felder und freie URLs abgelehnt. Defaults entsprechen lokaler Vorschau, nicht zwingend tatsächlicher Live-CSS. Testdatei in npm run check integriert; 18 Assertions direkt am abgerufenen Quelltext im JS-Isolate bestanden. Node-Gesamtsuite offen. Validator nicht an API angebunden, keine Eigentums-/Freigabeprüfung; diese muss serverseitig separat erfolgen. Keine Migration. Nächster Schritt: Medienreferenz- und Revisionsvertrag vor Persistenz abstimmen.
