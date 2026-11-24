@@ -14,3 +14,6 @@ Gaming, TikTok und Discord als öffentliche Einstiegsseite; Creator Suite als ei
 
 ## Grenzen
 Render/Neon, Migrationen, Backup, produktive Daten, Secrets und Authentifizierung nicht verändern. Persistenzänderungen erst nach Abstimmung mit Codex und isolierter Testdatenbank. Keine Tests als bestanden markieren, wenn nicht ausgeführt.
+
+## Fortschritt 2026-11-24 – c9b1eeb
+Bestehendes CMS in pages/admin-creators.html und assets/js/admin-control-center-v181.js gefunden: Admin-GET /api/admin/site-content, PUT draft, POST publish/revert; Textvorschau und Revisionsstatus vorhanden. Backend-Autorisierung und Isolation noch nicht getestet. Lokale Designvorschau nach erfolgreichem Laden der Admin-Inhalte ergänzt: PNG/JPEG/WebP bis 8 MiB, Bildabmessungen geprüft, Blob-URL, Abdunklung, Standard-Reset. Kein Upload, keine Persistenz, keine Veröffentlichung. Browserprüfung inklusive CSP für blob:-Bilder, iPhone, Fehlerfälle und Admin-Sperre offen. Nächster Schritt: bestehende CMS-Backend-Routen und Tests lokalisieren, Vorschau praktisch prüfen, sichere Persistenz erst abgestimmt ergänzen. Keine Migration oder Produktion geändert.
