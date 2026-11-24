@@ -4,7 +4,7 @@ html{scroll-behavior:smooth}
 body{background-color:var(--cfs-navy);color:var(--cfs-ink)}
 :where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:3px solid var(--cfs-cyan)!important;outline-offset:3px!important}
 ::selection{background:var(--cfs-cyan);color:#02121d}
-body.public-home .gaming-hero{background-image:linear-gradient(90deg,rgba(2,12,22,var(--cfs-home-shade-start,.94)),rgba(2,12,22,var(--cfs-home-shade-end,.36))),var(--cfs-home-background,url('/assets/img/brand/cfs-site-background-r110.webp'))!important;background-size:cover!important;background-position:center!important}
+body.public-home .gaming-hero{background-image:linear-gradient(90deg,rgba(2,12,22,var(--cfs-home-shade-start,.94)),rgba(2,12,22,var(--cfs-home-shade-end,.36))),var(--cfs-home-background,url('/assets/img/brand/cfs-site-background-r110.webp'))!important;background-size:cover!important;background-position:var(--cfs-home-position,center)!important}
 body.public-home .r104-hero-copy h1 span{font-size:clamp(24px,3vw,39px);letter-spacing:-.025em;line-height:1.2;display:inline-block}
 .cfs-about{max-width:1120px;margin:48px auto;padding:0 20px}
 .cfs-about-heading{margin-bottom:18px}.cfs-about-heading h2{font-size:clamp(26px,3vw,36px);margin:5px 0}
@@ -84,3 +84,7 @@ body.public-home .cfs-about-copy p+p{margin-top:12px}
  body.public-home #ueber-mich .cfs-about-card{flex-direction:column}
  body.public-home .r104-feature-grid{grid-template-columns:minmax(0,1fr)!important}
 }
+
+/* Optional published hero accent; no global theme changes. */
+body.public-home .gaming-hero{--cfs-hero-accent:var(--cfs-home-accent,var(--cfs-cyan))}
+body.public-home .gaming-hero[style*="--cfs-home-accent"]{box-shadow:inset 0 -2px var(--cfs-hero-accent)}
