@@ -28,3 +28,6 @@ Record commit SHA, Node version, exit status and failing test output. Check GitH
 - Explicit operator approval before deployment.
 
 Existing isolated assertions are not a substitute for these gates.
+
+## HTTP-Integration: sichere Vorstufe
+server.js enthält nun GET/HEAD /api/public/website-design mit design:null und no-store; /api/admin/website-design prüft requireAdmin und antwortet danach 503 WEBSITE_DESIGN_NOT_CONFIGURED. Keine Mutation, kein DB-Speicherzugriff außer bestehender Authentifizierung, kein Browser-Fetch. Bestehende Elevation liefert weiterhin active:false/available:false. Quellcodeänderung gespeichert, echte HTTP-/Node-Abnahme ausstehend. Vor Merge server.js mit staging-site-content-Branch abgleichen (gemeinsame Datei).
