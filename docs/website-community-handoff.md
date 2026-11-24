@@ -105,3 +105,6 @@ Lokale Designvorschau fragt nach erfolgreicher Admin-Summary GET /api/admin/webs
 
 ## Öffentliche Frontend-Anbindung – dd9081c / 83fe8f3 / 76d3040
 index.html lädt ES-Modul cfs-public-design-entry.js; GET /api/public/website-design ohne Credentials, no-store, Redirect abgelehnt. Null, HTTP-Fehler, Netzwerkfehler und ungültiges JSON setzen Hero-CSS-Overrides zurück. Keine fremden Bild-URLs, Medienroute weiterhin gesperrt. Browseradapter 37 Assertions im JS-Isolate bestanden (14 neu); echte Node-, CSP- und Browserabnahme offen. Nächster Schritt persistenter Adapter nach Abstimmung mit Migration und Elevation.
+
+## PostgreSQL-Transaktionsadapter – 2243054 / 0a224f0 / 27c97a5
+Schemaunabhängiger Adapter mit injiziertem Pool und vertrauenswürdigen Operationen; BEGIN/COMMIT/ROLLBACK, Client-Freigabe und Verwerfen bei fehlgeschlagenem Rollback. 12 isolierte Mock-Assertions bestanden (kumuliert 210). npm check erweitert, nicht vollständig ausgeführt. Kein echter PostgreSQL-Zugriff, keine Migration, keine Serveraktivierung. SQL-Operationen, Zeilensperren, CAS und Autorisierung bleiben mit Migrationseigentümer abzustimmen; unklarer COMMIT-Ausgang darf nicht blind wiederholt werden.
