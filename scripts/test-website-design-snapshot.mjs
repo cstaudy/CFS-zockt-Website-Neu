@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import {decodeDesignSnapshot as decode} from "../src/website-design-snapshot.js";
+const d={backgroundAssetId:null,shade:65,position:"center",accent:"#28d9f0"};
+const initial={revision:0,draft:d,published:null,history:[]};
+const entry={revision:1,design:d};
+const live={revision:2,draft:{...d,shade:30},published:entry,history:[entry]};
+assert.deepEqual(decode(initial),{ok:true,state:initial});
+assert.deepEqual(decode(live),{ok:true,state:live});
+for(const bad of [null,{...initial,revision:-1},{...initial,draft:{}},{...live,history:[]},{...live,published:null},{...live,history:[entry,entry]},{...live,revision:0},{...live,published:{...entry,design:{...d,shade:30}}},{...live,history:[{revision:1,design:{}}]}])assert.equal(decode(bad).ok,false);
+const result=decode(live);result.state.draft.shade=10;assert.equal(live.draft.shade,30);
+console.log("Stored design snapshot checks passed");
