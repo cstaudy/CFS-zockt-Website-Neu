@@ -1,0 +1,15 @@
+import assert from "node:assert/strict";
+import {authorizeWebsiteMedia as authorize} from "../src/website-design-media-delivery.js";
+const id="12345678-1234-1234-1234-123456789abc",other="22345678-1234-1234-1234-123456789abc";
+const asset={id,accountId:"owner",mimeType:"image/webp",validated:true,deleted:false,publicApproved:true,storagePath:"private.webp"};
+const ctx={ownerId:"owner",asset};
+const state={draft:{backgroundAssetId:other},published:{revision:1,design:{backgroundAssetId:id}}};
+const result=authorize(id,state,ctx);
+assert.equal(result.status,200);
+assert.equal(result.assetId,id);
+assert.equal(result.headers["content-type"],"image/webp");
+assert.equal(result.headers["cache-control"],"no-store");
+assert.equal(JSON.stringify(result).includes("private.webp"),false);
+assert.equal(authorize(id.toUpperCase(),state,ctx).status,200);
+for(const [requested,s,c] of [[other,state,ctx],[id,{draft:state.draft},ctx],[id,state,{...ctx,ownerId:"other"}],[id,state,{...ctx,asset:{...asset,publicApproved:false}}],[id,state,{...ctx,asset:{...asset,deleted:true}}],[id,state,{...ctx,asset:{...asset,mimeType:"image/svg+xml"}}],["../private.webp",state,ctx],[id,state,{}]])assert.equal(authorize(requested,s,c).status,404);
+console.log("Website media authorization passed");
