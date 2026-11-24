@@ -96,3 +96,6 @@ Branch-spezifischer Workflow .github/workflows/website-community-verification.ym
 
 ## Integrationsabnahme
 Branch-Vergleich vor diesem Abschnitt: 96 voraus, 0 zurück, 28 Dateien. PR-gefilterte Workflow-Abfrage leer; Push-CI-Status unbekannt. Verbindliche Reihenfolge und Nachweise in [website-cms-integration-acceptance.md](website-cms-integration-acceptance.md). HOLD bis vollständiger Testnachweis, isolierter DB und Admin-Elevation. Keine produktive Aktivierung.
+
+## HTTP-Integration: sichere Vorstufe
+server.js enthält nun GET/HEAD /api/public/website-design mit design:null und no-store; /api/admin/website-design prüft requireAdmin und antwortet danach 503 WEBSITE_DESIGN_NOT_CONFIGURED. Keine Mutation, kein DB-Speicherzugriff außer bestehender Authentifizierung, kein Browser-Fetch. Bestehende Elevation liefert weiterhin active:false/available:false. Quellcodeänderung gespeichert, echte HTTP-/Node-Abnahme ausstehend. Vor Merge server.js mit staging-site-content-Branch abgleichen (gemeinsame Datei).
