@@ -44,3 +44,13 @@ Bestehende CMS-Routen wiederverwenden, nach Abstimmung einen Abschnitt home.desi
 ## Farbvorlagen und Medienbestand – 58b7c2d / 01ba3e7
 Lokale Akzentfarben CFS Cyan (#28d9f0), Violett, Bernstein und eigene Hex-Farbe ergänzt. Nur Vorschau-Rahmen und Überschrift betroffen, Originalbild/Logo unverändert. Reset und ungültige Farbe getestet; erweiterter Mock-Harness erfolgreich im JS-Isolate. Browser und vollständige Node-Suite offen.
 Medienbestand geprüft: server.js GET/POST /api/creator/widget-studio/assets delegiert an src/assets.js. listAssets ist kontogebunden (creator_assets.account_id), uploadAsset prüft Anmeldung, MIME, Signatur, Größe, Dateiname und Quota; Speicherung über storeUploadWithRecord. Kategorie background existiert. URL /assets/uploads/... wird ausgegeben. Kein Admin-Website-Medienworkflow daraus ableitbar; vor Wiederverwendung Eigentum, öffentliche Freigabe, tatsächliche Storage-Dauerhaftigkeit, Bilddekodierung, Referenzen und Löschung prüfen. Admin bundle-factory ausdrücklich deaktiviert. Fehlende API-Routen liefern 501; bisherigen Mock um 501 erweitern. Keine neuen Uploads, API-Routen oder Migrationen. Nächster Schritt: Review der Branch-Differenz und isolierte Abnahme vorbereiten.
+
+## Branch-Review und Abnahme – 2026-11-24
+Vor diesem Review: 38 Commits vor main, 0 dahinter, 8 Dateien geändert. Staging-Fix 6 vor/42 hinter main; gemeinsame Änderungsdatei package.json (Testketten bei Integration zusammenführen, nicht überschreiben). Neon-Migrationsbranch 2 vor/43 hinter main, keine gemeinsame Änderungsdatei. Kein tatsächlicher Merge-Test; lokale Codex-Änderungen unbekannt. Commit 125af93 ergänzt 501-Mock (direkte JS-Simulation bestanden). Keine Infrastrukturänderung.
+### Abnahme vor Merge
+- Lokale Änderungen sichern, git fetch, Branch-Diff und package.json prüfen.
+- Node >=20, npm ci und npm run check im isolierten Checkout ausführen; Fehler dokumentieren.
+- Startseite und Creator Suite bei 320/375/390/430/768px und Desktop prüfen: Menü, Überlauf, Links, Logo, Tastatur.
+- Admin-Vorschau mit erlaubtem Testkonto und ohne Berechtigung prüfen; 401/403/501, Refresh, Bildvalidierung, Reset, Farben, Position, Vorschaugröße, CSP und keine Upload-Anfragen.
+- Keine Produktionsdatenbank verwenden; CMS-Speicherung bleibt deaktiviert, bis Backend und Medienfreigabe separat implementiert sind.
+- PR-Diff prüfen, keine automatische Zusammenführung oder Veröffentlichung; ausdrückliche Freigabe abwarten.
