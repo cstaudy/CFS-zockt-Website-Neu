@@ -105,3 +105,6 @@ Schemaunabhängiger Adapter mit injiziertem Pool und vertrauenswürdigen Operati
 
 ## Speicherformat-Prüfung – b4e8aec / d838bce / 45f98b0
 Schemaunabhängiger Snapshot-Decoder prüft vollständige Designfelder, Revisionen, aufsteigende Historie und Übereinstimmung der letzten Veröffentlichung mit der Historie. 12 isolierte Assertions bestanden, kumuliert 222. Keine SQL-Operationen oder Migration; Decoder noch nicht im Repository verdrahtet. Nächster Schritt: Decoder an Repository-Grenze integrieren und bei inkonsistentem Zustand fail closed; vollständige Node-/PG-Abnahme offen.
+
+## Repository-Speicherprüfung – 2cb9e5f / 508d5b7
+Snapshot-Decoder an Lade- und CAS-Grenze integriert. Ungültiger gespeicherter Zustand oder Kandidat sowie falsche Folgerevision lösen Fehler und Rollback aus; kein Aufruf der Schreiboperation bei ungültigem Kandidaten. 20 isolierte Adapter-Assertions bestanden, 8 zusätzlich (kumuliert 230). Keine SQL-Schemaänderung, keine echte PG-Verbindung, keine Serveraktivierung. Vertrauenswürdige Ladeoperation, Sperren, CAS und Autorisierung bleiben offen; vollständige Node-/HTTP-/Browser-Abnahme ausstehend.
