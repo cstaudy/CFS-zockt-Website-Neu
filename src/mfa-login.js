@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { getPool } from "./db.js";
-import { isAdminEmail } from "./auth.js";
+import { isAdminAccount } from "./admin-access.js";
 import { matchingTotpStep } from "./totp.js";
 import { consumeRecoveryCode } from "./recovery-codes.js";
 
@@ -103,7 +103,7 @@ export async function finishMfaLogin(req, body = {}) {
     );
     await client.query("delete from mfa_login_challenges where token_hash=$1", [sha256(token)]);
     await client.query("COMMIT");
-    account.role = isAdminEmail(account.email) ? "admin" : "creator";
+    account.admin = isAdminAccount(account);
     return {
       authenticated: true, account, token: sessionToken,
       maxAge: sessionDays * 86400, recovery_code_used: Boolean(recoveryValid)

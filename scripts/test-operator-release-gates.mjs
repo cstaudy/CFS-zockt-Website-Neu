@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 
 const root = new URL("../docs/operations/", import.meta.url);
 const read = name => readFile(new URL(name, root), "utf8");
+const lines = markdown => markdown.split(/\r?\n/);
+const withoutLine = (markdown, target) => lines(markdown).filter(line => line !== target).join("\n");
 
 const [template, gates, deadline, networkChecklist, backupRunbook] = await Promise.all([
   read("DB_BACKUP_RESTORE_EVIDENCE_TEMPLATE.md"),
@@ -22,7 +24,7 @@ for (const label of [
   "Schema-Fingerprint", "Staging-DB-Identität",
   "Produktionsdeploy separat freigegeben"
 ]) {
-  const line = template.split("\n").find(value => value.startsWith("| " + label));
+  const line = lines(template).find(value => value.startsWith("| " + label));
   assert.ok(line, `Required operator evidence field missing: ${label}`);
   assert.match(line, /(?:OFFEN|NEIN|nicht nachgewiesen)/i,
     `Operator evidence must default to unapproved: ${label}`);
@@ -58,7 +60,7 @@ const requiredEvidenceLabels = [
   "Produktionsdeploy separat freigegeben?"
 ];
 function validateEvidenceRows(markdown) {
-  const rows = markdown.split("\n").filter(line => /^\| .+ \| .+ \|$/.test(line));
+  const rows = lines(markdown).filter(line => /^\| .+ \| .+ \|$/.test(line));
   const evidence = rows.filter(line => !/^\| (?:Feld|---|Render-Free-Ablauf)/.test(line));
   assert.equal(evidence.length, requiredEvidenceLabels.length, "Evidence row count changed");
   assert.deepEqual(evidence.map(row => row.slice(1, -1).split("|")[0].trim()),
@@ -72,7 +74,7 @@ function validateEvidenceRows(markdown) {
 }
 validateEvidenceRows(template);
 // Mutation test: a premature YES in any operator evidence row must fail.
-const evidenceLines = template.split("\n").filter(line =>
+const evidenceLines = lines(template).filter(line =>
   /^\| .+ \| .+ \|$/.test(line) &&
   !/^\| (?:Feld|---|Render-Free-Ablauf)/.test(line));
 for (const line of evidenceLines) {
@@ -84,7 +86,7 @@ for (const line of evidenceLines) {
 }
 // Mutation test: removing any evidence row must fail, even when many rows remain.
 for (const line of evidenceLines) {
-  const changed = template.replace(line + "\n", "");
+  const changed = withoutLine(template, line);
   assert.notEqual(changed, template, "Deletion must alter the evidence template");
   assert.throws(() => validateEvidenceRows(changed), /Evidence row count changed/);
 }
@@ -112,7 +114,7 @@ function validateNetworkGate(document) {
   ]) {
     assert.match(section, required, `Network gate missing: ${description}`);
   }
-  const summary = document.split("\n").find(line =>
+  const summary = lines(document).find(line =>
     line.startsWith("| A2 – DB-Netzwerkzugang |"));
   assert.ok(summary, "Network gate missing from formal status table");
   assert.match(summary, /\| Offen \|/,
@@ -156,7 +158,7 @@ const requiredNetworkChecklistLabels = [
   "Produktionsbackup mit isoliertem Restore erfolgreich nachgewiesen?",
   "Freigabe von Migration, Staging und Produktivdeployment erteilt?"
 ];
-const networkChecklistRows = markdown => markdown.split("\n")
+const networkChecklistRows = markdown => lines(markdown)
   .filter(line => /^\| .+ \| .+ \|$/.test(line))
   .filter(line => !/^\| (?:Nachweis|Entscheidung|---)/.test(line));
 function validateNetworkChecklist(markdown) {
@@ -183,7 +185,7 @@ for (const row of networkChecklistRows(networkChecklist)) {
     /Network checklist must remain unapproved/,
     `Unapproved network checklist row must fail: ${label}`);
 
-  const removed = networkChecklist.replace(row + "\n", "");
+  const removed = withoutLine(networkChecklist, row);
   assert.notEqual(removed, networkChecklist, "Checklist row removal mutation failed");
   assert.throws(() => validateNetworkChecklist(removed),
     /Network checklist evidence\/decision rows changed/,
@@ -208,7 +210,7 @@ const requiredBackupApprovalLabels = [
 const backupRows = markdown => {
   const section = markdown.split("## 2. Stop-Gates vor einem echten Export")[1]
     ?.split("## 3.")[0] ?? "";
-  return section.split("\n").filter(line => /^\| .+ \| .+ \|$/.test(line))
+  return lines(section).filter(line => /^\| .+ \| .+ \|$/.test(line))
     .filter(line => !/^\| (?:Zwingende Vorbedingung|---)/.test(line));
 };
 function validateBackupRunbook(markdown) {
@@ -248,7 +250,7 @@ for (const line of backupRows(backupRunbook)) {
   assert.notEqual(approved, backupRunbook, "Backup mutation fixture failed");
   assert.throws(() => validateBackupRunbook(approved),
     /Backup prerequisite must remain OFFEN/);
-  const removed = backupRunbook.replace(line + "\n", "");
+  const removed = withoutLine(backupRunbook, line);
   assert.notEqual(removed, backupRunbook, "Backup removal fixture failed");
   assert.throws(() => validateBackupRunbook(removed),
     /Operator backup prerequisites changed/);

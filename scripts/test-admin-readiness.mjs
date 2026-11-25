@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { adminReadiness } from "../src/admin-readiness.js";
-import { ADMIN_EMAIL } from "../src/admin-access.js";
+import { ADMIN_EMAIL, isAdminAccount } from "../src/admin-access.js";
+
+assert.equal(isAdminAccount({ email: ADMIN_EMAIL, role: "creator", email_verified_at: new Date() }), false,
+  "Matching email without provisioned admin role must not grant admin access");
+assert.equal(isAdminAccount({ email: ADMIN_EMAIL, role: "admin", email_verified_at: null }), false,
+  "Unverified admin email must not grant admin access");
+assert.equal(isAdminAccount({ email: ADMIN_EMAIL, role: "admin", email_verified_at: new Date() }), true,
+  "Only provisioned and verified admin account may receive admin access");
+assert.equal(isAdminAccount({ email: "other@example.test", role: "admin", email_verified_at: new Date() }), false,
+  "Admin role on another email must not grant configured operator access");
 
 function fakeClient({ matches, role_ready, email_ready }) {
   return { async query(sql, params) {
