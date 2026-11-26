@@ -4,6 +4,7 @@ import { access, readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
+import { maintenanceEnabled, maintenanceAllows, maintenancePayload } from "./src/maintenance-mode.js";
 import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
 import { mailStatus } from "./src/mail.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
@@ -136,6 +137,11 @@ async function handle(req, res) {
   if (method === "OPTIONS") {
     res.writeHead(204, { "access-control-allow-methods": "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS", "access-control-allow-headers": "content-type,x-csrf-token" });
     return res.end();
+  }
+
+  if (maintenanceEnabled() && url.pathname.startsWith("/api/") && !maintenanceAllows(url.pathname)) {
+    res.setHeader("retry-after", "300");
+    return json(res, 503, maintenancePayload());
   }
 
   if (url.pathname === "/api/health" && ["GET", "HEAD"].includes(method)) {
