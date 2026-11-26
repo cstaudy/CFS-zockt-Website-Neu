@@ -25,7 +25,7 @@ powershell -NoProfile -File .\scripts\production-pg-backup.ps1 `
 ```
 
 Das Skript fragt Host, Port, Datenbank, Benutzer und Passwort interaktiv ab,
-verwendet TLS `verify-full`, erzeugt ein PostgreSQL-Custom-Format und schreibt
+verwendet TLS `verify-full` mit dem libpq-System-CA-Speicher (`sslrootcert=system`), erzeugt ein PostgreSQL-Custom-Format und schreibt
 nur ein SHA-256-Manifest neben die Dump-Datei. Vorhandene Dateien werden nicht
 überschrieben.
 
@@ -42,9 +42,19 @@ powershell -NoProfile -File .\scripts\production-pg-backup.ps1 `
   -ConfirmIsolatedDatabase
 ```
 
+Der Zielpfad muss auf einem lokalen, vollstaendig BitLocker-verschluesselten
+und geschuetzten Laufwerk ausserhalb von Git und OneDrive liegen. Der Dump wird
+abgebrochen, wenn der BitLocker-Status nicht gelesen werden kann oder der
+Schutz nicht aktiv ist. Das SHA-256-Manifest ist fuer jede Verify-Pruefung
+zwingend.
+
 Vor dem Restore wird geprüft, dass die Zieldatenbank leer ist. Danach werden der
 Dump in einer Einzeltransaktion wiederhergestellt und 26 öffentliche Tabellen
 verifiziert. Das Skript verwendet weder `--clean` noch `DROP DATABASE`.
+
+Fuer die vollstaendige Restore-Pruefung fragt das Skript danach die Render-
+Quelle read-only ab und vergleicht Tabelleninventar, Zeilenanzahl und einen
+deterministischen Inhaltsfingerabdruck jeder der 26 Tabellen.
 
 ## 3. Kontrollierter Schreibstopp
 
