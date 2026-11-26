@@ -11,6 +11,7 @@ import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
 import { currentAccount, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
 import { isAdminAccount } from "./src/admin-access.js";
 import { mailStatus } from "./src/mail.js";
+import { requestEmailVerification as requestVerifiedEmail, verifyEmail as verifyVerifiedEmail } from "./src/email-verification.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
 import { finishMfaLogin, pendingMfaCookie, clearPendingMfaCookie } from "./src/mfa-login.js";
 import { createSupportReport, listSupportReports, updateSupportReport } from "./src/support.js";
@@ -335,8 +336,8 @@ async function handle(req, res) {
   if(url.pathname==="/api/account/mail/status"&&method==="GET")return json(res,200,mailStatus());
   if(url.pathname==="/api/account/password/forgot"&&method==="POST"){const body=await readJson(req);return json(res,200,await requestPasswordReset(body.email));}
   if(url.pathname==="/api/account/password/reset"&&method==="POST"){const body=await readJson(req),result=await resetPassword(String(body.token||""),body.new_password);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
-  if(url.pathname==="/api/account/email/verification/request"&&method==="POST")return json(res,200,await requestEmailVerification((await readJson(req)).email));
-  if(url.pathname==="/api/account/email/verify"&&method==="POST"){const result=await verifyEmail(String((await readJson(req)).token||""));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/account/email/verification/request"&&method==="POST"){const body=await readJson(req),account=await currentAccount(req),result=await requestVerifiedEmail(account?.email||body.email);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
+  if(url.pathname==="/api/account/email/verify"&&method==="POST"){const result=await verifyVerifiedEmail(String((await readJson(req)).token||""));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/profile"&&method==="PATCH"){const result=await updateProfile(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/password"&&method==="POST"){const result=await changePassword(req,await readJson(req));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/sessions"&&method==="GET"){const result=await listSessions(req);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
@@ -511,7 +512,7 @@ async function handle(req, res) {
     const session = await login(body);
     if (session.error) return json(res, session.status, { error: session.error });
     res.setHeader("set-cookie", cookie("cfs_session", session.token, session.maxAge));
-    return json(res, 201, { authenticated: true, account: session.account, verification_required: false, message: "Konto erstellt." });
+    return json(res, 201, { authenticated: true, account: session.account, verification_required: true, message: "Konto erstellt. Bitte bestaetige deine E-Mail-Adresse." });
   }
 
   if (["/api/auth/login", "/api/account/login"].includes(url.pathname) && method === "POST") {
