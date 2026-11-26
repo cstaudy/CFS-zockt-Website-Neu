@@ -31,10 +31,21 @@ const files = [
 try {
   const pool = getPool();
   if (!pool) throw new Error("DATABASE_URL fehlt.");
-  for (const file of files) {
-    const sql = await readFile(join(root, "migrations", file), "utf8");
-    await pool.query(sql);
-    console.log(`migration ok: ${file}`);
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('cfs-zockt:migrations'))");
+    for (const file of files) {
+      const sql = await readFile(join(root, "migrations", file), "utf8");
+      await client.query(sql);
+      console.log(`migration ok: ${file}`);
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
   }
 } finally {
   await closeDatabase();

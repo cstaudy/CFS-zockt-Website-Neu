@@ -54,6 +54,11 @@ Integrations- und öffentlicher Status-Endpunkt erreichbar; alle anderen API-
 Pfade, einschließlich ungewöhnlicher schreibender GET-Pfade, liefern HTTP 503.
 Statische Seiten bleiben auslieferbar.
 
+Der Normalwert ist `CFS_MAINTENANCE_MODE=false`. Der Schalter wird fuer die
+Migration auf jeder laufenden Produktionsinstanz gesetzt und erst nach der
+Abnahme wieder entfernt; ein einzelnes altes Render-Exemplar darf nicht weiter
+Schreibzugriffe annehmen.
+
 Reihenfolge beim echten Cutover:
 
 1. Launcher-Clients, externe Schedulers und sonstige API-Clients anhalten.
