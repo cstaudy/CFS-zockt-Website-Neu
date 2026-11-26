@@ -10,6 +10,7 @@ param(
   [string]$User,
   [string]$TargetDatabase,
   [string]$DiagnosticLog,
+  [string]$RootCertificatePath,
   [switch]$ConfirmIsolatedDatabase
 )
 
@@ -19,6 +20,12 @@ $pgDump = (Get-Command pg_dump -ErrorAction Stop).Source
 $pgRestore = (Get-Command pg_restore -ErrorAction Stop).Source
 $psql = (Get-Command psql -ErrorAction Stop).Source
 $script:DiagnosticLog = $null
+$script:RootCertificate = "system"
+
+$trustedRenderRootFingerprints = @(
+  "96BCEC06264976F37460779ACF28C5A7CFE8A3C0AAE11A8FFCEE05C0BDDF08C6",
+  "69729B8E15A86EFC177A57AFB7171DFC64ADD28C2FCA8CF1507E34453CCB1470"
+)
 
 function ConvertTo-SafeDiagnostic([string]$Text) {
   if ([string]::IsNullOrWhiteSpace($Text)) { return "" }
@@ -31,6 +38,34 @@ function Write-Diagnostic([string]$Message) {
   $safe = ConvertTo-SafeDiagnostic $Message
   if ([string]::IsNullOrWhiteSpace($safe)) { return }
   Add-Content -LiteralPath $script:DiagnosticLog -Value ("{0:o} {1}" -f [DateTime]::UtcNow, $safe) -Encoding utf8
+}
+
+function Assert-RootCertificate([string]$Path) {
+  if ([string]::IsNullOrWhiteSpace($Path)) {
+    $script:RootCertificate = "system"
+    Write-Diagnostic "CA policy: libpq system root store requested"
+    return
+  }
+  $full = Resolve-OutsideRepository $Path
+  if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { throw "CA-Zertifikatsdatei nicht gefunden: $full" }
+  $content = Get-Content -LiteralPath $full -Raw
+  if ($content -notmatch '-----BEGIN CERTIFICATE-----' -or $content -notmatch '-----END CERTIFICATE-----') {
+    throw "CA-Zertifikatsdatei ist kein PEM-Zertifikat oder -Bundle: $full"
+  }
+  $certutilOutput = @(& certutil.exe -dump $full 2>&1 | ForEach-Object { $_.ToString() })
+  if ($LASTEXITCODE -ne 0) { throw "CA-Zertifikatsdatei konnte mit certutil nicht gelesen werden: $full" }
+  $hashes = @()
+  foreach ($line in $certutilOutput) {
+    if ($line -match '(?i)(?:Zertifikathash|Cert Hash)\(sha256\)\s*:\s*([0-9a-f ]+)') {
+      $hashes += ($Matches[1] -replace '\s', '').ToUpperInvariant()
+    }
+  }
+  $trusted = @($hashes | Where-Object { $trustedRenderRootFingerprints -contains $_ } | Select-Object -Unique)
+  if ($trusted.Count -eq 0) {
+    throw "CA-Zertifikatsdatei enthaelt kein verifiziertes Let's-Encrypt-Root X1/X2."
+  }
+  $script:RootCertificate = $full
+  Write-Diagnostic "CA policy: verified Render roots=$($trusted -join ','); path=$full"
 }
 
 function Get-InvocationDiagnostic([string]$Tool, [string[]]$Arguments, [string[]]$Output, [int]$ExitCode) {
@@ -110,9 +145,16 @@ function Get-PsqlConnectionArguments($Connection) {
 }
 
 function Invoke-NativePostgres([string]$Tool, [string[]]$Arguments) {
-  $output = @(& $Tool @Arguments 2>&1 | ForEach-Object { $_.ToString() })
-  $exitCode = $LASTEXITCODE
-  return [pscustomobject]@{ Output = $output; ExitCode = $exitCode }
+  $nativePreference = Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue
+  $oldNativePreference = if ($null -ne $nativePreference) { $global:PSNativeCommandUseErrorActionPreference } else { $null }
+  try {
+    if ($null -ne $nativePreference) { $global:PSNativeCommandUseErrorActionPreference = $false }
+    $output = @(& $Tool @Arguments 2>&1 | ForEach-Object { $_.ToString() })
+    $exitCode = $LASTEXITCODE
+    return [pscustomobject]@{ Output = $output; ExitCode = $exitCode }
+  } finally {
+    if ($null -ne $nativePreference) { $global:PSNativeCommandUseErrorActionPreference = $oldNativePreference }
+  }
 }
 
 function Assert-NetworkReachability($Connection) {
@@ -141,7 +183,7 @@ function Invoke-Postgres([string]$Tool, [string[]]$Arguments, [string]$Password)
   try {
     $env:PGPASSWORD = $Password
     $env:PGSSLMODE = "verify-full"
-    $env:PGSSLROOTCERT = "system"
+    $env:PGSSLROOTCERT = $script:RootCertificate
     $env:PGCONNECT_TIMEOUT = "10"
     foreach ($name in @("PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
     $result = Invoke-NativePostgres $Tool $Arguments
@@ -165,7 +207,7 @@ function Invoke-PostgresOutput([string]$Tool, [string[]]$Arguments, [string]$Pas
   try {
     $env:PGPASSWORD = $Password
     $env:PGSSLMODE = "verify-full"
-    $env:PGSSLROOTCERT = "system"
+    $env:PGSSLROOTCERT = $script:RootCertificate
     $env:PGCONNECT_TIMEOUT = "10"
     foreach ($name in @("PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
     $result = Invoke-NativePostgres $Tool $Arguments
@@ -248,6 +290,7 @@ $dumpPath = Assert-ProtectedBackupPath $DumpFile
 $manifestPath = "$dumpPath.sha256"
 $script:DiagnosticLog = if ([string]::IsNullOrWhiteSpace($DiagnosticLog)) { "$dumpPath.diagnostic.log" } else { Resolve-OutsideRepository $DiagnosticLog }
 if (Test-Path -LiteralPath $script:DiagnosticLog -PathType Leaf) { throw "Diagnoseprotokoll existiert bereits; kein Ueberschreiben: $script:DiagnosticLog" }
+Assert-RootCertificate $RootCertificatePath
 
 if ($Action -eq "Dump") {
   if (Test-Path -LiteralPath $dumpPath) { throw "Die Zieldatei existiert bereits; kein Ueberschreiben." }

@@ -48,6 +48,12 @@ abgebrochen, wenn der BitLocker-Status nicht gelesen werden kann oder der
 Schutz nicht aktiv ist. Das SHA-256-Manifest ist fuer jede Verify-Pruefung
 zwingend.
 
+Wenn Windows/libpq den System-CA-Speicher nicht laden kann, kann mit
+`-RootCertificatePath` ein externes PEM-Bundle verwendet werden. Das Skript
+akzeptiert dabei nur ein Bundle mit dem offiziellen Let's-Encrypt-Root X1 oder
+X2 (SHA-256-Fingerprints im Skript), behaelt `verify-full` und die
+Hostnamenpruefung bei. Das Bundle bleibt ausserhalb des Repositorys.
+
 Vor dem Restore wird geprüft, dass die Zieldatenbank leer ist. Danach werden der
 Dump in einer Einzeltransaktion wiederhergestellt und 26 öffentliche Tabellen
 verifiziert. Das Skript verwendet weder `--clean` noch `DROP DATABASE`.
