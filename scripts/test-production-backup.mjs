@@ -8,6 +8,8 @@ test("production backup script enforces protected storage, TLS and restore compa
   assert.match(source, /OneDrive/);
   assert.match(source, /PGSSLMODE\s*=\s*"verify-full"/);
   assert.match(source, /PGSSLROOTCERT\s*=\s*"system"/);
+  assert.match(source, /\[string\]\$HostName/);
+  assert.match(source, /Read-DatabaseCredentials "Render-Quelle" \$Database \$HostName \$Port \$User/);
   assert.match(source, /function Assert-Manifest/);
   assert.match(source, /Assert-Manifest \$dumpPath/);
   assert.match(source, /--single-transaction/);

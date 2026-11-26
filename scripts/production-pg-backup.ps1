@@ -4,6 +4,10 @@ param(
   [string]$Action = "Dump",
   [Parameter(Mandatory = $true)]
   [string]$DumpFile,
+  [string]$HostName,
+  [int]$Port = 0,
+  [string]$Database,
+  [string]$User,
   [string]$TargetDatabase,
   [switch]$ConfirmIsolatedDatabase
 )
@@ -52,11 +56,11 @@ function Assert-ProtectedBackupPath([string]$Path) {
   return $full
 }
 
-function Read-DatabaseCredentials([string]$Label, [string]$DatabaseOverride = $null) {
-  $hostName = Read-Host "$Label Host"
-  $portText = Read-Host "$Label Port [5432]"
+function Read-DatabaseCredentials([string]$Label, [string]$DatabaseOverride = $null, [string]$HostOverride = $null, [int]$PortOverride = 0, [string]$UserOverride = $null) {
+  $hostName = if ([string]::IsNullOrWhiteSpace($HostOverride)) { Read-Host "$Label Host" } else { $HostOverride }
+  $portText = if ($PortOverride -gt 0) { [string]$PortOverride } else { Read-Host "$Label Port [5432]" }
   $database = if ([string]::IsNullOrWhiteSpace($DatabaseOverride)) { Read-Host "$Label Datenbankname" } else { $DatabaseOverride }
-  $user = Read-Host "$Label Datenbankbenutzer"
+  $user = if ([string]::IsNullOrWhiteSpace($UserOverride)) { Read-Host "$Label Datenbankbenutzer" } else { $UserOverride }
   $securePassword = Read-Host "$Label Datenbankpasswort" -AsSecureString
   $port = if ([string]::IsNullOrWhiteSpace($portText)) { 5432 } else { [int]$portText }
   if ([string]::IsNullOrWhiteSpace($hostName) -or [string]::IsNullOrWhiteSpace($database) -or [string]::IsNullOrWhiteSpace($user)) {
@@ -181,7 +185,7 @@ if ($Action -eq "Dump") {
   if (Test-Path -LiteralPath $dumpPath) { throw "Die Zieldatei existiert bereits; kein Ueberschreiben." }
   if (Test-Path -LiteralPath $manifestPath) { throw "Das SHA-256-Manifest existiert bereits; kein Ueberschreiben." }
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dumpPath) | Out-Null
-  $connection = Read-DatabaseCredentials "Render-Quelle"
+  $connection = Read-DatabaseCredentials "Render-Quelle" $Database $HostName $Port $User
   try {
     Assert-VerifiedTls $connection
     $args = @("--format=custom", "--compress=6", "--no-owner", "--no-acl", "--blobs") + (Get-ConnectionArguments $connection) + @("--file=$dumpPath")
