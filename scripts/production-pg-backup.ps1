@@ -11,6 +11,7 @@ param(
   [string]$TargetDatabase,
   [string]$DiagnosticLog,
   [string]$RootCertificatePath,
+  [switch]$NativePasswordPrompt,
   [switch]$ConfirmIsolatedDatabase
 )
 
@@ -21,6 +22,7 @@ $pgRestore = (Get-Command pg_restore -ErrorAction Stop).Source
 $psql = (Get-Command psql -ErrorAction Stop).Source
 $script:DiagnosticLog = $null
 $script:RootCertificate = "system"
+$script:NativePasswordPrompt = [bool]$NativePasswordPrompt
 
 $trustedRenderRootFingerprints = @(
   "96BCEC06264976F37460779ACF28C5A7CFE8A3C0AAE11A8FFCEE05C0BDDF08C6",
@@ -118,25 +120,30 @@ function Read-DatabaseCredentials([string]$Label, [string]$DatabaseOverride = $n
   $portText = if ($PortOverride -gt 0) { [string]$PortOverride } else { Read-Host "$Label Port [5432]" }
   $database = if ([string]::IsNullOrWhiteSpace($DatabaseOverride)) { Read-Host "$Label Datenbankname" } else { $DatabaseOverride }
   $user = if ([string]::IsNullOrWhiteSpace($UserOverride)) { Read-Host "$Label Datenbankbenutzer" } else { $UserOverride }
-  $securePassword = Read-Host "$Label Datenbankpasswort" -AsSecureString
+  $securePassword = if ($script:NativePasswordPrompt) { $null } else { Read-Host "$Label Datenbankpasswort" -AsSecureString }
   $port = if ([string]::IsNullOrWhiteSpace($portText)) { 5432 } else { [int]$portText }
   if ([string]::IsNullOrWhiteSpace($hostName) -or [string]::IsNullOrWhiteSpace($database) -or [string]::IsNullOrWhiteSpace($user)) {
     throw "Host, Datenbankname und Benutzer sind erforderlich."
   }
-  $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
-  try { $password = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
-  finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
-  if ([string]::IsNullOrEmpty($password)) { throw "Ein nicht-leeres Datenbankpasswort ist erforderlich." }
+  if ($script:NativePasswordPrompt) {
+    $password = $null
+  } else {
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+    try { $password = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
+    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+    if ([string]::IsNullOrEmpty($password)) { throw "Ein nicht-leeres Datenbankpasswort ist erforderlich." }
+  }
   return [pscustomobject]@{ Host = $hostName; Port = $port; Database = $database; User = $user; Password = $password }
 }
 
 function Get-ConnectionArguments($Connection) {
+  $passwordMode = if ($script:NativePasswordPrompt) { "--password" } else { "--no-password" }
   return @(
     "--host=$($Connection.Host)",
     "--port=$($Connection.Port)",
     "--username=$($Connection.User)",
     "--dbname=$($Connection.Database)",
-    "--no-password"
+    $passwordMode
   )
 }
 
@@ -181,7 +188,7 @@ function Invoke-Postgres([string]$Tool, [string[]]$Arguments, [string]$Password)
   $old = @{}
   foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, "Process") }
   try {
-    $env:PGPASSWORD = $Password
+    if ($script:NativePasswordPrompt) { Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue } else { $env:PGPASSWORD = $Password }
     $env:PGSSLMODE = "verify-full"
     $env:PGSSLROOTCERT = $script:RootCertificate
     $env:PGCONNECT_TIMEOUT = "10"
@@ -205,7 +212,7 @@ function Invoke-PostgresOutput([string]$Tool, [string[]]$Arguments, [string]$Pas
   $old = @{}
   foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, "Process") }
   try {
-    $env:PGPASSWORD = $Password
+    if ($script:NativePasswordPrompt) { Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue } else { $env:PGPASSWORD = $Password }
     $env:PGSSLMODE = "verify-full"
     $env:PGSSLROOTCERT = $script:RootCertificate
     $env:PGCONNECT_TIMEOUT = "10"

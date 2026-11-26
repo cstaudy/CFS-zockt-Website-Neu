@@ -19,6 +19,11 @@ test("production backup script enforces protected storage, TLS and restore compa
   assert.match(source, /\[string\]\$HostName/);
   assert.match(source, /Read-DatabaseCredentials "Render-Quelle" \$Database \$HostName \$Port \$User/);
   assert.match(source, /\[string\]\$RootCertificatePath/);
+  assert.match(source, /\[switch\]\$NativePasswordPrompt/);
+  assert.match(source, /\$script:NativePasswordPrompt/);
+  assert.match(source, /"--password"/);
+  assert.match(source, /Remove-Item Env:PGPASSWORD/);
+  assert.match(source, /if \(\$script:NativePasswordPrompt\) \{\s*\$password = \$null/);
   assert.match(source, /certutil\.exe -dump/);
   assert.match(source, /function Assert-Manifest/);
   assert.match(source, /Assert-Manifest \$dumpPath/);
