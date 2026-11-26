@@ -162,7 +162,7 @@
     fetch('/api/account/me', {credentials: 'same-origin', cache: 'no-store', headers: {Accept: 'application/json'}})
       .then(response => response.ok ? response.json() : null)
       .then(data => {
-        if (!data || data.admin !== true) return;
+        if (!data || data.account?.admin !== true) return;
         entries.push(['/pages/admin.html', 'Admin Control', 'Einnahmen, Shop-Entwürfe und Freigaben', 'Weitere']);
         if (dialog.open) render(search.value);
       }).catch(() => {});

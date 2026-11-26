@@ -5,16 +5,16 @@ import { sendMail } from "./mail.js";
 const hash = value => createHash("sha256").update(value).digest("hex");
 const emailOf = value => String(value || "").trim().toLowerCase();
 
-export async function requestEmailVerification(email) {
-  const pool = getPool();
+export async function requestEmailVerification(email, poolOverride = null) {
+  const pool = poolOverride || getPool();
   if (!pool) return { error: "DATABASE_UNAVAILABLE", status: 503 };
-  const row = (await pool.query("select id,email,email_verified_at from accounts where email=$1", [emailOf(email)])).rows[0];
-  if (!row) return { ok: true, message: "Wenn die Adresse zu einem Konto gehoert, wurde ein Bestaetigungslink angefordert." };
-  if (row.email_verified_at) return { ok: true, message: "Diese E-Mail-Adresse ist bereits bestaetigt." };
-  if ((await pool.query("select 1 from email_verification_tokens where account_id=$1 and created_at>now()-interval '30 seconds' and used_at is null limit 1", [row.id])).rows[0]) return { error: "VERIFICATION_RATE_LIMITED", status: 429 };
   const token = randomBytes(32).toString("base64url"), client = await pool.connect();
   try {
     await client.query("BEGIN");
+    const row = (await client.query("select id,email,email_verified_at from accounts where email=$1 for update", [emailOf(email)])).rows[0];
+    if (!row) { await client.query("COMMIT"); return { ok: true, message: "Wenn die Adresse zu einem Konto gehoert, wurde ein Bestaetigungslink angefordert." }; }
+    if (row.email_verified_at) { await client.query("COMMIT"); return { ok: true, message: "Diese E-Mail-Adresse ist bereits bestaetigt." }; }
+    if ((await client.query("select 1 from email_verification_tokens where account_id=$1 and created_at>now()-interval '30 seconds' and used_at is null limit 1", [row.id])).rows[0]) { await client.query("ROLLBACK"); return { error: "VERIFICATION_RATE_LIMITED", status: 429 }; }
     await client.query("delete from email_verification_tokens where account_id=$1 or expires_at<=now()", [row.id]);
     await client.query("insert into email_verification_tokens(account_id,token_hash,expires_at) values($1,$2,now()+interval '30 minutes')", [row.id, hash(token)]);
     const sent = await sendMail({ to: row.email, token, type: "verification" });
@@ -25,8 +25,8 @@ export async function requestEmailVerification(email) {
   finally { client.release(); }
 }
 
-export async function verifyEmail(token) {
-  const pool = getPool();
+export async function verifyEmail(token, poolOverride = null) {
+  const pool = poolOverride || getPool();
   if (!pool) return { error: "DATABASE_UNAVAILABLE", status: 503 };
   const client = await pool.connect();
   try {

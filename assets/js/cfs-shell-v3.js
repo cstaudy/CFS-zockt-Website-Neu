@@ -152,7 +152,7 @@
       const response = await fetch("/api/account/me", { credentials:"same-origin", headers:{"Accept":"application/json"} });
       if (!response.ok) return;
       const data = await response.json();
-      if (!data?.admin) return;
+      if (data?.account?.admin !== true) return;
 
       const moreMenu = document.querySelector(".creator-nav-more-menu");
       if (moreMenu) {

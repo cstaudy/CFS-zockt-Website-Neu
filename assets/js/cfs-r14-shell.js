@@ -132,6 +132,6 @@
     if (!data?.authenticated) return;
     dashboard.hidden = false;
     login.href = '/pages/account.html';login.textContent = 'Konto';
-    if (data.admin === true) admin.hidden = false;
+    if (data.account?.admin === true) admin.hidden = false;
   }).catch(() => {});
 })();

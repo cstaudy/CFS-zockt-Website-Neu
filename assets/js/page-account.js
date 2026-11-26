@@ -226,13 +226,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         emailVerificationText.textContent = "Die technische Verifizierung ist vorbereitet, der produktive Mail-Relay ist auf diesem Server aber noch nicht aktiviert.";
         emailVerificationStatus.textContent = "MAIL-RELAY NICHT AKTIV";
         emailVerificationStatus.className = "status-pill planned";
-        requestVerificationBtn.hidden = true;
+        requestVerificationBtn.hidden = false;
       }
     } catch {
       emailVerificationText.textContent = "Status des Mail-Relays konnte nicht geladen werden.";
       emailVerificationStatus.textContent = "STATUS UNBEKANNT";
       emailVerificationStatus.className = "status-pill planned";
-      requestVerificationBtn.hidden = true;
+      requestVerificationBtn.hidden = false;
     }
   }
 
@@ -452,7 +452,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         showNotice(emailVerificationMsg, result?.message || "Bestätigungslink wurde angefordert.");
       } catch (error) {
-        showNotice(emailVerificationMsg, error?.message || "Bestätigungslink konnte nicht angefordert werden.", true);
+        const detail = error?.data?.error === "VERIFICATION_RATE_LIMITED"
+          ? "Bitte warte kurz, bevor du einen weiteren Bestätigungslink anforderst."
+          : error?.data?.error === "MAIL_DELIVERY_FAILED"
+            ? "Der Mailanbieter hat die Zustellung abgelehnt. Es wurde kein neuer gültiger Link gespeichert."
+            : error?.message || "Bestätigungslink konnte nicht angefordert werden.";
+        showNotice(emailVerificationMsg, detail, true);
       } finally {
         requestVerificationBtn.disabled = false;
       }
