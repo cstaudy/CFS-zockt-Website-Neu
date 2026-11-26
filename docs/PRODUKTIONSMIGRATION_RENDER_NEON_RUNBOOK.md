@@ -29,6 +29,32 @@ verwendet TLS `verify-full` mit dem libpq-System-CA-Speicher (`sslrootcert=syste
 nur ein SHA-256-Manifest neben die Dump-Datei. Vorhandene Dateien werden nicht
 überschrieben.
 
+### Alternative: Neon-Produktionskopie
+
+Wenn die Render-Quelle nicht erreichbar oder bereits eingefroren ist, darf
+ausschliesslich der direkte Neon-Endpunkt des Branches `production` verwendet
+werden. Pooler-Endpunkte (`-pooler`) sind fuer `pg_dump` nicht zulaessig. Das
+Skript setzt fuer Neon zusaetzlich `channel_binding=require`, laedt bei
+`-FetchOfficialRoots` das offizielle Let's-Encrypt-X1/X2-Bundle per `-OutFile`
+und validiert die SHA-256-Fingerprints vor der Verbindung:
+
+```powershell
+powershell.exe -NoProfile -File .\scripts\production-pg-backup.ps1 `
+  -Action Dump `
+  -Provider Neon `
+  -DumpFile 'C:\Users\cstau\CFS-Backup\neon-production-YYYYMMDD-HHmmss.dump' `
+  -HostName 'ep-plain-shadow-badv1kt1.c-8.eu-central-1.aws.neon.tech' `
+  -Port 5432 `
+  -Database 'cfs_zockt_render_import' `
+  -User 'cfs_zockt_render_import_owner' `
+  -FetchOfficialRoots -NativePasswordPrompt -KeepWindowOpen
+```
+
+Die lokale native Passwortabfrage wird nicht in Git, Dateien oder Logs
+gespeichert. Bei `Dump` wird der separate `psql`-TLS-Probe im nativen Prompt-
+Modus uebersprungen; `pg_dump` selbst erzwingt `verify-full`, damit das
+Passwort nur einmal abgefragt wird.
+
 ## 2. Restore-Prüfung vorbereiten
 
 Eine leere isolierte Testdatenbank bereitstellen. Das Anlegen dieser Datenbank

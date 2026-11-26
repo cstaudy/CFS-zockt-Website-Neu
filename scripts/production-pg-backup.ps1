@@ -8,11 +8,14 @@ param(
   [int]$Port = 0,
   [string]$Database,
   [string]$User,
+  [ValidateSet("Render", "Neon")]
+  [string]$Provider = "Render",
   [string]$TargetDatabase,
   [string]$DiagnosticLog,
   [string]$RootCertificatePath,
   [switch]$NativePasswordPrompt,
-  [switch]$FetchRenderRoots,
+  [Alias("FetchRenderRoots")]
+  [switch]$FetchOfficialRoots,
   [switch]$KeepWindowOpen,
   [switch]$ConfirmIsolatedDatabase
 )
@@ -25,6 +28,8 @@ $script:psql = $null
 $script:DiagnosticLog = $null
 $script:RootCertificate = "system"
 $script:NativePasswordPrompt = [bool]$NativePasswordPrompt
+$script:Provider = $Provider
+$script:ChannelBinding = if ($Provider -eq "Neon") { "require" } else { $null }
 
 $trustedRenderRootFingerprints = @(
   "96BCEC06264976F37460779ACF28C5A7CFE8A3C0AAE11A8FFCEE05C0BDDF08C6",
@@ -69,10 +74,10 @@ function Assert-RootCertificate([string]$Path) {
     throw "CA-Zertifikatsdatei enthaelt kein verifiziertes Let's-Encrypt-Root X1/X2."
   }
   $script:RootCertificate = $full
-  Write-Diagnostic "CA policy: verified Render roots=$($trusted -join ','); path=$full"
+  Write-Diagnostic "CA policy: verified $script:Provider roots=$($trusted -join ','); path=$full"
 }
 
-function Get-OfficialRenderRootBundle([string]$OutputPath) {
+function Get-OfficialPostgresRootBundle([string]$OutputPath) {
   if ([string]::IsNullOrWhiteSpace($OutputPath)) { throw "Ein Zielpfad fuer das Render-CA-Bundle ist erforderlich." }
   $full = Assert-ProtectedBackupPath $OutputPath
   $parent = Split-Path -Parent $full
@@ -107,7 +112,7 @@ function Get-OfficialRenderRootBundle([string]$OutputPath) {
     if (Test-Path -LiteralPath $full) { throw "CA-Zertifikatsdatei wurde waehrend des Downloads angelegt; kein Ueberschreiben: $full" }
     Move-Item -LiteralPath $bundlePartial -Destination $full -ErrorAction Stop
     Assert-RootCertificate $full
-    Write-Diagnostic "CA policy: official Render root bundle downloaded and verified; path=$full"
+    Write-Diagnostic "CA policy: official $script:Provider root bundle downloaded and verified; path=$full"
     return $full
   } catch {
     throw "Offizielles Render-CA-Bundle konnte nicht sicher erstellt werden: $($_.Exception.Message)"
@@ -184,6 +189,12 @@ function Read-DatabaseCredentials([string]$Label, [string]$DatabaseOverride = $n
   return [pscustomobject]@{ Host = $hostName; Port = $port; Database = $database; User = $user; Password = $password }
 }
 
+function Assert-ProviderConnection($Connection) {
+  if ($script:Provider -ne "Neon") { return }
+  if ($Connection.Host -notmatch '(?i)\.neon\.tech$') { throw "Neon-Backups muessen den direkten *.neon.tech-Endpunkt verwenden." }
+  if ($Connection.Host -match '(?i)-pooler\.') { throw "Neon-Backups duerfen keinen Pooler-Endpunkt verwenden." }
+}
+
 function Get-ConnectionArguments($Connection) {
   $passwordMode = if ($script:NativePasswordPrompt) { "--password" } else { "--no-password" }
   return @(
@@ -232,13 +243,14 @@ function Assert-NetworkReachability($Connection) {
 }
 
 function Invoke-Postgres([string]$Tool, [string[]]$Arguments, [string]$Password) {
-  $names = @("PGPASSWORD", "PGSSLMODE", "PGSSLROOTCERT", "PGCONNECT_TIMEOUT", "PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")
+  $names = @("PGPASSWORD", "PGSSLMODE", "PGSSLROOTCERT", "PGCHANNELBINDING", "PGCONNECT_TIMEOUT", "PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")
   $old = @{}
   foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, "Process") }
   try {
     if ($script:NativePasswordPrompt) { Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue } else { $env:PGPASSWORD = $Password }
     $env:PGSSLMODE = "verify-full"
     $env:PGSSLROOTCERT = $script:RootCertificate
+    if ([string]::IsNullOrWhiteSpace($script:ChannelBinding)) { Remove-Item Env:PGCHANNELBINDING -ErrorAction SilentlyContinue } else { $env:PGCHANNELBINDING = $script:ChannelBinding }
     $env:PGCONNECT_TIMEOUT = "10"
     foreach ($name in @("PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
     $result = Invoke-NativePostgres $Tool $Arguments
@@ -256,13 +268,14 @@ function Invoke-Postgres([string]$Tool, [string[]]$Arguments, [string]$Password)
 }
 
 function Invoke-PostgresOutput([string]$Tool, [string[]]$Arguments, [string]$Password) {
-  $names = @("PGPASSWORD", "PGSSLMODE", "PGSSLROOTCERT", "PGCONNECT_TIMEOUT", "PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")
+  $names = @("PGPASSWORD", "PGSSLMODE", "PGSSLROOTCERT", "PGCHANNELBINDING", "PGCONNECT_TIMEOUT", "PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")
   $old = @{}
   foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, "Process") }
   try {
     if ($script:NativePasswordPrompt) { Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue } else { $env:PGPASSWORD = $Password }
     $env:PGSSLMODE = "verify-full"
     $env:PGSSLROOTCERT = $script:RootCertificate
+    if ([string]::IsNullOrWhiteSpace($script:ChannelBinding)) { Remove-Item Env:PGCHANNELBINDING -ErrorAction SilentlyContinue } else { $env:PGCHANNELBINDING = $script:ChannelBinding }
     $env:PGCONNECT_TIMEOUT = "10"
     foreach ($name in @("PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
     $result = Invoke-NativePostgres $Tool $Arguments
@@ -353,9 +366,10 @@ function Invoke-ProductionBackup {
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $script:DiagnosticLog) | Out-Null
   if (Test-Path -LiteralPath $script:DiagnosticLog -PathType Leaf) { throw "Diagnoseprotokoll existiert bereits; kein Ueberschreiben: $script:DiagnosticLog" }
 
-  if ($FetchRenderRoots) {
-    $rootPath = if ([string]::IsNullOrWhiteSpace($RootCertificatePath)) { Join-Path (Split-Path -Parent $dumpPath) "render-letsencrypt-roots.pem" } else { $RootCertificatePath }
-    [void](Get-OfficialRenderRootBundle $rootPath)
+  if ($FetchOfficialRoots) {
+    $bundleName = if ($Provider -eq "Neon") { "neon-letsencrypt-roots.pem" } else { "render-letsencrypt-roots.pem" }
+    $rootPath = if ([string]::IsNullOrWhiteSpace($RootCertificatePath)) { Join-Path (Split-Path -Parent $dumpPath) $bundleName } else { $RootCertificatePath }
+    [void](Get-OfficialPostgresRootBundle $rootPath)
   } else {
     Assert-RootCertificate $RootCertificatePath
   }
@@ -363,9 +377,15 @@ function Invoke-ProductionBackup {
   if ($Action -eq "Dump") {
     if (Test-Path -LiteralPath $dumpPath) { throw "Die Zieldatei existiert bereits; kein Ueberschreiben." }
     if (Test-Path -LiteralPath $manifestPath) { throw "Das SHA-256-Manifest existiert bereits; kein Ueberschreiben." }
-    $connection = Read-DatabaseCredentials "Render-Quelle" $Database $HostName $Port $User
+    $sourceLabel = if ($Provider -eq "Neon") { "Neon-Produktionskopie" } else { "Render-Quelle" }
+    $connection = Read-DatabaseCredentials $sourceLabel $Database $HostName $Port $User
     try {
-      Assert-VerifiedTls $connection
+      Assert-ProviderConnection $connection
+      if ($script:NativePasswordPrompt) {
+        Write-Diagnostic "Native password prompt: pg_dump performs the verify-full TLS connection; separate psql probe skipped to avoid a second prompt."
+      } else {
+        Assert-VerifiedTls $connection
+      }
       $args = @("--format=custom", "--compress=6", "--no-owner", "--no-acl", "--blobs") + (Get-ConnectionArguments $connection) + @("--file=$dumpPath")
       Invoke-Postgres $script:pgDump $args $connection.Password
       if (-not (Test-Path -LiteralPath $dumpPath -PathType Leaf) -or (Get-Item -LiteralPath $dumpPath).Length -le 0) { throw "pg_dump hat keine gueltige Dump-Datei erzeugt." }
@@ -383,7 +403,9 @@ function Invoke-ProductionBackup {
   $sourceConnection = $null
   $targetConnection = $null
   try {
-    $sourceConnection = Read-DatabaseCredentials "Render-Quelle"
+    $sourceLabel = if ($Provider -eq "Neon") { "Neon-Produktionskopie" } else { "Render-Quelle" }
+    $sourceConnection = Read-DatabaseCredentials $sourceLabel
+    Assert-ProviderConnection $sourceConnection
     $targetConnection = Read-DatabaseCredentials "Isoliertes Restore-Ziel" $TargetDatabase
     Assert-VerifiedTls $targetConnection
     $targetCommon = Get-ConnectionArguments $targetConnection
