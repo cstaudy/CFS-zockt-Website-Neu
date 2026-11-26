@@ -9,6 +9,7 @@ param(
   [string]$Database,
   [string]$User,
   [string]$TargetDatabase,
+  [string]$DiagnosticLog,
   [switch]$ConfirmIsolatedDatabase
 )
 
@@ -17,6 +18,27 @@ $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $pgDump = (Get-Command pg_dump -ErrorAction Stop).Source
 $pgRestore = (Get-Command pg_restore -ErrorAction Stop).Source
 $psql = (Get-Command psql -ErrorAction Stop).Source
+$script:DiagnosticLog = $null
+
+function ConvertTo-SafeDiagnostic([string]$Text) {
+  if ([string]::IsNullOrWhiteSpace($Text)) { return "" }
+  $safe = $Text -replace '(?i)(password|passwd|pwd|secret|token|pgpassword)(\s*[:=]\s*)\S+', '$1$2[REDACTED]'
+  return $safe.Trim()
+}
+
+function Write-Diagnostic([string]$Message) {
+  if ([string]::IsNullOrWhiteSpace($script:DiagnosticLog)) { return }
+  $safe = ConvertTo-SafeDiagnostic $Message
+  if ([string]::IsNullOrWhiteSpace($safe)) { return }
+  Add-Content -LiteralPath $script:DiagnosticLog -Value ("{0:o} {1}" -f [DateTime]::UtcNow, $safe) -Encoding utf8
+}
+
+function Get-InvocationDiagnostic([string]$Tool, [string[]]$Arguments, [string[]]$Output, [int]$ExitCode) {
+  $toolName = [IO.Path]::GetFileName($Tool)
+  $lines = @($Output | ForEach-Object { $_.ToString() } | Where-Object { $_ })
+  $details = if ($lines.Count) { $lines -join [Environment]::NewLine } else { "Keine native Fehlermeldung ausgegeben." }
+  return ("tool={0}; exit={1}; args={2}`n{3}" -f $toolName, $ExitCode, (($Arguments -join " ") -replace '(?i)(password|passwd|pwd|secret|token|pgpassword)(\s*[:=]\s*)\S+', '$1$2[REDACTED]'), (ConvertTo-SafeDiagnostic $details))
+}
 
 function Resolve-OutsideRepository([string]$Path) {
   $full = [IO.Path]::GetFullPath($Path)
@@ -83,44 +105,88 @@ function Get-ConnectionArguments($Connection) {
   )
 }
 
+function Get-PsqlConnectionArguments($Connection) {
+  return (Get-ConnectionArguments $Connection) + @("--no-psqlrc")
+}
+
+function Invoke-NativePostgres([string]$Tool, [string[]]$Arguments) {
+  $output = @(& $Tool @Arguments 2>&1 | ForEach-Object { $_.ToString() })
+  $exitCode = $LASTEXITCODE
+  return [pscustomobject]@{ Output = $output; ExitCode = $exitCode }
+}
+
+function Assert-NetworkReachability($Connection) {
+  try {
+    $addresses = @([Net.Dns]::GetHostAddresses($Connection.Host))
+    if ($addresses.Count -eq 0) { throw "DNS lieferte keine Adresse." }
+    Write-Diagnostic "DNS ok: host=$($Connection.Host); address_count=$($addresses.Count)"
+  } catch {
+    Write-Diagnostic "DNS fehlgeschlagen: host=$($Connection.Host); error=$($_.Exception.Message)"
+    throw "DNS-Aufloesung fuer $($Connection.Host) fehlgeschlagen: $($_.Exception.Message)"
+  }
+  try {
+    $tcp = Test-NetConnection -ComputerName $Connection.Host -Port $Connection.Port -InformationLevel Quiet -WarningAction SilentlyContinue
+    if (-not $tcp) { throw "TCP-Verbindung wurde abgelehnt oder lief in den Timeout." }
+    Write-Diagnostic "TCP ok: host=$($Connection.Host); port=$($Connection.Port)"
+  } catch {
+    Write-Diagnostic "TCP fehlgeschlagen: host=$($Connection.Host); port=$($Connection.Port); error=$($_.Exception.Message)"
+    throw "TCP-Verbindung zu $($Connection.Host):$($Connection.Port) fehlgeschlagen: $($_.Exception.Message)"
+  }
+}
+
 function Invoke-Postgres([string]$Tool, [string[]]$Arguments, [string]$Password) {
-  $oldPassword = $env:PGPASSWORD; $oldSslMode = $env:PGSSLMODE; $oldSslRoot = $env:PGSSLROOTCERT; $oldTimeout = $env:PGCONNECT_TIMEOUT
+  $names = @("PGPASSWORD", "PGSSLMODE", "PGSSLROOTCERT", "PGCONNECT_TIMEOUT", "PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")
+  $old = @{}
+  foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, "Process") }
   try {
     $env:PGPASSWORD = $Password
     $env:PGSSLMODE = "verify-full"
     $env:PGSSLROOTCERT = "system"
     $env:PGCONNECT_TIMEOUT = "10"
-    & $Tool @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "$([IO.Path]::GetFileName($Tool)) ist mit Exitcode $LASTEXITCODE fehlgeschlagen." }
+    foreach ($name in @("PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
+    $result = Invoke-NativePostgres $Tool $Arguments
+    if ($result.ExitCode -ne 0) {
+      $diagnostic = Get-InvocationDiagnostic $Tool $Arguments $result.Output $result.ExitCode
+      Write-Diagnostic $diagnostic
+      $safeOutput = ConvertTo-SafeDiagnostic (($result.Output | Out-String))
+      throw "$([IO.Path]::GetFileName($Tool)) ist mit Exitcode $($result.ExitCode) fehlgeschlagen.`n$safeOutput"
+    }
   } finally {
-    if ($null -eq $oldPassword) { Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue } else { $env:PGPASSWORD = $oldPassword }
-    if ($null -eq $oldSslMode) { Remove-Item Env:PGSSLMODE -ErrorAction SilentlyContinue } else { $env:PGSSLMODE = $oldSslMode }
-    if ($null -eq $oldSslRoot) { Remove-Item Env:PGSSLROOTCERT -ErrorAction SilentlyContinue } else { $env:PGSSLROOTCERT = $oldSslRoot }
-    if ($null -eq $oldTimeout) { Remove-Item Env:PGCONNECT_TIMEOUT -ErrorAction SilentlyContinue } else { $env:PGCONNECT_TIMEOUT = $oldTimeout }
+    foreach ($name in $names) {
+      if ($null -eq $old[$name]) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue } else { [Environment]::SetEnvironmentVariable($name, $old[$name], "Process") }
+    }
   }
 }
 
 function Invoke-PostgresOutput([string]$Tool, [string[]]$Arguments, [string]$Password) {
-  $oldPassword = $env:PGPASSWORD; $oldSslMode = $env:PGSSLMODE; $oldSslRoot = $env:PGSSLROOTCERT; $oldTimeout = $env:PGCONNECT_TIMEOUT
+  $names = @("PGPASSWORD", "PGSSLMODE", "PGSSLROOTCERT", "PGCONNECT_TIMEOUT", "PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")
+  $old = @{}
+  foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, "Process") }
   try {
     $env:PGPASSWORD = $Password
     $env:PGSSLMODE = "verify-full"
     $env:PGSSLROOTCERT = "system"
     $env:PGCONNECT_TIMEOUT = "10"
-    $output = & $Tool @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "$([IO.Path]::GetFileName($Tool)) ist mit Exitcode $LASTEXITCODE fehlgeschlagen." }
-    return ($output | Out-String).Trim()
+    foreach ($name in @("PGSERVICE", "PGSERVICEFILE", "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLCERT", "PGSSLKEY", "PGSSLCRL", "PGSSLCRLDIR")) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
+    $result = Invoke-NativePostgres $Tool $Arguments
+    if ($result.ExitCode -ne 0) {
+      $diagnostic = Get-InvocationDiagnostic $Tool $Arguments $result.Output $result.ExitCode
+      Write-Diagnostic $diagnostic
+      $safeOutput = ConvertTo-SafeDiagnostic (($result.Output | Out-String))
+      throw "$([IO.Path]::GetFileName($Tool)) ist mit Exitcode $($result.ExitCode) fehlgeschlagen.`n$safeOutput"
+    }
+    return (($result.Output | Out-String).Trim())
   } finally {
-    if ($null -eq $oldPassword) { Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue } else { $env:PGPASSWORD = $oldPassword }
-    if ($null -eq $oldSslMode) { Remove-Item Env:PGSSLMODE -ErrorAction SilentlyContinue } else { $env:PGSSLMODE = $oldSslMode }
-    if ($null -eq $oldSslRoot) { Remove-Item Env:PGSSLROOTCERT -ErrorAction SilentlyContinue } else { $env:PGSSLROOTCERT = $oldSslRoot }
-    if ($null -eq $oldTimeout) { Remove-Item Env:PGCONNECT_TIMEOUT -ErrorAction SilentlyContinue } else { $env:PGCONNECT_TIMEOUT = $oldTimeout }
+    foreach ($name in $names) {
+      if ($null -eq $old[$name]) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue } else { [Environment]::SetEnvironmentVariable($name, $old[$name], "Process") }
+    }
   }
 }
 
 function Assert-VerifiedTls($Connection) {
+  Assert-NetworkReachability $Connection
   $sql = "select case when ssl then 'verified_tls' else 'plaintext' end from pg_stat_ssl where pid=pg_backend_pid();"
-  $result = Invoke-PostgresOutput $psql ((Get-ConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
+  $result = Invoke-PostgresOutput $psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
   if ($result -ne "verified_tls") { throw "Die Datenbankverbindung ist nicht als TLS-Verbindung bestaetigt." }
 }
 
@@ -148,14 +214,14 @@ function Write-Manifest([string]$Path) {
 
 function Get-PublicTables($Connection) {
   $sql = "select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE' order by table_name;"
-  $raw = Invoke-PostgresOutput $psql ((Get-ConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
+  $raw = Invoke-PostgresOutput $psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
   return @($raw -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 }
 
 function Get-TableFingerprint($Connection, [string]$Table) {
   $quoted = '"' + $Table.Replace('"', '""') + '"'
   $sql = "select count(*)::text || '|' || encode(digest(coalesce(string_agg(to_jsonb(t)::text, E'\n' order by to_jsonb(t)::text), ''), 'sha256'), 'hex') from public.$quoted t;"
-  return Invoke-PostgresOutput $psql ((Get-ConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
+  return Invoke-PostgresOutput $psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
 }
 
 function Compare-RestoredDatabase($Source, $Target) {
@@ -180,6 +246,8 @@ function Compare-RestoredDatabase($Source, $Target) {
 
 $dumpPath = Assert-ProtectedBackupPath $DumpFile
 $manifestPath = "$dumpPath.sha256"
+$script:DiagnosticLog = if ([string]::IsNullOrWhiteSpace($DiagnosticLog)) { "$dumpPath.diagnostic.log" } else { Resolve-OutsideRepository $DiagnosticLog }
+if (Test-Path -LiteralPath $script:DiagnosticLog -PathType Leaf) { throw "Diagnoseprotokoll existiert bereits; kein Ueberschreiben: $script:DiagnosticLog" }
 
 if ($Action -eq "Dump") {
   if (Test-Path -LiteralPath $dumpPath) { throw "Die Zieldatei existiert bereits; kein Ueberschreiben." }
@@ -207,11 +275,12 @@ $targetConnection = Read-DatabaseCredentials "Isoliertes Restore-Ziel" $TargetDa
 try {
   Assert-VerifiedTls $targetConnection
   $targetCommon = Get-ConnectionArguments $targetConnection
+  $targetPsql = Get-PsqlConnectionArguments $targetConnection
   $countSql = "select count(*) from information_schema.tables where table_schema='public' and table_type='BASE TABLE';"
-  $before = Invoke-PostgresOutput $psql ($targetCommon + @("--tuples-only", "--no-align", "--command=$countSql")) $targetConnection.Password
+  $before = Invoke-PostgresOutput $psql ($targetPsql + @("--tuples-only", "--no-align", "--command=$countSql")) $targetConnection.Password
   if ($before -ne "0") { throw "Die isolierte Zieldatenbank ist nicht leer; Restore abgebrochen." }
   Invoke-Postgres $pgRestore (@("--exit-on-error", "--single-transaction", "--no-owner", "--no-acl") + $targetCommon + @($dumpPath)) $targetConnection.Password
-  $after = Invoke-PostgresOutput $psql ($targetCommon + @("--tuples-only", "--no-align", "--command=$countSql")) $targetConnection.Password
+  $after = Invoke-PostgresOutput $psql ($targetPsql + @("--tuples-only", "--no-align", "--command=$countSql")) $targetConnection.Password
   if ($after -ne "26") { throw "Restore-Pruefung fehlgeschlagen: erwartet 26 Tabellen, gefunden $after." }
   Compare-RestoredDatabase $sourceConnection $targetConnection
 } finally {
