@@ -4,6 +4,7 @@ import test from "node:test";
 
 test("production backup script enforces protected storage, TLS and restore comparison", async () => {
   const source = await readFile(new URL("./production-pg-backup.ps1", import.meta.url), "utf8");
+  const restoreValidator = await readFile(new URL("./validate-neon-restore.mjs", import.meta.url), "utf8");
   assert.match(source, /Get-BitLockerVolume/);
   assert.match(source, /OneDrive/);
   assert.match(source, /PGSSLMODE\s*=\s*"verify-full"/);
@@ -50,5 +51,22 @@ test("production backup script enforces protected storage, TLS and restore compa
   assert.match(source, /--single-transaction/);
   assert.match(source, /function Compare-RestoredDatabase/);
   assert.match(source, /function Get-TableFingerprint/);
+  assert.match(source, /function Get-SchemaObjectInventory/);
+  assert.match(source, /function Compare-SchemaObjects/);
+  assert.match(source, /pg_catalog\.pg_sequences/);
+  assert.match(source, /pg_catalog\.pg_indexes/);
+  assert.match(source, /pg_catalog\.pg_constraint/);
+  assert.match(source, /pg_get_constraintdef/);
+  assert.match(source, /\[string\]\$TargetHostName/);
+  assert.match(source, /\[int\]\$TargetPort/);
+  assert.match(source, /\[string\]\$TargetUser/);
   assert.match(source, /digest\([^\n]+sha256/);
+  assert.match(restoreValidator, /PGSSLMODE = "verify-full"/);
+  assert.match(restoreValidator, /PGCHANNELBINDING = "require"/);
+  assert.match(restoreValidator, /--single-transaction/);
+  assert.match(restoreValidator, /pg_catalog\.pg_sequences/);
+  assert.match(restoreValidator, /pg_catalog\.pg_indexes/);
+  assert.match(restoreValidator, /pg_catalog\.pg_constraint/);
+  assert.doesNotMatch(restoreValidator, /--clean/);
+  assert.doesNotMatch(restoreValidator, /DROP DATABASE/);
 });

@@ -11,6 +11,9 @@ param(
   [ValidateSet("Render", "Neon")]
   [string]$Provider = "Render",
   [string]$TargetDatabase,
+  [string]$TargetHostName,
+  [int]$TargetPort = 0,
+  [string]$TargetUser,
   [string]$DiagnosticLog,
   [string]$RootCertificatePath,
   [switch]$NativePasswordPrompt,
@@ -334,6 +337,33 @@ function Get-TableFingerprint($Connection, [string]$Table) {
   return Invoke-PostgresOutput $script:psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
 }
 
+function Get-SchemaObjectInventory($Connection) {
+  $queries = @(
+    "select concat_ws('|', 'sequence', schemaname || '.' || sequencename, coalesce(sequenceowner, '<null>'), coalesce(data_type::text, '<null>'), coalesce(start_value::text, '<null>'), coalesce(min_value::text, '<null>'), coalesce(max_value::text, '<null>'), coalesce(increment_by::text, '<null>'), coalesce(cycle::text, '<null>'), coalesce(cache_size::text, '<null>'), coalesce(last_value::text, '<null>')) from pg_catalog.pg_sequences where schemaname='public' order by schemaname, sequencename;",
+    "select concat_ws('|', 'index', schemaname || '.' || tablename || '.' || indexname, indexdef) from pg_catalog.pg_indexes where schemaname='public' order by schemaname, tablename, indexname;",
+    "select concat_ws('|', 'constraint', n.nspname || '.' || r.relname || '.' || c.conname, c.contype::text, pg_get_constraintdef(c.oid, true), c.condeferrable::text, c.condeferred::text, c.conenforced::text, c.convalidated::text, c.connoinherit::text) from pg_catalog.pg_constraint c join pg_catalog.pg_class r on r.oid=c.conrelid join pg_catalog.pg_namespace n on n.oid=c.connamespace where n.nspname='public' order by n.nspname, r.relname, c.conname;"
+  )
+  $items = @()
+  foreach ($sql in $queries) {
+    $raw = Invoke-PostgresOutput $script:psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
+    $items += @($raw -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+  }
+  return @($items | Sort-Object)
+}
+
+function Compare-SchemaObjects($Source, $Target) {
+  $sourceObjects = @(Get-SchemaObjectInventory $Source)
+  $targetObjects = @(Get-SchemaObjectInventory $Target)
+  $objectDiff = Compare-Object -ReferenceObject $sourceObjects -DifferenceObject $targetObjects
+  if ($null -ne $objectDiff) {
+    throw "Schemaobjektvergleich fehlgeschlagen: $($objectDiff | Out-String)"
+  }
+  $groups = @($sourceObjects | Group-Object { ($_ -split '\|', 2)[0] } | Sort-Object Name)
+  foreach ($group in $groups) {
+    Write-Output "Schemaobjektvergleich bestanden: $($group.Name)=$($group.Count)"
+  }
+}
+
 function Compare-RestoredDatabase($Source, $Target) {
   Assert-VerifiedTls $Source
   Assert-VerifiedTls $Target
@@ -404,9 +434,10 @@ function Invoke-ProductionBackup {
   $targetConnection = $null
   try {
     $sourceLabel = if ($Provider -eq "Neon") { "Neon-Produktionskopie" } else { "Render-Quelle" }
-    $sourceConnection = Read-DatabaseCredentials $sourceLabel
+    $sourceConnection = Read-DatabaseCredentials $sourceLabel $Database $HostName $Port $User
     Assert-ProviderConnection $sourceConnection
-    $targetConnection = Read-DatabaseCredentials "Isoliertes Restore-Ziel" $TargetDatabase
+    $targetConnection = Read-DatabaseCredentials "Isoliertes Restore-Ziel" $TargetDatabase $TargetHostName $TargetPort $TargetUser
+    Assert-ProviderConnection $targetConnection
     Assert-VerifiedTls $targetConnection
     $targetCommon = Get-ConnectionArguments $targetConnection
     $targetPsql = Get-PsqlConnectionArguments $targetConnection
@@ -417,6 +448,7 @@ function Invoke-ProductionBackup {
     $after = Invoke-PostgresOutput $script:psql ($targetPsql + @("--tuples-only", "--no-align", "--command=$countSql")) $targetConnection.Password
     if ($after -ne "26") { throw "Restore-Pruefung fehlgeschlagen: erwartet 26 Tabellen, gefunden $after." }
     Compare-RestoredDatabase $sourceConnection $targetConnection
+    Compare-SchemaObjects $sourceConnection $targetConnection
   } finally {
     if ($null -ne $sourceConnection) { $sourceConnection.Password = $null }
     if ($null -ne $targetConnection) { $targetConnection.Password = $null }

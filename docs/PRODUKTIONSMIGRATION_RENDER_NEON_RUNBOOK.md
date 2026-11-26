@@ -88,6 +88,30 @@ Fuer die vollstaendige Restore-Pruefung fragt das Skript danach die Render-
 Quelle read-only ab und vergleicht Tabelleninventar, Zeilenanzahl und einen
 deterministischen Inhaltsfingerabdruck jeder der 26 Tabellen.
 
+Fuer die aktuelle Neon-Sicherung kann der ergaenzende Node-Validator mit den
+beiden direkten Neon-Endpunkten ausgefuehrt werden. Er verwendet die
+installierten `pg_restore`-/`psql`-Werkzeuge, `verify-full`, das gepruefte
+Let's-Encrypt-Bundle und `channel_binding=require`. Die beiden Passwoerter
+werden lokal unsichtbar abgefragt und weder als Argument noch als Datei oder
+Protokollwert verarbeitet:
+
+```powershell
+node .\scripts\validate-neon-restore.mjs `
+  'C:\Users\cstau\CFS-Backup\neon-production-20261126-203428.dump' `
+  'ep-plain-shadow-badv1kt1.c-8.eu-central-1.aws.neon.tech' `
+  'cfs_zockt_render_import' `
+  'cfs_zockt_render_import_owner' `
+  'ep-withered-glitter-barlhdl3.c-8.eu-central-1.aws.neon.tech' `
+  'cfs_zockt_backup_restore_20261126' `
+  'cfs_zockt_render_import_owner' `
+  'C:\Users\cstau\CFS-Backup\neon-letsencrypt-roots.pem'
+```
+
+Der Validator bricht bei einem nicht leeren Ziel ab, stellt mit
+`--single-transaction` wieder her und vergleicht danach alle 26 Tabellen,
+Datenfingerprints, Sequenzen, Indizes und Constraints. Er verwendet weder
+`--clean` noch `DROP DATABASE`.
+
 ## 3. Kontrollierter Schreibstopp
 
 Die Produktions-Branch enthält dafür den fail-closed Schalter
@@ -152,3 +176,15 @@ Nachweis kein Umschalten.
   verweigert; im Backup-Ordner liegt kein PostgreSQL-Dump und kein Manifest.
 - Produktionsumschaltung: BLOCKED bis Backup, finalem Abgleich und Rollback-
   Freigabe.
+
+### Aktualisierter Status 2026-11-26
+
+Die folgenden Ergebnisse ueberholen die historischen Vorbereitungsnotizen:
+
+- Unabhaengige Neon-Sicherung: PASS; Dump, Manifest, SHA-256 und
+  `pg_restore --list` wurden lokal geprueft.
+- Isolierte Restore-Pruefung: BLOCKED bis zur interaktiven lokalen Eingabe der
+  beiden Neon-Passwoerter. Die Ziel-Datenbank ist weiterhin leer und wurde
+  nicht ueberschrieben.
+- Produktionsumschaltung: BLOCKED; Schreibstopp, finaler Abgleich und
+  Rollback bleiben nur vorbereitet.
