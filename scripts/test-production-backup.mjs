@@ -24,6 +24,18 @@ test("production backup script enforces protected storage, TLS and restore compa
   assert.match(source, /"--password"/);
   assert.match(source, /Remove-Item Env:PGPASSWORD/);
   assert.match(source, /if \(\$script:NativePasswordPrompt\) \{\s*\$password = \$null/);
+  assert.match(source, /\[switch\]\$FetchRenderRoots/);
+  assert.match(source, /\[switch\]\$KeepWindowOpen/);
+  assert.match(source, /function Get-OfficialRenderRootBundle/);
+  assert.match(source, /Invoke-WebRequest[\s\S]+-OutFile/);
+  assert.match(source, /\.partial\.\*/);
+  assert.match(source, /Move-Item -LiteralPath \$bundlePartial/);
+  assert.match(source, /Get-Content -LiteralPath \$x1Partial -Raw -Encoding ASCII/);
+  assert.match(source, /Get-Content -LiteralPath \$x2Partial -Raw -Encoding ASCII/);
+  assert.match(source, /Write-Host "Backup fehlgeschlagen:"/);
+  assert.match(source, /try \{ Write-Diagnostic \$safeFailure \} catch/);
+  assert.match(source, /if \(\$KeepWindowOpen\) \{ \[void\]\(Read-Host/);
+  assert.doesNotMatch(source, /Write-Error/);
   assert.match(source, /certutil\.exe -dump/);
   assert.match(source, /function Assert-Manifest/);
   assert.match(source, /Assert-Manifest \$dumpPath/);

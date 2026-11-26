@@ -12,14 +12,16 @@ param(
   [string]$DiagnosticLog,
   [string]$RootCertificatePath,
   [switch]$NativePasswordPrompt,
+  [switch]$FetchRenderRoots,
+  [switch]$KeepWindowOpen,
   [switch]$ConfirmIsolatedDatabase
 )
 
 $ErrorActionPreference = "Stop"
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
-$pgDump = (Get-Command pg_dump -ErrorAction Stop).Source
-$pgRestore = (Get-Command pg_restore -ErrorAction Stop).Source
-$psql = (Get-Command psql -ErrorAction Stop).Source
+$script:pgDump = $null
+$script:pgRestore = $null
+$script:psql = $null
 $script:DiagnosticLog = $null
 $script:RootCertificate = "system"
 $script:NativePasswordPrompt = [bool]$NativePasswordPrompt
@@ -50,8 +52,8 @@ function Assert-RootCertificate([string]$Path) {
   }
   $full = Resolve-OutsideRepository $Path
   if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { throw "CA-Zertifikatsdatei nicht gefunden: $full" }
-  $content = Get-Content -LiteralPath $full -Raw
-  if ($content -notmatch '-----BEGIN CERTIFICATE-----' -or $content -notmatch '-----END CERTIFICATE-----') {
+  $content = [string](Get-Content -LiteralPath $full -Raw -Encoding ASCII)
+  if ([string]::IsNullOrWhiteSpace($content) -or $content -notmatch '-----BEGIN CERTIFICATE-----' -or $content -notmatch '-----END CERTIFICATE-----') {
     throw "CA-Zertifikatsdatei ist kein PEM-Zertifikat oder -Bundle: $full"
   }
   $certutilOutput = @(& certutil.exe -dump $full 2>&1 | ForEach-Object { $_.ToString() })
@@ -68,6 +70,52 @@ function Assert-RootCertificate([string]$Path) {
   }
   $script:RootCertificate = $full
   Write-Diagnostic "CA policy: verified Render roots=$($trusted -join ','); path=$full"
+}
+
+function Get-OfficialRenderRootBundle([string]$OutputPath) {
+  if ([string]::IsNullOrWhiteSpace($OutputPath)) { throw "Ein Zielpfad fuer das Render-CA-Bundle ist erforderlich." }
+  $full = Assert-ProtectedBackupPath $OutputPath
+  $parent = Split-Path -Parent $full
+  New-Item -ItemType Directory -Force -Path $parent | Out-Null
+
+  $stalePartials = @(Get-ChildItem -Path ($full + ".partial.*") -File -ErrorAction SilentlyContinue)
+  if ($stalePartials.Count -gt 0) {
+    throw "Unvollstaendige CA-Dateien aus einem vorherigen Versuch gefunden; nicht automatisch verwenden: $($stalePartials.FullName -join ', ')"
+  }
+  if (Test-Path -LiteralPath $full -PathType Leaf) {
+    Assert-RootCertificate $full
+    return $full
+  }
+
+  $nonce = [Guid]::NewGuid().ToString("N")
+  $x1Partial = "$full.partial.$nonce.x1.pem"
+  $x2Partial = "$full.partial.$nonce.x2.pem"
+  $bundlePartial = "$full.partial.$nonce.bundle.pem"
+  try {
+    Invoke-WebRequest -UseBasicParsing -Uri "https://letsencrypt.org/certs/isrgrootx1.pem" -OutFile $x1Partial -ErrorAction Stop | Out-Null
+    Invoke-WebRequest -UseBasicParsing -Uri "https://letsencrypt.org/certs/isrg-root-x2.pem" -OutFile $x2Partial -ErrorAction Stop | Out-Null
+    Assert-RootCertificate $x1Partial
+    Assert-RootCertificate $x2Partial
+
+    $x1Text = [string](Get-Content -LiteralPath $x1Partial -Raw -Encoding ASCII)
+    $x2Text = [string](Get-Content -LiteralPath $x2Partial -Raw -Encoding ASCII)
+    if ([string]::IsNullOrWhiteSpace($x1Text) -or [string]::IsNullOrWhiteSpace($x2Text)) {
+      throw "Mindestens eine heruntergeladene CA-Datei ist leer."
+    }
+    Set-Content -LiteralPath $bundlePartial -Value ($x1Text.TrimEnd() + [Environment]::NewLine + $x2Text.TrimEnd() + [Environment]::NewLine) -Encoding ASCII -NoNewline
+    Assert-RootCertificate $bundlePartial
+    if (Test-Path -LiteralPath $full) { throw "CA-Zertifikatsdatei wurde waehrend des Downloads angelegt; kein Ueberschreiben: $full" }
+    Move-Item -LiteralPath $bundlePartial -Destination $full -ErrorAction Stop
+    Assert-RootCertificate $full
+    Write-Diagnostic "CA policy: official Render root bundle downloaded and verified; path=$full"
+    return $full
+  } catch {
+    throw "Offizielles Render-CA-Bundle konnte nicht sicher erstellt werden: $($_.Exception.Message)"
+  } finally {
+    foreach ($partial in @($x1Partial, $x2Partial, $bundlePartial)) {
+      if (Test-Path -LiteralPath $partial -PathType Leaf) { Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue }
+    }
+  }
 }
 
 function Get-InvocationDiagnostic([string]$Tool, [string[]]$Arguments, [string[]]$Output, [int]$ExitCode) {
@@ -235,7 +283,7 @@ function Invoke-PostgresOutput([string]$Tool, [string[]]$Arguments, [string]$Pas
 function Assert-VerifiedTls($Connection) {
   Assert-NetworkReachability $Connection
   $sql = "select case when ssl then 'verified_tls' else 'plaintext' end from pg_stat_ssl where pid=pg_backend_pid();"
-  $result = Invoke-PostgresOutput $psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
+  $result = Invoke-PostgresOutput $script:psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
   if ($result -ne "verified_tls") { throw "Die Datenbankverbindung ist nicht als TLS-Verbindung bestaetigt." }
 }
 
@@ -263,14 +311,14 @@ function Write-Manifest([string]$Path) {
 
 function Get-PublicTables($Connection) {
   $sql = "select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE' order by table_name;"
-  $raw = Invoke-PostgresOutput $psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
+  $raw = Invoke-PostgresOutput $script:psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
   return @($raw -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 }
 
 function Get-TableFingerprint($Connection, [string]$Table) {
   $quoted = '"' + $Table.Replace('"', '""') + '"'
   $sql = "select count(*)::text || '|' || encode(digest(coalesce(string_agg(to_jsonb(t)::text, E'\n' order by to_jsonb(t)::text), ''), 'sha256'), 'hex') from public.$quoted t;"
-  return Invoke-PostgresOutput $psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
+  return Invoke-PostgresOutput $script:psql ((Get-PsqlConnectionArguments $Connection) + @("--tuples-only", "--no-align", "--command=$sql")) $Connection.Password
 }
 
 function Compare-RestoredDatabase($Source, $Target) {
@@ -293,48 +341,74 @@ function Compare-RestoredDatabase($Source, $Target) {
   }
 }
 
-$dumpPath = Assert-ProtectedBackupPath $DumpFile
-$manifestPath = "$dumpPath.sha256"
-$script:DiagnosticLog = if ([string]::IsNullOrWhiteSpace($DiagnosticLog)) { "$dumpPath.diagnostic.log" } else { Resolve-OutsideRepository $DiagnosticLog }
-if (Test-Path -LiteralPath $script:DiagnosticLog -PathType Leaf) { throw "Diagnoseprotokoll existiert bereits; kein Ueberschreiben: $script:DiagnosticLog" }
-Assert-RootCertificate $RootCertificatePath
+function Invoke-ProductionBackup {
+  $script:pgDump = (Get-Command pg_dump -ErrorAction Stop).Source
+  $script:pgRestore = (Get-Command pg_restore -ErrorAction Stop).Source
+  $script:psql = (Get-Command psql -ErrorAction Stop).Source
 
-if ($Action -eq "Dump") {
-  if (Test-Path -LiteralPath $dumpPath) { throw "Die Zieldatei existiert bereits; kein Ueberschreiben." }
-  if (Test-Path -LiteralPath $manifestPath) { throw "Das SHA-256-Manifest existiert bereits; kein Ueberschreiben." }
+  $dumpPath = Assert-ProtectedBackupPath $DumpFile
+  $manifestPath = "$dumpPath.sha256"
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dumpPath) | Out-Null
-  $connection = Read-DatabaseCredentials "Render-Quelle" $Database $HostName $Port $User
+  $script:DiagnosticLog = if ([string]::IsNullOrWhiteSpace($DiagnosticLog)) { "$dumpPath.diagnostic.log" } else { Resolve-OutsideRepository $DiagnosticLog }
+  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $script:DiagnosticLog) | Out-Null
+  if (Test-Path -LiteralPath $script:DiagnosticLog -PathType Leaf) { throw "Diagnoseprotokoll existiert bereits; kein Ueberschreiben: $script:DiagnosticLog" }
+
+  if ($FetchRenderRoots) {
+    $rootPath = if ([string]::IsNullOrWhiteSpace($RootCertificatePath)) { Join-Path (Split-Path -Parent $dumpPath) "render-letsencrypt-roots.pem" } else { $RootCertificatePath }
+    [void](Get-OfficialRenderRootBundle $rootPath)
+  } else {
+    Assert-RootCertificate $RootCertificatePath
+  }
+
+  if ($Action -eq "Dump") {
+    if (Test-Path -LiteralPath $dumpPath) { throw "Die Zieldatei existiert bereits; kein Ueberschreiben." }
+    if (Test-Path -LiteralPath $manifestPath) { throw "Das SHA-256-Manifest existiert bereits; kein Ueberschreiben." }
+    $connection = Read-DatabaseCredentials "Render-Quelle" $Database $HostName $Port $User
+    try {
+      Assert-VerifiedTls $connection
+      $args = @("--format=custom", "--compress=6", "--no-owner", "--no-acl", "--blobs") + (Get-ConnectionArguments $connection) + @("--file=$dumpPath")
+      Invoke-Postgres $script:pgDump $args $connection.Password
+      if (-not (Test-Path -LiteralPath $dumpPath -PathType Leaf) -or (Get-Item -LiteralPath $dumpPath).Length -le 0) { throw "pg_dump hat keine gueltige Dump-Datei erzeugt." }
+      Write-Manifest $dumpPath
+    } finally { $connection.Password = $null }
+    Write-Output "Dump erstellt: $dumpPath"
+    Write-Output "SHA-256-Manifest: $manifestPath"
+    return
+  }
+
+  if (-not (Test-Path -LiteralPath $dumpPath -PathType Leaf)) { throw "Dump-Datei nicht gefunden." }
+  if (-not $ConfirmIsolatedDatabase) { throw "Restore nur mit -ConfirmIsolatedDatabase ausfuehren." }
+  if ([string]::IsNullOrWhiteSpace($TargetDatabase)) { throw "-TargetDatabase ist fuer Verify erforderlich." }
+  [void](Assert-Manifest $dumpPath)
+  $sourceConnection = $null
+  $targetConnection = $null
   try {
-    Assert-VerifiedTls $connection
-    $args = @("--format=custom", "--compress=6", "--no-owner", "--no-acl", "--blobs") + (Get-ConnectionArguments $connection) + @("--file=$dumpPath")
-    Invoke-Postgres $pgDump $args $connection.Password
-    if (-not (Test-Path -LiteralPath $dumpPath -PathType Leaf) -or (Get-Item -LiteralPath $dumpPath).Length -le 0) { throw "pg_dump hat keine gueltige Dump-Datei erzeugt." }
-    Write-Manifest $dumpPath
-  } finally { $connection.Password = $null }
-  Write-Output "Dump erstellt: $dumpPath"
-  Write-Output "SHA-256-Manifest: $manifestPath"
-  exit 0
+    $sourceConnection = Read-DatabaseCredentials "Render-Quelle"
+    $targetConnection = Read-DatabaseCredentials "Isoliertes Restore-Ziel" $TargetDatabase
+    Assert-VerifiedTls $targetConnection
+    $targetCommon = Get-ConnectionArguments $targetConnection
+    $targetPsql = Get-PsqlConnectionArguments $targetConnection
+    $countSql = "select count(*) from information_schema.tables where table_schema='public' and table_type='BASE TABLE';"
+    $before = Invoke-PostgresOutput $script:psql ($targetPsql + @("--tuples-only", "--no-align", "--command=$countSql")) $targetConnection.Password
+    if ($before -ne "0") { throw "Die isolierte Zieldatenbank ist nicht leer; Restore abgebrochen." }
+    Invoke-Postgres $script:pgRestore (@("--exit-on-error", "--single-transaction", "--no-owner", "--no-acl") + $targetCommon + @($dumpPath)) $targetConnection.Password
+    $after = Invoke-PostgresOutput $script:psql ($targetPsql + @("--tuples-only", "--no-align", "--command=$countSql")) $targetConnection.Password
+    if ($after -ne "26") { throw "Restore-Pruefung fehlgeschlagen: erwartet 26 Tabellen, gefunden $after." }
+    Compare-RestoredDatabase $sourceConnection $targetConnection
+  } finally {
+    if ($null -ne $sourceConnection) { $sourceConnection.Password = $null }
+    if ($null -ne $targetConnection) { $targetConnection.Password = $null }
+  }
+  Write-Output "Restore-Pruefung und vollstaendiger Datenvergleich bestanden: 26 Tabellen."
 }
 
-if (-not (Test-Path -LiteralPath $dumpPath -PathType Leaf)) { throw "Dump-Datei nicht gefunden." }
-if (-not $ConfirmIsolatedDatabase) { throw "Restore nur mit -ConfirmIsolatedDatabase ausfuehren." }
-if ([string]::IsNullOrWhiteSpace($TargetDatabase)) { throw "-TargetDatabase ist fuer Verify erforderlich." }
-[void](Assert-Manifest $dumpPath)
-$sourceConnection = Read-DatabaseCredentials "Render-Quelle"
-$targetConnection = Read-DatabaseCredentials "Isoliertes Restore-Ziel" $TargetDatabase
 try {
-  Assert-VerifiedTls $targetConnection
-  $targetCommon = Get-ConnectionArguments $targetConnection
-  $targetPsql = Get-PsqlConnectionArguments $targetConnection
-  $countSql = "select count(*) from information_schema.tables where table_schema='public' and table_type='BASE TABLE';"
-  $before = Invoke-PostgresOutput $psql ($targetPsql + @("--tuples-only", "--no-align", "--command=$countSql")) $targetConnection.Password
-  if ($before -ne "0") { throw "Die isolierte Zieldatenbank ist nicht leer; Restore abgebrochen." }
-  Invoke-Postgres $pgRestore (@("--exit-on-error", "--single-transaction", "--no-owner", "--no-acl") + $targetCommon + @($dumpPath)) $targetConnection.Password
-  $after = Invoke-PostgresOutput $psql ($targetPsql + @("--tuples-only", "--no-align", "--command=$countSql")) $targetConnection.Password
-  if ($after -ne "26") { throw "Restore-Pruefung fehlgeschlagen: erwartet 26 Tabellen, gefunden $after." }
-  Compare-RestoredDatabase $sourceConnection $targetConnection
-} finally {
-  $sourceConnection.Password = $null
-  $targetConnection.Password = $null
+  Invoke-ProductionBackup
+} catch {
+  $safeFailure = ConvertTo-SafeDiagnostic (($_ | Out-String).Trim())
+  Write-Host "Backup fehlgeschlagen:" -ForegroundColor Red
+  Write-Host $safeFailure
+  try { Write-Diagnostic $safeFailure } catch { Write-Host "Diagnoseprotokoll konnte nicht geschrieben werden." }
+  if ($KeepWindowOpen) { [void](Read-Host "Enter zum Schliessen") }
+  exit 1
 }
-Write-Output "Restore-Pruefung und vollstaendiger Datenvergleich bestanden: 26 Tabellen."
