@@ -116,5 +116,7 @@ Nachweis kein Umschalten.
 - Wartungsmodus: lokal vorbereitet, nicht deployed.
 - Unabhängige Sicherung: BLOCKED bis zur separaten Freigabe und geschützter
   Eingabe der Produktionszugangsdaten.
+- Aktueller lokaler Lauf: BLOCKED, da Windows den BitLocker-/CIM-Statuszugriff
+  verweigert; im Backup-Ordner liegt kein PostgreSQL-Dump und kein Manifest.
 - Produktionsumschaltung: BLOCKED bis Backup, finalem Abgleich und Rollback-
   Freigabe.
