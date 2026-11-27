@@ -126,6 +126,26 @@ Integrations- und öffentlicher Status-Endpunkt erreichbar; alle anderen API-
 Pfade, einschließlich ungewöhnlicher schreibender GET-Pfade, liefern HTTP 503.
 Statische Seiten bleiben auslieferbar.
 
+Der Wartungsstart ist dabei datenbankunabhängig: `scripts/start.js` importiert
+`scripts/migrate.js` nur, wenn `CFS_MAINTENANCE_MODE` nicht aktiv ist. Mit dem
+Schalter `true` wird daher weder eine Startmigration noch eine PostgreSQL-
+Verbindung ausgelöst; `server.js` startet nur den HTTP-Prozess. In diesem
+Repository gibt es keinen separaten Worker-Prozess. Es werden im
+Wartungsmodus auch keine Hintergrundjobs gestartet.
+
+`GET /api/health` liefert ohne Datenbankprüfung HTTP 200. `GET /api/ready`
+liefert im Wartungsmodus ebenfalls HTTP 200 mit `status: maintenance` und
+kennzeichnet die Datenbankprüfung als `skipped: true`; die konfigurierte
+`DATABASE_URL` wird dabei weder geändert noch verwendet. Der Render-Healthcheck
+soll für die Wartungsrevision auf `/api/health` (alternativ `/api/ready`),
+Methode `GET`, zeigen. Der Healthcheck darf nicht auf einen datenbankabhängigen
+API-Pfad zeigen. Render muss den neuen Prozess erst als gesund akzeptieren,
+bevor der alte Prozess ersetzt wird.
+
+Diese Ausnahme gilt ausschließlich für den expliziten Wartungsmodus. Im
+Normalbetrieb bleibt der Startpfad mit Migrationen und die strikte TLS-Prüfung
+unverändert.
+
 Die nicht unter `/api/` liegenden OAuth-Callbacks `/auth/tiktok/callback` und
 `/auth/twitch/callback` werden ebenfalls fail-closed blockiert, weil sie bei
 erfolgreicher Rückkehr Providerdaten schreiben können.
@@ -197,6 +217,11 @@ vorhanden sind.
 
 - Solange der Wartungsmodus aktiv ist und Neon noch keine neuen Schreibzugriffe
   akzeptiert, kann die Anwendung auf Render zurückgestellt werden.
+- Wenn ein Wartungsdeployment fehlschlägt, bleibt der zuletzt erfolgreiche
+  Render-Deploy als laufende Revision bestehen; nach einem gesunden Start kann
+  bei Bedarf auf diese bekannte Revision zurückgerollt werden. Ein Render-
+  Rollback macht jedoch weder Datenbank-Schreibzugriffe noch Umgebungsvariablen
+  rückgängig.
 - Nach dem Öffnen von Schreibzugriffen auf Neon darf nicht blind auf Render
   zurückgeschaltet werden. Zuerst Neon sichern, Änderungen abgleichen und einen
   Reconciliation- oder Wiederherstellungsplan freigeben.

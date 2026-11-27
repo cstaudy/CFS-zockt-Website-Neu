@@ -4,7 +4,7 @@ import { access, readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
-import { maintenanceEnabled, maintenanceBlocks, maintenancePayload } from "./src/maintenance-mode.js";
+import { maintenanceEnabled, maintenanceBlocks, maintenancePayload, maintenanceReadyPayload } from "./src/maintenance-mode.js";
 import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
 import { mailStatus } from "./src/mail.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
@@ -176,6 +176,9 @@ async function handle(req, res) {
   if (url.pathname === "/api/creator/twitch/sync" && method === "POST") { const result=await syncTwitch(req); return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result); }
 
   if (url.pathname === "/api/ready" && ["GET", "HEAD"].includes(method)) {
+    if (maintenanceEnabled()) {
+      return json(res, 200, maintenanceReadyPayload(process.env, version));
+    }
     const database = await databaseCheck();
     const ready = database.connected;
     return json(res, ready ? 200 : 503, { ok: ready, status: ready ? "ready" : database.configured ? "database_unavailable" : "waiting_for_database", checks: { configuration: true, database }, version });

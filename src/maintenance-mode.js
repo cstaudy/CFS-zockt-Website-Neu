@@ -24,6 +24,18 @@ export function maintenanceBlocks(pathname) {
   return blockedNonApiCallbacks.has(path);
 }
 
+export function maintenanceReadyPayload(env = process.env, version = "local") {
+  return {
+    ok: true,
+    status: "maintenance",
+    checks: {
+      configuration: true,
+      database: { configured: Boolean(env.DATABASE_URL), connected: false, skipped: true }
+    },
+    version
+  };
+}
+
 export function maintenancePayload() {
   return {
     error: "MAINTENANCE_MODE",
