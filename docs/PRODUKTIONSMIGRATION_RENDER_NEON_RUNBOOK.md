@@ -126,6 +126,10 @@ Integrations- und öffentlicher Status-Endpunkt erreichbar; alle anderen API-
 Pfade, einschließlich ungewöhnlicher schreibender GET-Pfade, liefern HTTP 503.
 Statische Seiten bleiben auslieferbar.
 
+Die nicht unter `/api/` liegenden OAuth-Callbacks `/auth/tiktok/callback` und
+`/auth/twitch/callback` werden ebenfalls fail-closed blockiert, weil sie bei
+erfolgreicher Rückkehr Providerdaten schreiben können.
+
 Der Normalwert ist `CFS_MAINTENANCE_MODE=false`. Der Schalter wird fuer die
 Migration auf jeder laufenden Produktionsinstanz gesetzt und erst nach der
 Abnahme wieder entfernt; ein einzelnes altes Render-Exemplar darf nicht weiter
@@ -139,7 +143,10 @@ Reihenfolge beim echten Cutover:
 3. Neue Revision mit `CFS_MAINTENANCE_MODE=true` starten und nur Health/Ready prüfen.
 4. In-flight-Anfragen auslaufen lassen; anschließend finalen read-only Abgleich
    und den unabhängigen Dump durchführen.
-5. Erst danach `DATABASE_URL` auf Neon setzen und `DATABASE_SSL=true` prüfen.
+5. Erst danach `DATABASE_URL` auf den direkten Neon-Endpunkt ohne `-pooler`
+   setzen und `DATABASE_SSL=true` prüfen. Da `scripts/start.js` vor dem
+   Serverstart `scripts/migrate.js` mit derselben Variablen ausführt, darf für
+   diesen Cutover kein gepoolter URL-Endpunkt verwendet werden.
 6. Revision deployen, Logs und `/api/health`/`/api/ready` prüfen.
 7. Auth, Passwort-Recovery, E-Mail-Verifizierung, Adminzugang sowie je einen
    Creator-Lese-/Schreibpfad testen.
@@ -160,9 +167,33 @@ Während des Schreibstopps read-only prüfen:
 - keine neuen Render-Schreibzugriffe seit Beginn des Stopps.
 
 Der Abgleich muss protokollieren, welche Abweichungen erwartet sind. Ohne diesen
-Nachweis kein Umschalten.
+Nachweis kein Umschalten. PASS ist nur zulässig, wenn alle 26 Tabellen,
+Zeilenanzahlen, Primärschlüssel-/Unique-Inventare, Token-, Projekt-, Launcher-
+und Creator-Daten übereinstimmen und ausschließlich `sessions.last_seen_at`
+als erwartete zeitabhängige Abweichung verbleibt.
 
-## 5. Rückfall ohne Datenverlust
+## 5. Website-Abnahme nach dem Umschalten
+
+Vor dem Entfernen des Wartungsmodus prüfen:
+
+- `/api/health` und `/api/ready` liefern den erwarteten Neon-Status;
+- `/api/integrations/status` gibt keine Geheimnisse aus und meldet die
+  Konfiguration korrekt;
+- Startseite, Login, Registrierung, Passwort-Recovery, E-Mail-Verifizierung
+  und Kontoeinstellungen funktionieren;
+- Admin-Navigation, `/api/admin/status`, Control Center und ein read-only
+  Admin-Endpunkt sind mit dem Betreiberkonto erreichbar;
+- ein authentifizierter Creator-Leseweg und genau ein kontrollierter Creator-
+  Schreibweg funktionieren;
+- Twitch-/TikTok-Callbacks, Launcher-Heartbeat und Job-Claiming werden nur
+  nach Ende des Wartungsmodus erneut geprüft;
+- TLS, Version/Commit und Render-Logs sind auf der Neon-Revision bestätigt.
+
+Bei einem Fehler Wartungsmodus aktiv lassen. Keine produktiven Testdaten
+erzeugen, wenn kein vorher freigegebener Testaccount und kein Cleanup-Pfad
+vorhanden sind.
+
+## 6. Rückfall ohne Datenverlust
 
 - Solange der Wartungsmodus aktiv ist und Neon noch keine neuen Schreibzugriffe
   akzeptiert, kann die Anwendung auf Render zurückgestellt werden.
@@ -172,7 +203,7 @@ Nachweis kein Umschalten.
 - Render und Neon niemals gleichzeitig als Schreibmaster betreiben.
 - Bei Unsicherheit Wartungsmodus aktiv lassen und keine Datenbank zurücksetzen.
 
-## Status dieser Vorbereitung
+## Historische Statusnotizen
 
 - Dump-/Restore-Skripte: vorbereitet, nicht ausgeführt.
 - Wartungsmodus: lokal vorbereitet, nicht deployed.
@@ -183,7 +214,7 @@ Nachweis kein Umschalten.
 - Produktionsumschaltung: BLOCKED bis Backup, finalem Abgleich und Rollback-
   Freigabe.
 
-### Aktualisierter Status 2026-11-26
+### Historischer Status 2026-11-26
 
 Die folgenden Ergebnisse ueberholen die historischen Vorbereitungsnotizen:
 
@@ -194,3 +225,29 @@ Die folgenden Ergebnisse ueberholen die historischen Vorbereitungsnotizen:
   nicht ueberschrieben.
 - Produktionsumschaltung: BLOCKED; Schreibstopp, finaler Abgleich und
   Rollback bleiben nur vorbereitet.
+
+### Tatsächliche Backup- und Restore-Validierung 2026-11-27
+
+Die unabhängige lokale Neon-Sicherung wurde in der isolierten Zieldatenbank
+vollständig wiederhergestellt und verglichen. Der vorhandene Dump wurde nicht
+überschrieben. Die tatsächlichen lokalen Ergebnisse sind:
+
+```text
+archive_bytes=80839
+sha256=d044bdc4956d46b414ee41815aff449ac0cc17b4ec0deb4168759d540afeeaf9
+manifest=PASS
+pg_restore_list=PASS toc_lines=160
+target_before_tables=0
+target_after_tables=26
+tables=PASS count=26
+data=PASS count=26
+sequences=PASS count=2
+indexes=PASS count=59
+constraints=PASS count=229
+restore_validation=PASS
+```
+
+Damit ist die unabhängige Backup- und Wiederherstellungsphase PASS. Der
+abschließende Render-gegen-Neon-Abgleich während des Schreibstopps bleibt vor
+der Umschaltung erforderlich; `sessions.last_seen_at` ist dabei als bekannte
+zeitabhängige Abweichung gesondert zu dokumentieren.

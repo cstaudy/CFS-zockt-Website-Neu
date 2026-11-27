@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { maintenanceAllows, maintenanceEnabled, maintenancePayload } from "../src/maintenance-mode.js";
+import { maintenanceAllows, maintenanceBlocks, maintenanceEnabled, maintenancePayload } from "../src/maintenance-mode.js";
 
 assert.equal(maintenanceEnabled({ CFS_MAINTENANCE_MODE: "true" }), true);
 assert.equal(maintenanceEnabled({ CFS_MAINTENANCE_MODE: "TRUE" }), true);
@@ -10,6 +10,11 @@ assert.equal(maintenanceAllows("/api/integrations/status"), true);
 assert.equal(maintenanceAllows("/api/public/status"), true);
 assert.equal(maintenanceAllows("/api/account/me"), false);
 assert.equal(maintenanceAllows("/api/launcher/jobs"), false);
+assert.equal(maintenanceBlocks("/api/health"), false);
+assert.equal(maintenanceBlocks("/api/account/me"), true);
+assert.equal(maintenanceBlocks("/auth/tiktok/callback"), true);
+assert.equal(maintenanceBlocks("/auth/twitch/callback"), true);
+assert.equal(maintenanceBlocks("/account.html"), false);
 assert.deepEqual(maintenancePayload(), {
   error: "MAINTENANCE_MODE",
   message: "Die Website befindet sich für einen sicheren Datenbankwechsel im Wartungsmodus.",

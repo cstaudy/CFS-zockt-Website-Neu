@@ -4,7 +4,7 @@ import { access, readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
-import { maintenanceEnabled, maintenanceAllows, maintenancePayload } from "./src/maintenance-mode.js";
+import { maintenanceEnabled, maintenanceBlocks, maintenancePayload } from "./src/maintenance-mode.js";
 import { currentAccount, isAdminEmail, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
 import { mailStatus } from "./src/mail.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
@@ -139,7 +139,7 @@ async function handle(req, res) {
     return res.end();
   }
 
-  if (maintenanceEnabled() && url.pathname.startsWith("/api/") && !maintenanceAllows(url.pathname)) {
+  if (maintenanceEnabled() && maintenanceBlocks(url.pathname)) {
     res.setHeader("retry-after", "300");
     return json(res, 503, maintenancePayload());
   }
