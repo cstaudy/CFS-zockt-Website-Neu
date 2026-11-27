@@ -84,16 +84,20 @@ Vor dem Restore wird geprüft, dass die Zieldatenbank leer ist. Danach werden de
 Dump in einer Einzeltransaktion wiederhergestellt und 26 öffentliche Tabellen
 verifiziert. Das Skript verwendet weder `--clean` noch `DROP DATABASE`.
 
-Fuer die vollstaendige Restore-Pruefung fragt das Skript danach die Render-
-Quelle read-only ab und vergleicht Tabelleninventar, Zeilenanzahl und einen
-deterministischen Inhaltsfingerabdruck jeder der 26 Tabellen.
+Fuer die vollstaendige Restore-Pruefung fragt der Node-Validator danach die
+Neon-Produktionskopie und das isolierte Ziel read-only ab und vergleicht
+Tabelleninventar, Zeilenanzahl und einen deterministischen Inhaltsfingerabdruck
+jeder der 26 Tabellen. Die Zielpruefung bleibt auf die isolierte Datenbank
+beschraenkt.
 
 Fuer die aktuelle Neon-Sicherung kann der ergaenzende Node-Validator mit den
 beiden direkten Neon-Endpunkten ausgefuehrt werden. Er verwendet die
 installierten `pg_restore`-/`psql`-Werkzeuge, `verify-full`, das gepruefte
 Let's-Encrypt-Bundle und `channel_binding=require`. Die beiden Passwoerter
-werden lokal unsichtbar abgefragt und weder als Argument noch als Datei oder
-Protokollwert verarbeitet:
+werden durch die native PostgreSQL-Passwortabfrage angefordert und weder als
+Argument noch als Datei oder Protokollwert verarbeitet. Der Validator benoetigt
+dafuer wenige native Verbindungen: Ziel-Leerpruefung, Restore sowie je eine
+gebuendelte Inventarpruefung fuer Quelle und Ziel:
 
 ```powershell
 node .\scripts\validate-neon-restore.mjs `
@@ -109,8 +113,10 @@ node .\scripts\validate-neon-restore.mjs `
 
 Der Validator bricht bei einem nicht leeren Ziel ab, stellt mit
 `--single-transaction` wieder her und vergleicht danach alle 26 Tabellen,
-Datenfingerprints, Sequenzen, Indizes und Constraints. Er verwendet weder
-`--clean` noch `DROP DATABASE`.
+Datenfingerprints, Sequenzen, Indizes und Constraints. Fuer jede Verbindung
+verwendet er ausschliesslich die native `psql`-/`pg_restore`-Passwortabfrage;
+es gibt keinen eigenen Node-/PowerShell-Prompt und kein `PGPASSWORD` oder
+`PGPASSFILE`. Er verwendet weder `--clean` noch `DROP DATABASE`.
 
 ## 3. Kontrollierter Schreibstopp
 
