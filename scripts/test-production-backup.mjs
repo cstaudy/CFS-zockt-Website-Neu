@@ -63,6 +63,13 @@ test("production backup script enforces protected storage, TLS and restore compa
   assert.match(source, /digest\([^\n]+sha256/);
   assert.match(restoreValidator, /PGSSLMODE = "verify-full"/);
   assert.match(restoreValidator, /PGCHANNELBINDING = "require"/);
+  assert.match(restoreValidator, /Read-Host -AsSecureString/);
+  assert.match(restoreValidator, /\[Console\]::Error\.Write\('Neon-Produktionskopie Passwort: '\)/);
+  assert.match(restoreValidator, /\[Console\]::Error\.Write\('Isoliertes Restore-Ziel Passwort: '\)/);
+  assert.match(restoreValidator, /SecureStringToBSTR/);
+  assert.match(restoreValidator, /ZeroFreeBSTR/);
+  assert.doesNotMatch(restoreValidator, /setRawMode/);
+  assert.doesNotMatch(restoreValidator, /process\.stdin\.on/);
   assert.match(restoreValidator, /--single-transaction/);
   assert.match(restoreValidator, /pg_catalog\.pg_sequences/);
   assert.match(restoreValidator, /pg_catalog\.pg_indexes/);

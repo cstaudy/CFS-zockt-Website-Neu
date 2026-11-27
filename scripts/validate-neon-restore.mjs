@@ -47,6 +47,50 @@ function runPsql(connection, password, sql) {
   ], password);
 }
 
+function readWindowsSecurePasswords() {
+  if (process.platform !== "win32") throw new Error("Die sichere Passwortabfrage ist nur unter Windows verfügbar.");
+  const powershell = process.env.SystemRoot
+    ? path.join(process.env.SystemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+    : "powershell.exe";
+  const promptScript = [
+    "$ErrorActionPreference = 'Stop'",
+    "[Console]::Error.Write('Neon-Produktionskopie Passwort: ')",
+    "$sourceSecurePassword = Read-Host -AsSecureString",
+    "[Console]::Error.WriteLine()",
+    "[Console]::Error.Write('Isoliertes Restore-Ziel Passwort: ')",
+    "$targetSecurePassword = Read-Host -AsSecureString",
+    "[Console]::Error.WriteLine()",
+    "$securePasswords = @($sourceSecurePassword, $targetSecurePassword)",
+    "$encodedPasswords = foreach ($securePassword in $securePasswords) {",
+    "  $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)",
+    "  try {",
+    "    $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)",
+    "    [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($plainPassword))",
+    "  } finally {",
+    "    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)",
+    "    $plainPassword = $null",
+    "    $securePassword.Dispose()",
+    "  }",
+    "}",
+    "[Console]::Out.WriteLine($encodedPasswords[0])",
+    "[Console]::Out.WriteLine($encodedPasswords[1])"
+  ].join("`n");
+  const result = spawnSync(powershell, ["-NoLogo", "-NoProfile", "-Command", promptScript], {
+    stdio: ["inherit", "pipe", "inherit"],
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024
+  });
+  if (result.error || result.status !== 0) throw new Error("Die verdeckte Windows-Passwortabfrage ist fehlgeschlagen.");
+  const encodedPasswords = String(result.stdout || "").split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+  if (encodedPasswords.length !== 2 || encodedPasswords.some((value) => !/^[A-Za-z0-9+/]+={0,2}$/.test(value))) {
+    throw new Error("Die verdeckte Windows-Passwortabfrage lieferte kein gültiges Ergebnis.");
+  }
+  return {
+    sourcePassword: Buffer.from(encodedPasswords[0], "base64").toString("utf8"),
+    targetPassword: Buffer.from(encodedPasswords[1], "base64").toString("utf8")
+  };
+}
+
 function lines(value) {
   return String(value || "")
     .split(String.fromCharCode(10))
@@ -138,30 +182,15 @@ function validate(sourcePassword, targetPassword) {
   console.log("restore_validation=PASS");
 }
 
-let input = "";
-let passwordLines = 0;
-if (process.stdin.isTTY) {
-  process.stdin.setRawMode(true);
-  process.stdout.write("Quellpasswort: ");
+try {
+  const passwords = readWindowsSecurePasswords();
+  try {
+    validate(passwords.sourcePassword, passwords.targetPassword);
+  } finally {
+    passwords.sourcePassword = "";
+    passwords.targetPassword = "";
+  }
+} catch (error) {
+  console.error(`restore_validation=FAIL ${error.message}`);
+  process.exitCode = 1;
 }
-process.stdin.setEncoding("utf8");
-process.stdin.resume();
-process.stdin.on("data", (chunk) => {
-  input += chunk;
-  const values = input.replaceAll(String.fromCharCode(13), "").split(String.fromCharCode(10));
-  if (process.stdin.isTTY && passwordLines === 0 && values.length >= 2) {
-    passwordLines = 1;
-    process.stdout.write("\nZielpasswort: ");
-  }
-  if (values.length >= 3) {
-    if (process.stdin.isTTY) process.stdin.setRawMode(false);
-    if (process.stdin.isTTY) process.stdout.write("\n");
-    process.stdin.pause();
-    try {
-      validate(values[0], values[1]);
-    } catch (error) {
-      console.error(`restore_validation=FAIL ${error.message}`);
-      process.exitCode = 1;
-    }
-  }
-});
