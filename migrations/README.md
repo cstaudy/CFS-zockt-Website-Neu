@@ -2,8 +2,7 @@
 
 PostgreSQL ist die Datenbankbasis; Neon ist das vom Betreiber festgelegte Ziel.
 Render-Laufzeitzuordnung, Backup/Restore und produktive Freigabe sind getrennte
-Abnahmeschritte. Aktueller zentraler Plan: [DEVELOPMENT_PLAN.md](../docs/plans/DEVELOPMENT_PLAN.md)
-(PR #107, bis zum Merge im Entwicklungsbranch). Keine produktive Ausführung
+Abnahmeschritte. Aktueller zentraler Plan: [Zentraler Entwicklungsplan (PR #107)](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/107). Keine produktive Ausführung
 aufgrund dieses Dokuments allein.
 
 ## Normaler Migrationslauf
