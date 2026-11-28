@@ -176,3 +176,9 @@ for (const [consent, expected] of [["no","NEON_TARGET_PREFLIGHT_CONSENT_REQUIRED
   assert.match(attempt.stderr, new RegExp(expected));
   assert.doesNotMatch(attempt.stderr, /fake-secret|ep-wrong/);
 }
+
+const tlsTests = spawnSync(process.execPath, ["--test", "scripts/db-tls.test.js"], {
+  encoding: "utf8", env: { ...process.env, DATABASE_URL: "" }
+});
+assert.equal(tlsTests.status, 0, tlsTests.stdout + tlsTests.stderr);
+console.log(tlsTests.stdout);
