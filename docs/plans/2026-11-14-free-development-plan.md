@@ -1,4 +1,6 @@
-# Entwicklungsplan – kostenloser, sicherer Weiterbetrieb
+# Entwicklungsplan – kostenloser, sicherer Weiterbetrieb (historisch)
+
+> Ab 28.11.2026 ersetzt durch den [zentralen Entwicklungsplan](DEVELOPMENT_PLAN.md). Dieser datierte Plan bleibt als historischer Nachweis erhalten; seine Statusangaben sind nicht mehr die aktuelle Prioritätenliste.
 
 Stand: 14.11.2026. Bezug: PR #89 und `main` ab `43f2ae1`.
 
