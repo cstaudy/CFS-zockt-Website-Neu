@@ -11,6 +11,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error(title, error);
   };
 
+  function renderPlatformCapabilities(caps) {
+    const grid = document.getElementById("platformCapabilitiesGrid");
+    const status = document.getElementById("platformCapabilitiesStatus");
+    if (!grid || !status) return;
+    grid.replaceChildren();
+    if (caps?.integrations?.platforms_status !== "ok" || !Array.isArray(caps.integrations.platforms)) {
+      status.textContent = "Plattformstatus derzeit nicht prüfbar. Keine Freigabe bestätigt.";
+      return;
+    }
+    const names = {tiktok:"TikTok",twitch:"Twitch",youtube:"YouTube / Shorts",instagram:"Instagram",facebook:"Facebook",kick:"Kick",custom_rtmp:"Custom RTMP"};
+    const liveLabels = {official_access_required:"Offizieller LIVE-Zugang erforderlich",runtime_acceptance_required:"Reale Launcher-Abnahme offen",planned:"Geplant",manual_setup:"Manuelle Einrichtung vorgesehen",not_supported:"Nicht in CFS unterstützt"};
+    const publishLabels = {planned:"Geplant · keine Freigabe",not_supported:"Kein Datei-Direktupload in CFS"};
+    const connectionLabels = {record_present:"Verbindung gespeichert",not_connected:"Nicht verbunden",not_implemented:"OAuth noch nicht verfügbar"};
+    const tokenLabels = {not_expired_unverified:"Gültigkeitsdatum vorhanden, Token nicht geprüft",expired:"Token abgelaufen",expiry_unknown:"Ablauf unbekannt"};
+    for (const p of caps.integrations.platforms) {
+      if (!p || !Object.hasOwn(names,p.provider)) continue;
+      const card = document.createElement("article");
+      card.className = "management-summary-card";
+      const title = document.createElement("h3");
+      title.textContent = names[p.provider];
+      card.append(title);
+      const add = text => { const line = document.createElement("p"); line.textContent = text; card.append(line); };
+      add("Konto: " + (connectionLabels[p.connection] || "Unbekannt"));
+      if (Object.hasOwn(tokenLabels,p.token_status)) add(tokenLabels[p.token_status]);
+      add("Live: " + (liveLabels[p.live?.status] || "Nicht geprüft"));
+      add("Upload: " + (publishLabels[p.publishing?.status] || "Nicht freigegeben"));
+      grid.append(card);
+    }
+    status.textContent = "Status aus gespeicherten Kontodaten; keine Live- oder Publishing-Freigabe bestätigt.";
+  }
+
   try {
     const tt = await CFS.json("/api/creator/tiktok/status");
     const betaBlocked = tt?.beta_access?.required === true && tt?.beta_access?.allowed !== true;
@@ -28,6 +59,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     const caps = await CFS.json("/api/creator/integration-capabilities");
+    renderPlatformCapabilities(caps);
     const oauth = Array.isArray(caps?.integrations?.oauth) ? caps.integrations.oauth : [];
     const twitch = oauth.find(item => item.provider === "twitch");
     if (twitch && twitchIntegrationStatus && !twitchIntegrationStatus.dataset.liveStatus) {
@@ -38,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (obsIntegrationStatus && caps?.integrations?.obs_websocket) {
       obsIntegrationStatus.textContent = "OBS WebSocket ist code-seitig implementiert: Szenen lesen/wechseln, Browser Sources aktualisieren, lokale verschlüsselte Credentials. Reale OBS-Abnahme bleibt offen.";
     }
-  } catch (_) {}
+  } catch (_) { renderPlatformCapabilities(null); }
 
   const twitchRetryButton = document.getElementById("twitchRetry");
   let checkingTwitch = false;

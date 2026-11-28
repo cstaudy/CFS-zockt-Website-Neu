@@ -34,4 +34,24 @@
     if (event.key === 'Escape' && input.value) {input.value = '';update();event.preventDefault();}
   });
   update();
+  // Enrich the existing static orientation cards only after authentication.
+  // The catalog is descriptive; it never grants access or invents readiness.
+  (async()=>{
+    if(!window.CFS)return;
+    try{
+      const me=await CFS.me();
+      if(!me?.authenticated)return;
+      const data=await CFS.json("/api/creator/modules");
+      if(!Array.isArray(data.modules))return;
+      const byPath=new Map(data.modules.map(m=>[m.href,m]));
+      for(const card of items){
+        const module=byPath.get(card.getAttribute('href')),detail=card.querySelector('span');
+        if(module&&detail&&typeof module.detail==="string")detail.textContent=module.detail;
+      }
+      const description=primary?.querySelector('.cfs-ux-primary-copy p');
+      const builder=byPath.get('/pages/universal-builder.html');
+      if(description&&typeof builder?.detail==="string")description.textContent=builder.detail;
+      update();
+    }catch{/* static orientation remains; no runtime status is inferred */}
+  })();
 })();

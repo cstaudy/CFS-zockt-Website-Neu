@@ -21,8 +21,15 @@ for (const contract of [
   /pg_restore/,
   /sha256sum/,
   /trap cleanup EXIT/,
-  /--no-owner --no-acl/
+  /--no-owner --no-acl/,
+  /expected_migrations=.*migrationFiles\.length/,
+  /source_migrations.*expected_migrations.*restored_migrations/,
+  /password_recovery_attempts launcher_devices tool_jobs schema_migrations/,
+  /\$\{expected_migrations\} migrations/
 ]) assert.match(source, contract);
+
+assert.doesNotMatch(source, /source_migrations.*==\s*["']25["']/,
+  "Backup acceptance must not hard-code an obsolete migration count");
 
 const syntax = spawnSync("bash", ["-n", target], { encoding: "utf8" });
 if (syntax.error?.code === "ENOENT") {

@@ -1,4 +1,5 @@
 import { getPool } from "./db.js";
+import { widgetLimit } from "./creator-module-catalog.js";
 import { requireAccount } from "./projects.js";
 import { widgetConfigs, nextWidgetData } from "./widget-publication.js";
 import { validateWidgetElementAttributes } from "./widget-element-validation.js";
@@ -25,7 +26,7 @@ export async function listWidgets(req) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
   const result = await getPool().query("select id, name, data, status, version, created_at, updated_at from creator_projects where account_id = $1 and kind = 'widget' and status <> 'archived' order by updated_at desc", [account.id]);
-  const maxWidgets = account.plan === "free" ? 3 : account.plan === "creator" ? 25 : 100;
+  const maxWidgets = widgetLimit(account.plan);
   return { widgets: result.rows.map(widget), registry, limits: { max_widgets: maxWidgets }, entitlements: { plan: account.plan || "free" }, tiktok: { connected: false }, live: { connected: false } };
 }
 
@@ -51,7 +52,7 @@ export async function createWidget(req, body) {
       return { error: "AUTHENTICATION_REQUIRED", status: 401 };
     }
     const plan = locked.plan || "free";
-    const maxWidgets = plan === "free" ? 3 : plan === "creator" ? 25 : 100;
+    const maxWidgets = widgetLimit(plan);
     const countResult = await client.query("select count(*)::int as count from creator_projects where account_id = $1 and kind = 'widget' and status <> 'archived'", [account.id]);
     if (Number(countResult.rows[0]?.count || 0) >= maxWidgets) {
       await client.query("ROLLBACK");

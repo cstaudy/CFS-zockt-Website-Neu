@@ -2,7 +2,7 @@
 
 Stand: 28.11.2026
 Arbeitsbranch: `security/staging-neon-tls-20261125`
-Ausgangs-HEAD dieses Arbeitspakets: `c84c549348c59811eba537c0c605b8306ffccff4`
+Ausgangs-HEAD dieses Arbeitspakets: `0223110bf572779ab6759c13ee8fa3f6c6cec09b`
 
 ## Statuswerte
 
@@ -21,7 +21,7 @@ Ausgangs-HEAD dieses Arbeitspakets: `c84c549348c59811eba537c0c605b8306ffccff4`
 | Website-3-Mastercode | IMPLEMENTIERT | `index.html`, `server.js`, `src/`, `pages/`, `migrations/` an der Projektwurzel; Archive unter `_codex_sources/` bleiben Read-only-Referenzen |
 | HTML-Seiten | IMPLEMENTIERT | 59 HTML-Dateien im Responsive-Vertrag geprüft |
 | Datenbankmigrationen | IMPLEMENTIERT | Migrationen 001–027; 026 ist Passwort-Recovery, 027 bindet Launcher-Jobs an das exakt claimende Gerät |
-| Automatisierte Prüfung | GETESTET | `npm ci` mit separatem Temp-npm-Cache erfolgreich; vollständiges `npm run check` erfolgreich nach Abschluss dieses Pakets |
+| Automatisierte Prüfung | GETESTET | `npm ci --no-audit --no-fund` und vollständiges `npm run check` mit separatem Temp-npm-Cache erfolgreich; neue Status-/Katalog-/Backup-Verträge eingeschlossen |
 | PostgreSQL-18-Integration | BLOCKIERT | Statischer PG18-Backupvertrag und sichere Verweigerung sind getestet; lokale Bash/Docker- und disposable PostgreSQL-18-Abnahme fehlen in dieser Umgebung. Keine produktive DB wurde angesprochen |
 | Externe Provider | BLOCKIERT | Twitch, TikTok, PlayStation und Discord-Statistik benötigen echte, nicht im Repository gespeicherte Zugangsdaten bzw. Providerfreigaben |
 | Browser-/Screenshot-Abnahme | GETESTET | Öffentliche Startseite und Login wurden bei 320/375/390/430/768/1280/1920 px im lokalen Browser geprüft; bei 768 px wurde die Startseiten-Navigation auf das mobile Menü umgestellt. Geschützte Seiten bleiben ohne Testkonto BLOCKIERT |
@@ -57,6 +57,20 @@ Die Entwürfe wurden gelesen und selektiv geprüft. Es wurde kein Pull Request b
 | PR #117 Admin-Sicherheit | IMPLEMENTIERT / GETESTET | Einheitliche `accountAccessView`-Projektion ergänzt; Rollenlisten in Creator Settings entfernt; Passwort-Hashes bleiben außerhalb von API-/Login-Projektionen |
 | PR #121 Launcher-Gerätezuordnung | IMPLEMENTIERT / GETESTET | Migration 027 und exakte `claimed_by_device`-Prädikate für Claim/Update ergänzt; E2E-DB-Abnahme bleibt CI-/isoliert-datenbankabhängig |
 | PR #107 Entwicklungsplan | ABGEGLICHEN | Roadmap und technische Inventur als Grundlage verwendet; Multi-Publisher bleibt entsprechend der Vorgabe pausiert |
+
+### Auftrag 04 – selektive Grundintegration
+
+| Bereich | Status | Tatsächlicher Nachweis / Grenze |
+|---|---|---|
+| PR #122 / Backup-Testkorrektur | GETESTET | Externer erfolgreicher Workflow `46128783131` berücksichtigt; `3cffc528` selektiv übernommen: Manifestanzahl statt `25`, zusätzliche Recovery-/Launcher-/Job-Fingerprints |
+| Migration 026 Audit | GETESTET | PR-103-Datei aus `244cd66` mit SHA-256 `8890594f…` gegen aktuelle Datei `86032e51…` geprüft; Abweichung dokumentiert, keine angewandte Migration oder Ledgerzeile umgeschrieben |
+| Migration 027 / Launcher-Claim | GETESTET | Bestehende Migration und Claim-Prädikate erhalten; bestehender isolierter PG18-HTTP-Lauf deckt parallele Geräte-/Jobgrenzen ab |
+| Recovery-/Passwort-Paralleltest | IMPLEMENTIERT | Neuer echter PG18-Test in `scripts/test-auth-concurrency-pg18.mjs`, im GitHub-Workflow nach `npm run migrate` verdrahtet; lokal ohne disposable PG18 nicht ausführbar |
+| PR #110 Provider-Capabilities | IMPLEMENTIERT / GETESTET | Read-only, accountgebundene Scope-/Ablaufmetadaten; keine Tokenprojektion, keine Publishing-Freigabe; Vertrags- und UI-Test PASS |
+| PR #118 Status-Evidence | IMPLEMENTIERT / GETESTET | Frische/alte/future Heartbeats, Providerstatus und unbekannte Zustände; keine erfundenen Live-/Release-Signale |
+| PR #119 Creator-Setup | IMPLEMENTIERT / GETESTET | Vorhandene `creator_settings`-Zeile, Account-Lock, Content-Version, Namespace-Schutz; statischer Vertrag PASS, positiver PG18-Lauf CI |
+| PR #120 Modulkatalog | IMPLEMENTIERT / GETESTET | 16 vorhandene Ziele, echte Quoten, getrennte Navigation/Runtime/Produktionsstatus; statischer Vertrag PASS |
+| Authentifizierte Browserabnahme | BLOCKIERT | Keine isolierte synthetische PostgreSQL-18-Session und kein verfügbarer Browser-Testlauf in dieser Umgebung; keine geschützten Screenshots als PASS ausgegeben |
 
 ## Aktuelles Arbeitspaket – Nachweis
 

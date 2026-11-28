@@ -79,19 +79,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     const signal = document.getElementById("systemSignal");
     const headline = document.getElementById("systemHeadline");
     const next = document.getElementById("systemNext");
-    signal.classList.toggle("ready", readyCount >= 4);
-    signal.classList.toggle("wait", readyCount < 4);
+    signal.classList.toggle("ready", false);
+    signal.classList.toggle("wait", true);
     if (!connection.obs) {
-      headline.textContent = "Veröffentlichtes Widget noch nicht bestätigt";
+      headline.textContent = "Aktuelle OBS-Verbindung noch nicht bestätigt";
       next.innerHTML = 'Im <a href="/pages/widget-studio.html">Widget Studio →</a> zuerst ein statisches oder manuelles Test-Widget vorbereiten.';
     } else if (!connection.launcher) {
-      headline.textContent = "Widget vorhanden · OBS-Test vorbereiten";
+      headline.textContent = "Launcher-Heartbeat nicht bestätigt";
       next.innerHTML = 'Die Website kann vor TikTok und Twitch geprüft werden. <a href="/pages/website-abnahme.html">Website-Abnahme öffnen →</a>';
     } else {
-      headline.textContent = "Widget und Launcher erkannt";
+      headline.textContent = "Launcher und OBS gemeldet · Abnahme offen";
       next.innerHTML = 'Prüfe die tatsächliche Browserquelle mit OBS. <a href="/pages/website-abnahme.html">Abnahme öffnen →</a>';
     }
-    signal.querySelector("span").textContent = `${readyCount}/5 BEREIT`;
+    signal.querySelector("span").textContent = `${readyCount}/5 STATUS-SIGNALE`;
   };
   renderSystemSummary();
   document.getElementById("refreshStatus")?.addEventListener("click", () => location.reload());
@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   accessBadges.innerHTML = badges.join("");
   statusAccountMeta.textContent = a.display_name || a.email || "Creator";
 
-  let moduleData = {modules: me.modules || [], entitlements: me.entitlements || {}, access: me.access || {}};
+  let moduleData = {modules: [], access: {}};
   try { moduleData = await CFS.json("/api/creator/modules"); } catch {}
 
   const renderStreamReady = async () => {
@@ -141,67 +141,68 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
   renderStreamReady();
 
-  const liveReady = Boolean(moduleData.entitlements?.live_bridge);
+  const liveReady = false;
   connection.live = liveReady;
   renderSystemSummary();
   setStatus(
     "statusLive",
     liveReady,
-    liveReady ? "FREIGESCHALTET" : "NICHT FREIGESCHALTET",
-    liveReady ? (moduleData.access?.beta?.active ? "Über Beta-Freigabe" : `${CFS.planLabel(moduleData.access?.effective_plan || a.plan)} Zugriff`) : "CREATOR Plan oder Beta-Freigabe benötigt"
+    liveReady ? "FREIGESCHALTET" : "NICHT BESTÄTIGT",
+    liveReady ? (moduleData.access?.beta?.active ? "Über Beta-Freigabe" : `${CFS.planLabel(moduleData.access?.effective_plan || a.plan)} Zugriff`) : "Live-Freigabe separat prüfen"
   );
 
   try {
     const tt = await CFS.json("/api/creator/tiktok/status");
-    connection.tiktok = !!tt.connected;
+    connection.tiktok = false;
     journey.tiktok = !!tt.connected;
     setJourneyStep("progressTikTok", journey.tiktok, tt.connected ? "Verbunden" : "Optional verbinden");
     renderSystemSummary();
     renderNextStep();
-    setStatus("statusTikTok", !!tt.connected, tt.connected ? "VERBUNDEN" : "OFFLINE",
-      tt.connected ? `${tt.profile?.display_name || "TikTok"} · ${Number(tt.profile?.follower_count || 0).toLocaleString("de-DE")} Follower` : "TikTok verbinden");
+    setStatus("statusTikTok", false, tt.connected ? "GESPEICHERT" : "NICHT VERBUNDEN",
+      tt.connected ? "Kontoverbindung gespeichert; Tokenprüfung offen" : "TikTok verbinden");
   } catch {
     journey.tiktok = "unknown";
     setJourneyStep("progressTikTok", journey.tiktok, "Status nicht verfügbar");
     renderNextStep();
-    setStatus("statusTikTok", false, "OFFLINE", "TikTok-Status nicht verfügbar");
+    setStatus("statusTikTok", false, "UNBEKANNT", "TikTok-Status nicht verfügbar");
   }
 
   try {
     const devices = await CFS.json("/api/creator/launcher/devices");
     const active = (devices.devices || []).filter(d => d.status === "active");
     const online = active.find(d => d.online);
-    connection.launcher = active.length > 0;
+    connection.launcher = Boolean(online);
+    connection.obs = Boolean(active.some(d=>d.online===true&&d.obs_connected===true));
     journey.launcher = active.length > 0;
     setJourneyStep("progressLauncher", journey.launcher, online ? "Online" : active.length ? "Verbunden" : "Optional verbinden");
     renderSystemSummary();
     renderNextStep();
-    setStatus("statusLauncher", active.length > 0, online ? "ONLINE" : active.length ? "VERBUNDEN" : "OFFLINE",
+    setStatus("statusLauncher", Boolean(online), online ? "ONLINE" : active.length ? "GEKOPPELT / OFFLINE" : "NICHT GEKOPPELT",
       online ? `${online.machine_name || "Creator PC"} · ${online.client_version || ""}` : active.length ? `${active.length} PC verbunden` : "Launcher per Device-Link verbinden");
   } catch {
     journey.launcher = "unknown";
     setJourneyStep("progressLauncher", journey.launcher, "Status nicht verfügbar");
     renderNextStep();
-    setStatus("statusLauncher", false, "OFFLINE", "Noch kein PC erkannt");
+    setStatus("statusLauncher", false, "UNBEKANNT", "Gerätestatus nicht verfügbar");
   }
 
   try {
     const widgets = await CFS.json("/api/creator/widget-studio/widgets");
     const liveWidgets = (widgets.widgets || []).filter(w => w.status === "live");
-    connection.obs = liveWidgets.length > 0;
+    // Widget publication is not an OBS heartbeat.
     journey.widget = (widgets.widgets || []).length > 0;
     journey.widgetPublished = liveWidgets.length > 0;
     setJourneyStep("progressWidget", journey.widget, journey.widget ? `${(widgets.widgets || []).length} Widget${(widgets.widgets || []).length === 1 ? "" : "s"} angelegt` : "Noch kein Widget");
     renderSystemSummary();
     renderNextStep();
-    setStatus("statusObs", liveWidgets.length > 0, liveWidgets.length ? "BEREIT" : "NOCH LEER",
-      liveWidgets.length ? `${liveWidgets.length} veröffentlicht${liveWidgets.length === 1 ? "es Widget" : "e Widgets"}` : "Erstes Widget veröffentlichen");
+    setStatus("statusObs", connection.obs, connection.obs ? "OBS GEMELDET" : "NICHT BESTÄTIGT",
+      connection.obs ? "Aktueller Launcher meldet OBS; Abnahme offen" : "Widget-Veröffentlichung bestätigt keine OBS-Verbindung");
   } catch {
     journey.widget = "unknown";
     journey.widgetPublished = "unknown";
     setJourneyStep("progressWidget", journey.widget, "Status nicht verfügbar");
     renderNextStep();
-    setStatus("statusObs", false, "PRÜFEN", "Widget-Status nicht verfügbar");
+    setStatus("statusObs", false, "UNBEKANNT", "Widget-Status nicht verfügbar");
   }
 
   // R197: Read-only status for the local OBS scene workflow (not a live release gate).
@@ -218,9 +219,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     const stateData = await CFS.json("/api/creator/modules/launcher/state");
-    journey.setup = Boolean(stateData.state && stateData.state.creator_setup);
-    setJourneyStep("progressSetup", journey.setup, journey.setup ? "Gespeichert" : "Noch offen");
-    if (!journey.setup) setupWarning.classList.remove("hidden");
+    journey.setup = stateData.setup_status==="saved" ? true : stateData.setup_status==="not_saved" ? false : "unknown";
+    setJourneyStep("progressSetup", journey.setup, journey.setup===true ? "Gespeichert" : journey.setup===false ? "Noch offen" : "Status nicht verfügbar");
+    if (journey.setup!==true) setupWarning.classList.remove("hidden");
     renderNextStep();
   } catch {
     journey.setup = "unknown";
@@ -229,71 +230,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderNextStep();
   }
 
-  const paths = {
-    dashboard:"/pages/dashboard.html", editor:"/pages/editor.html", widget_studio:"/pages/widget-studio.html",
-    tiktok:"/pages/tiktok.html", launcher:"/pages/launcher.html", cut_studio:"/pages/cut-studio.html",
-    games:"/pages/games.html", audio_studio:"/pages/audio-studio.html",
-    twitch:"/pages/integrations.html", obs:"/pages/integrations.html", scene_studio:"/pages/scene-studio.html"
-  };
-  const descriptions = {
-    widget_studio:"Widgets bauen, testen und OBS-URLs veröffentlichen.",
-    launcher:"Creator-PC, Device-Link und Desktop-Bridge verwalten.",
-    games:"Interaktive Community-Games für unterstützte LIVE-Workflows.",
-    cut_studio:"Clips und Creator-Material im vorbereiteten Cut-Workflow bearbeiten.",
-    tiktok:"TikTok-Profil, Verbindung und unterstützte Creator-Daten verwalten.",
-    scene_studio:"Widgets und Elemente als gemeinsame Szene kombinieren.",
-    editor:"Creator-Inhalte mit den erweiterten Editor-Werkzeugen bearbeiten.",
-    audio_studio:"Vorbereiteter Bereich auf der Roadmap.",
-    twitch:"Twitch Konto, EventSub und Twitch-Widgets verwalten.",
-    obs:"Geplante tiefere OBS-Integration auf der Roadmap."
-  };
-  const kinds = {
-    widget_studio:"BAUEN", scene_studio:"BAUEN", editor:"BAUEN",
-    tiktok:"VERBINDEN", launcher:"VERBINDEN", twitch:"VERBINDEN", obs:"VERBINDEN",
-    games:"ERWEITERN", cut_studio:"ERWEITERN", audio_studio:"ERWEITERN"
-  };
-  const statusLabel = status => ({active:"VERFÜGBAR", beta:"BETA", preview:"PREVIEW", roadmap:"ROADMAP"}[String(status || "").toLowerCase()] || String(status || "STATUS").toUpperCase());
-  const minimumPlanLabel = plan => CFS.planLabel(String(plan || "free").toLowerCase());
-
-  const modules = (moduleData.modules || []).filter(m => !(["nexus","youtube"].includes(m.key)));
-  const usableModules = modules.filter(m => ["active","beta","preview"].includes(String(m.status || "").toLowerCase()));
-  const readyModules = usableModules.filter(m => m.allowed);
-  const readyCount = document.getElementById("toolReadyCount");
-  const totalCount = document.getElementById("toolTotalCount");
-  const accessPlan = document.getElementById("toolAccessPlan");
-  if (readyCount) readyCount.textContent = `${readyModules.length}`;
-  if (totalCount) totalCount.textContent = `${usableModules.length}`;
-  if (accessPlan) accessPlan.textContent = CFS.planLabel(moduleData.access?.effective_plan || a.plan);
-
-  const simpleKeys = ["widget_studio","launcher","tiktok","games","cut_studio","scene_studio"];
-  const simpleToolMarkup = simpleKeys.map(key => {
-    const m = modules.find(x => x.key === key);
-    if (!m) return "";
-    const status = statusLabel(m.status);
-    const minPlan = minimumPlanLabel(m.minimum_plan);
-    return `<article class="beginner-tool creator-tool-entry ${m.allowed ? "" : "locked"}">
-      <div class="beginner-tool-top">
-        <span class="creator-tool-kind">${CFS.escape(kinds[key] || "TOOL")}</span>
-        <span class="badge ${m.allowed ? "ok" : "lock"}">${m.allowed ? status : `${CFS.escape(minPlan)} ERFORDERLICH`}</span>
-      </div>
-      <h3>${CFS.escape(m.title)}</h3>
-      <p>${CFS.escape(descriptions[key] || "Creator Tool")}</p>
-      <small class="creator-tool-meta">${CFS.escape(status)} · ab ${CFS.escape(minPlan)}</small>
-      <div class="card-actions"><a class="btn${m.allowed ? " primary" : ""}" href="${paths[key]}">${m.allowed ? "ÖFFNEN" : "DETAILS"}</a></div>
-    </article>`;
-  }).join("");
-  simpleToolGrid.innerHTML = simpleToolMarkup || `<div class="ui-state ui-state-empty" role="status"><strong>Noch keine Creator-Module verfügbar</strong><p>Die Modulübersicht konnte für diesen Account noch nicht aufgebaut werden. Lade den Status neu oder öffne das Setup.</p><div class="ui-state-actions"><a class="btn" href="/pages/setup.html">SETUP ÖFFNEN</a><button class="btn" type="button" data-ui-reload>NEU LADEN</button></div></div>`;
-
-  moduleGrid.innerHTML = modules.map(m => {
-    const status = statusLabel(m.status);
-    const minPlan = minimumPlanLabel(m.minimum_plan);
-    return `<article class="card creator-module-card">
-      <div class="creator-module-card-head"><span class="badge ${m.allowed ? "ok" : "lock"}">${m.allowed ? "FREIGESCHALTET" : `${CFS.escape(minPlan)} ERFORDERLICH`}</span><small>${CFS.escape(status)}</small></div>
-      <h3>${CFS.escape(m.title)}</h3>
-      <p>${CFS.escape(descriptions[m.key] || "Creator Suite Modul")}</p>
-      <div class="card-actions"><a class="btn" href="${paths[m.key] || "/pages/dashboard.html"}">${m.allowed ? "ÖFFNEN" : "DETAILS"}</a></div>
-    </article>`;
-  }).join("") || `<div class="ui-state ui-state-empty" role="status"><strong>Keine erweiterten Module gefunden</strong><p>Für deinen Account wurden aktuell keine weiteren Module gemeldet.</p></div>`;
+  const labels={workspace:"ARBEITSBEREICH",preview:"VORSCHAU",setup:"EINRICHTUNG",planned:"GEPLANT"};
+  const modules=Array.isArray(moduleData.modules)?moduleData.modules.filter(m=>Object.hasOwn(labels,m.stage)&&
+    typeof m.href==="string"&&/^\/pages\/[a-z0-9-]+\.html$/.test(m.href)):[];
+  const openable=modules.filter(m=>m.openable===true);
+  const readyCount=document.getElementById("toolReadyCount"),totalCount=document.getElementById("toolTotalCount"),accessPlan=document.getElementById("toolAccessPlan");
+  if(readyCount)readyCount.textContent=modules.length?String(openable.length):"—";
+  if(totalCount)totalCount.textContent=modules.length?String(modules.length):"—";
+  if(accessPlan)accessPlan.textContent=moduleData.access?.recorded_plan?CFS.planLabel(moduleData.access.recorded_plan):"OFFEN";
+  const card=m=>`<article class="card creator-module-card"><div class="creator-module-card-head"><span class="badge ${m.openable===true?"ok":"lock"}">${labels[m.stage]}</span><small>ABNAHME OFFEN</small></div><h3>${CFS.escape(m.title)}</h3><p>${CFS.escape(m.detail)}</p><div class="card-actions">${m.openable===true?`<a class="btn" href="${CFS.escape(m.href)}">ÖFFNEN</a>`:"<span>NICHT FREIGEGEBEN</span>"}</div></article>`;
+  const empty='<div class="ui-state ui-state-empty" role="status"><strong>Modulkatalog nicht verfügbar</strong><p>Keine bestätigte Modulübersicht geladen. Bitte erneut prüfen.</p></div>';
+  const simpleKeys=["widget_studio","launcher","tiktok","games","cut_studio","scene_studio"];
+  simpleToolGrid.innerHTML=simpleKeys.map(key=>modules.find(m=>m.key===key)).filter(Boolean).map(card).join("")||empty;
+  moduleGrid.innerHTML=modules.map(card).join("")||empty;
 
   const operationCard = (prefix, stateName, titleText, metaText) => {
     const card = document.getElementById(`dashboard${prefix}Card`);
@@ -374,5 +323,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   document.querySelectorAll("[data-ui-reload]").forEach(button => button.addEventListener("click", () => location.reload()));
+
+
+
 
 });

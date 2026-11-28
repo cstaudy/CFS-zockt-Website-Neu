@@ -39,6 +39,13 @@ jobs:
         run: |
           npm run migrate
           node scripts/test-account-creator-flow.mjs
+      - name: PostgreSQL 18 recovery and password concurrency
+        env:
+          DATABASE_URL: postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci
+          DATABASE_SSL: 'false'
+          SESSION_SECRET: ci-local-test-secret-only
+          CFS_CI_DATABASE_ACCEPTANCE: 'yes'
+        run: node scripts/test-auth-concurrency-pg18.mjs
       - name: Read-only release readiness on isolated PostgreSQL 18 CI database
         env:
           DATABASE_URL: postgresql://cfs_ci:ci_test_only_password@127.0.0.1:5432/cfs_ci
