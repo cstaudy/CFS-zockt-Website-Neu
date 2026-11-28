@@ -750,6 +750,42 @@ try {
   assert.equal(otherSettings.data.settings?.accountMarker, undefined,
     'Private settings from creator A must not appear in creator B session');
 
+  // Existing settings row also owns the creator_setup namespace.
+  const setupPath='/api/creator/modules/launcher/state';
+  const initialSetup=await request('GET',setupPath,{cookie:login.cookie});
+  assert.equal(initialSetup.status,200);
+  assert.equal(initialSetup.data.setup_status,'not_saved');
+  assert.equal(initialSetup.data.setup_version,null);
+  const prefs={theme:'cfs',start_module:'dashboard',widgets:['follower_goal'],active_game:'',follower_goal:250,show_mode:'standard'};
+  const setupBody=(value,version)=>({state:{creator_setup:value},expected_version:version});
+  assert.equal((await request('PUT',setupPath,{body:setupBody(prefs,null)})).status,401);
+  for(const invalid of [{...prefs,theme:'unknown'},{...prefs,follower_goal:0},{...prefs,widgets:['follower_goal','follower_goal']},{...prefs,admin:true}]){
+    assert.equal((await request('PUT',setupPath,{cookie:login.cookie,body:setupBody(invalid,null)})).status,400);
+  }
+  assert.equal((await request('PUT',setupPath,{cookie:login.cookie,body:{state:{creator_setup:prefs,devices:[]},expected_version:null}})).status,400);
+  const firstSetup=await request('PUT',setupPath,{cookie:login.cookie,body:setupBody(prefs,null)});
+  assert.equal(firstSetup.status,200);
+  assert.match(firstSetup.data.setup_version,/^[0-9a-f]{64}$/);
+  const concurrent=await Promise.all([251,252].map(follower_goal=>request('PUT',setupPath,{cookie:login.cookie,body:setupBody({...prefs,follower_goal},firstSetup.data.setup_version)})));
+  assert.deepEqual(concurrent.map(x=>x.status).sort(),[200,409]);
+  const winner=concurrent.find(x=>x.status===200).data;
+  const savedSetup=await request('GET',setupPath,{cookie:login.cookie});
+  assert.deepEqual(savedSetup.data.state.creator_setup,winner.state.creator_setup);
+  assert.equal(savedSetup.data.setup_version,winner.setup_version);
+  assert.equal((await request('GET',setupPath,{cookie:mediaOtherCookie})).data.setup_status,'not_saved');
+  const allSettings=await request('GET','/api/creator/settings',{cookie:login.cookie});
+  assert.equal(allSettings.data.settings.accountMarker,'creator-A-private');
+  assert.equal((await request('PUT','/api/creator/settings',{cookie:login.cookie,body:{settings:{creator_setup:prefs}}})).status,409);
+  const simultaneous=await Promise.all([
+    request('PUT','/api/creator/settings',{cookie:login.cookie,body:{settings:{accountMarker:'creator-A-updated'}}}),
+    request('PUT',setupPath,{cookie:login.cookie,body:setupBody({...prefs,follower_goal:300},winner.setup_version)})
+  ]);
+  assert(simultaneous.every(x=>x.status===200));
+  const afterBoth=await request('GET','/api/creator/settings',{cookie:login.cookie});
+  assert.equal(afterBoth.data.settings.accountMarker,'creator-A-updated');
+  assert.equal(afterBoth.data.settings.creator_setup.follower_goal,300);
+  assert.equal((await request('GET',setupPath,{cookie:mediaOtherCookie})).data.state.creator_setup,null);
+
   const upload = async (path, mimeType, filename, bytes, extraHeaders = {}) => {
     const response = await fetch(base + path, {
       method: 'POST',
@@ -1741,8 +1777,7 @@ try {
     const deviceTwo = await pairDevice(psCookie, 'PostgreSQL PlayStation B');
     const foreignDevice = await pairDevice(otherCookie, 'PostgreSQL PlayStation Foreign');
     // Export job acceptance is confined to this disposable PostgreSQL DB.
-    // Until separately approved migration 026, jobs are account-bound, not
-    // restricted to the exact device that claimed them.
+    // Migration 027 binds the exact claiming device.
     const exportProjectA = await request('POST', '/api/creator/cut-studio/projects', {
       cookie: psCookie, body: { title: 'Creator A cut export' }
     });
@@ -1809,6 +1844,14 @@ try {
     const claimedA = ownClaim.data.jobs[0].id;
     assert(exportJobsA.includes(claimedA));
     const statusPathA = '/api/launcher/jobs/' + claimedA;
+    assert.equal((await testPool.query("select claimed_by_device from tool_jobs where id=$1",[claimedA])).rows[0].claimed_by_device,deviceOne);
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceTwo), body: { status: 'completed', result: {} }
+    })).status, 409, 'A second active device of the SAME account cannot finish this claim');
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceTwo), body: { status: 'processing' }
+    })).status, 409, 'A second active device cannot start this claim');
+    assert.equal((await testPool.query("select status from tool_jobs where id=$1",[claimedA])).rows[0].status,'claimed');
     assert.equal((await request('PUT', statusPathA, {
       extraHeaders: bridge(foreignDevice), body: { status: 'completed', result: {} }
     })).status, 409, 'Active foreign-device credentials cannot complete other-account exports');
@@ -1869,6 +1912,26 @@ try {
     assert.equal((await request('PUT', '/api/launcher/jobs/' + exportJobB, {
       extraHeaders: bridge(foreignDevice), body: { status: 'completed', result: {} }
     })).status, 200, 'Other creator own device can complete its own export');
+    // Unknown legacy claimant remains unassigned and cannot be silently adopted.
+    const legacyJob=(await testPool.query("insert into tool_jobs(account_id,project_id,kind,status) values($1,$2,'cut_export','claimed') returning id",[created.data.account.id,exportIdA])).rows[0].id;
+    assert.equal((await request('PUT','/api/launcher/jobs/'+legacyJob,{extraHeaders:bridge(deviceOne),body:{status:'completed'}})).status,409);
+    assert.equal((await request('PUT','/api/launcher/jobs/'+legacyJob,{extraHeaders:bridge(deviceTwo),body:{status:'completed'}})).status,409);
+    assert.equal((await request('POST','/api/creator/cut-studio/jobs/'+legacyJob+'/cancel',{cookie:psCookie})).status,200);
+    // Non-export jobs must remain invisible to the export claimant.
+    const otherKind=(await testPool.query("insert into tool_jobs(account_id,project_id,kind,status) values($1,$2,'ci_non_export','queued') returning id",[created.data.account.id,exportIdA])).rows[0].id;
+    try{
+      const queued=await request('POST',exportPathA,{cookie:psCookie,body:{format:'mp4'}});
+      assert.equal(queued.status,202);
+      const claims=await Promise.all([deviceOne,deviceTwo].map(id=>request('GET','/api/launcher/jobs',{extraHeaders:bridge(id)})));
+      assert(claims.every(x=>x.status===200));
+      assert.equal(claims.flatMap(x=>x.data.jobs).length,1);
+      const index=claims.findIndex(x=>x.data.jobs.length===1);
+      const claimant=[deviceOne,deviceTwo][index],other=[deviceTwo,deviceOne][index],job=queued.data.job.id;
+      assert.equal(claims[index].data.jobs[0].id,job);
+      assert.equal((await request('PUT','/api/launcher/jobs/'+job,{extraHeaders:bridge(other),body:{status:'completed'}})).status,409);
+      assert.equal((await request('PUT','/api/launcher/jobs/'+job,{extraHeaders:bridge(claimant),body:{status:'completed'}})).status,200);
+      assert.equal((await testPool.query("select status,claimed_by_device from tool_jobs where id=$1",[otherKind])).rows[0].status,'queued');
+    }finally{await testPool.query("delete from tool_jobs where id=$1",[otherKind]);}
     // The opt-in Cut Studio atomic-save endpoint commits project + all timeline
     // clip revisions together; stale/broken requests must change neither.
     const atomicCut = await request('POST', '/api/creator/cut-studio/projects', {
