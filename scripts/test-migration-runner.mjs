@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { applyMigrations, baselineMigrations } from '../src/migration-runner.js';
+import { applyMigrations, baselineMigrations, assertMigrationManifest } from '../src/migration-runner.js';
 import { migrationFiles, loadMigrationSql } from '../src/migrations.js';
 
 function fakeClient({ legacyTables = false, historyExists = false, recorded = [] } = {}) {
@@ -40,7 +40,7 @@ assert.equal(client.executed.filter(item => item === 'commit').length, commits, 
 await assert.rejects(applyMigrations(client, files, file => file === '001.sql' ? 'changed sql' : sql[file]), /geändert/);
 assert.equal(client.executed.at(-1), 'select pg_advisory_unlock($1)', 'lock released on checksum error');
 const failed = fakeClient();
-await assert.rejects(applyMigrations(failed, ['003.sql'], () => 'fail sql'), /SQL failed/);
+await assert.rejects(applyMigrations(failed, ['001.sql'], () => 'fail sql'), /SQL failed/);
 assert(failed.executed.includes('rollback'), 'failed SQL must roll back');
 assert.equal(failed.rows.size, 0);
 const legacy = fakeClient({ legacyTables: true });
@@ -117,10 +117,31 @@ await assert.rejects(
 );
 assert.equal(changed.inserted.length, 0, 'changed schema must never be baselined');
 await assert.rejects(
-  baselineMigrations(baselineClient(), ['unsafe.sql'], () => 'delete from accounts', async () => 'same'),
+  baselineMigrations(baselineClient(), ['001_unsafe.sql'], () => 'delete from accounts', async () => 'same'),
   /datenverändernde Migration/
 );
 const productionBaseline = baselineClient();
 await baselineMigrations(productionBaseline, migrationFiles, loadMigrationSql, async () => 'unchanged');
 assert.equal(productionBaseline.inserted.length, 25, 'all production migrations must be baseline-safe');
 console.log('Migration baseline: unchanged-schema guard, rollback and unsafe-SQL guard passed.');
+
+// Reject duplicate numeric prefixes, gaps, reordered/invalid filenames and
+// incomplete lists before acquiring a lock, reading SQL or touching a DB.
+assert.doesNotThrow(() => assertMigrationManifest(migrationFiles));
+assert.doesNotThrow(() => assertMigrationManifest(migrationFiles.slice(0, 21)));
+const invalidManifests = [
+  [], null, ['002_first.sql'], ['001.sql', '003_gap.sql'],
+  ['001.sql', '002_a.sql', '002_b.sql'], ['001.sql', '003.sql', '002.sql'],
+  ['001.sql', '002.sql', '002.sql'], ['../001.sql'], ['001.sql', '002_bad-name.sql'],
+  ['001.sql', 2], [...migrationFiles, '026_password_recovery_rate_limit.sql', '026_launcher_job_claims.sql']
+];
+for (const invalid of invalidManifests) {
+  const untouched = fakeClient();
+  let loaded = false;
+  const loader = () => { loaded = true; throw new Error('must not load SQL'); };
+  await assert.rejects(applyMigrations(untouched, invalid, loader), /Migrationsliste/);
+  await assert.rejects(baselineMigrations(untouched, invalid, loader), /Migrationsliste/);
+  assert.equal(untouched.executed.length, 0, 'invalid manifest must not query DB');
+  assert.equal(loaded, false, 'invalid manifest must not load SQL');
+}
+console.log('Migration manifest: numeric collisions and invalid sequences blocked before DB access.');
