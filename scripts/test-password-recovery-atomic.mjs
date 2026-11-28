@@ -50,6 +50,9 @@ class RecoveryClient {
       const row = await this.pool.claimToken(this);
       return { rows: row ? [row] : [] };
     }
+    if (normalized.startsWith("select pg_advisory_xact_lock(hashtext($1))")) {
+      return { rows: [] };
+    }
     if (normalized.startsWith("update accounts set password_hash")) {
       this.pool.accountUpdates += 1;
       return { rows: [] };

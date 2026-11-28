@@ -7,6 +7,23 @@ function migrationChecksum(sql) {
   return createHash('sha256').update(sql).digest('hex');
 }
 
+export function assertMigrationManifest(files) {
+  if (!Array.isArray(files) || files.length === 0 || files.length > 999) {
+    throw new Error('Migrationsmanifest ist leer oder ungültig.');
+  }
+  const seen = new Set();
+  files.forEach((file, index) => {
+    if (typeof file !== 'string' || !/^\d{3}(?:_[a-z0-9_]+)?\.sql$/.test(file)) {
+      throw new Error(`Migrationsmanifest enthält einen ungültigen Dateinamen: ${String(file)}`);
+    }
+    const number = Number(file.slice(0, 3));
+    if (seen.has(number) || number !== index + 1) {
+      throw new Error('Migrationsmanifest ist nicht lückenlos, doppelt oder falsch sortiert.');
+    }
+    seen.add(number);
+  });
+}
+
 async function schemaFingerprint(client) {
   const queries = [
     `select table_name, column_name, ordinal_position, data_type, udt_name, is_nullable, column_default
@@ -34,6 +51,7 @@ function assertBaselineSafe(sql, file) {
 }
 
 export async function applyMigrations(client, files, loadSql) {
+  assertMigrationManifest(files);
   await client.query('select pg_advisory_lock($1)', [lockId]);
   try {
     await assertMigrationHistorySafe(client);
@@ -87,6 +105,7 @@ export async function applyMigrations(client, files, loadSql) {
 }
 
 export async function baselineMigrations(client, files, loadSql, fingerprint = schemaFingerprint) {
+  assertMigrationManifest(files);
   await client.query('select pg_advisory_lock($1)', [lockId]);
   let transactionOpen = false;
   try {

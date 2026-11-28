@@ -10,13 +10,14 @@ const isObject = value => value !== null && typeof value === "object" && !Array.
 function view(row) {
   return { id: row.id, project_id: row.project_id, kind: row.kind, status: row.status,
     payload: row.payload || {}, result: row.result || null, error: row.error || null,
+    claimed_by_device: row.claimed_by_device || null,
     created_at: row.created_at, updated_at: row.updated_at };
 }
 export async function listJobs(req) {
   const account = await requireAccount(req);
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
   const result = await getPool().query(
-    "select id,project_id,kind,status,payload,result,error,created_at,updated_at from tool_jobs where account_id=$1 and kind like 'cut_%' order by created_at desc limit 50",
+    "select id,project_id,kind,status,payload,result,error,claimed_by_device,created_at,updated_at from tool_jobs where account_id=$1 and kind like 'cut_%' order by created_at desc limit 50",
     [account.id]
   );
   return { ok: true, jobs: result.rows.map(view), limits: { max_pending_jobs: MAX_PENDING } };
@@ -56,7 +57,7 @@ export async function createJob(req, projectId, kind, payload = {}) {
       return { error: "JOB_LIMIT_REACHED", status: 429 };
     }
     const result = await client.query(
-      "insert into tool_jobs(account_id,project_id,kind,payload) values($1,$2,$3,$4::jsonb) returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
+      "insert into tool_jobs(account_id,project_id,kind,payload) values($1,$2,$3,$4::jsonb) returning id,project_id,kind,status,payload,result,error,claimed_by_device,created_at,updated_at",
       [account.id, projectId, kind, JSON.stringify(payload)]
     );
     await client.query("COMMIT");
@@ -72,7 +73,7 @@ export async function cancelJob(req, id) {
   if (!account) return { error: "AUTHENTICATION_REQUIRED", status: 401 };
   if (!UUID.test(String(id))) return { error: "JOB_NOT_FOUND_OR_RUNNING", status: 409 };
   const result = await getPool().query(
-    "update tool_jobs set status='canceled',updated_at=now() where id=$1 and account_id=$2 and kind='cut_export' and status in ('queued','claimed') returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
+    "update tool_jobs set status='canceled',updated_at=now() where id=$1 and account_id=$2 and kind='cut_export' and status in ('queued','claimed') returning id,project_id,kind,status,payload,result,error,claimed_by_device,created_at,updated_at",
     [id, account.id]
   );
   return result.rows[0] ? { ok: true, job: view(result.rows[0]) }
@@ -99,8 +100,8 @@ export async function claimJobs(req) {
       return { error: "DEVICE_NOT_ACTIVE", status: 403 };
     }
     const result = await client.query(
-      "with next_job as (select id from tool_jobs where account_id=$1 and kind='cut_export' and status='queued' order by created_at for update skip locked limit 1) update tool_jobs set status='claimed',updated_at=now() where id in (select id from next_job) and account_id=$1 and kind='cut_export' and status='queued' returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
-      [device.account_id]
+      "with next_job as (select id from tool_jobs where account_id=$1 and kind='cut_export' and status='queued' order by created_at for update skip locked limit 1) update tool_jobs set status='claimed',claimed_by_device=$2,updated_at=now() where id in (select id from next_job) and account_id=$1 and kind='cut_export' and status='queued' returning id,project_id,kind,status,payload,result,error,claimed_by_device,created_at,updated_at",
+      [device.account_id, deviceId]
     );
     await client.query("COMMIT");
     return { ok: true, jobs: result.rows.map(view) };
@@ -110,10 +111,9 @@ export async function claimJobs(req) {
   } finally { client.release(); }
 }
 
-// The existing schema has no claimed_by_device column. Until migration 026 is
-// explicitly approved, updates may be made by *active devices of the owning
-// account*, never by a device belonging to another account. The transaction
-// holds the device row lock through the job update to serialize revocation.
+// The transaction holds the device row lock through the job update to
+// serialize revocation. The claimed device predicate below is the final
+// ownership check, even when two active devices share one account.
 export async function updateLauncherJob(req, id, body) {
   if (!launcherAuthorized(req)) return { error: "LAUNCHER_UNAUTHORIZED", status: 401 };
   const deviceId = req?.headers?.["x-cfs-device-id"];
@@ -141,8 +141,8 @@ export async function updateLauncherJob(req, id, body) {
       return { error: "DEVICE_NOT_ACTIVE", status: 403 };
     }
     const result = await client.query(
-      "update tool_jobs set status=$3,result=$4::jsonb,error=$5,updated_at=now() where id=$1 and account_id=$2 and kind='cut_export' and (status='claimed' or (status='processing' and $3 <> 'processing')) returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
-      [id, active.rows[0].account_id, body.status, resultJson, body.error?.slice(0, 1000) || null]
+      "update tool_jobs set status=$3,result=$4::jsonb,error=$5,updated_at=now() where id=$1 and account_id=$2 and claimed_by_device=$6 and kind='cut_export' and (status='claimed' or (status='processing' and $3 <> 'processing')) returning id,project_id,kind,status,payload,result,error,claimed_by_device,created_at,updated_at",
+      [id, active.rows[0].account_id, body.status, resultJson, body.error?.slice(0, 1000) || null, deviceId]
     );
     await client.query("COMMIT");
     return result.rows[0] ? { ok: true, job: view(result.rows[0]) }

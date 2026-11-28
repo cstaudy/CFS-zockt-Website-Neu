@@ -1,82 +1,90 @@
 # CFS Zockt – zentrale Entwicklungsübersicht
 
-Stand: 27.11.2026
+Stand: 28.11.2026
 Arbeitsbranch: `security/staging-neon-tls-20261125`
-Ausgangs-HEAD: `ea54afe05243d6771eae95f726d429fcc2483f07`
+Ausgangs-HEAD dieses Arbeitspakets: `c84c549348c59811eba537c0c605b8306ffccff4`
 
 ## Statuswerte
 
-- **OFFEN** – noch nicht begonnen oder noch nicht ausreichend spezifiziert
+- **OFFEN** – noch nicht begonnen oder nicht ausreichend spezifiziert
 - **IN ARBEIT** – aktuell bearbeitet
 - **IMPLEMENTIERT** – Quellcode oder Dokumentation ist vorhanden
 - **GETESTET** – der relevante lokale Test ist erfolgreich gelaufen
 - **BLOCKIERT** – eine externe Abhängigkeit oder eine ausdrücklich nicht erlaubte Ausführung fehlt
 - **ABGESCHLOSSEN** – implementiert, getestet, dokumentiert und ohne offene Abnahmebedingung
 
-## Baseline
+## Baseline und Teststand
 
 | Bereich | Status | Tatsächlicher Nachweis / offene Grenze |
 |---|---|---|
-| Repository und Entwicklungsbranch | GETESTET | Sauberer Checkout auf `security/staging-neon-tls-20261125`, Ausgangs-HEAD `ea54afe` |
-| Website-3-Mastercode | IMPLEMENTIERT | `index.html`, `server.js`, `src/`, `pages/`, `migrations/` an der Projektwurzel; alte Archive bleiben Read-only-Referenzen |
-| HTML-Seiten | IMPLEMENTIERT | 50 Dateien unter `pages/` plus öffentliche Root-/Widget-/Runtime-Seiten |
-| Datenbankmigrationen | IMPLEMENTIERT | 25 SQL-Dateien vorhanden; Produktionsmigrationen und Neon-Umschaltung nicht Bestandteil dieser Entwicklungsarbeit |
-| Automatisierte Prüfung | BLOCKIERT | `npm.cmd run check` benötigt die nicht vorhandene lokale Abhängigkeit `node_modules/pg`; keine Neuinstallation ohne separate Freigabe |
-| Externe Provider | BLOCKIERT | Twitch, TikTok, PlayStation und Discord-Statistik benötigen echte, nicht im Repository gespeicherte Zugänge bzw. Providerfreigaben |
-| Browser-/Screenshot-Abnahme | OFFEN | Referenzbilder und Assets geprüft; laufende Browseransichten müssen im nächsten UI-Paket erneut aufgenommen werden |
+| Repository und Entwicklungsbranch | GETESTET | Checkout auf `security/staging-neon-tls-20261125`; dieser Auftrag startete bei `c84c549` |
+| Website-3-Mastercode | IMPLEMENTIERT | `index.html`, `server.js`, `src/`, `pages/`, `migrations/` an der Projektwurzel; Archive unter `_codex_sources/` bleiben Read-only-Referenzen |
+| HTML-Seiten | IMPLEMENTIERT | 59 HTML-Dateien im Responsive-Vertrag geprüft |
+| Datenbankmigrationen | IMPLEMENTIERT | Migrationen 001–027; 026 ist Passwort-Recovery, 027 bindet Launcher-Jobs an das exakt claimende Gerät |
+| Automatisierte Prüfung | GETESTET | `npm ci` mit separatem Temp-npm-Cache erfolgreich; vollständiges `npm run check` erfolgreich nach Abschluss dieses Pakets |
+| PostgreSQL-18-Integration | BLOCKIERT | Statischer PG18-Backupvertrag und sichere Verweigerung sind getestet; lokale Bash/Docker- und disposable PostgreSQL-18-Abnahme fehlen in dieser Umgebung. Keine produktive DB wurde angesprochen |
+| Externe Provider | BLOCKIERT | Twitch, TikTok, PlayStation und Discord-Statistik benötigen echte, nicht im Repository gespeicherte Zugangsdaten bzw. Providerfreigaben |
+| Browser-/Screenshot-Abnahme | GETESTET | Öffentliche Startseite und Login wurden bei 320/375/390/430/768/1280/1920 px im lokalen Browser geprüft; bei 768 px wurde die Startseiten-Navigation auf das mobile Menü umgestellt. Geschützte Seiten bleiben ohne Testkonto BLOCKIERT |
 
 ## Masterplan nach Funktionsbereich
 
 | Funktionsbereich | Status | Ist-Stand und nächste prüfbare Aufgabe |
 |---|---|---|
-| Startseite, Über mich, Community, Spiele | IMPLEMENTIERT | Seiten und API-Fallbacks vorhanden; echte Zahlen/Spiele nur aus bestätigten Quellen anzeigen und Browserabnahme ergänzen |
-| Login, Registrierung, Recovery | IMPLEMENTIERT | Server- und Frontendpfade vorhanden; Password-Recovery wird in diesem Branch transaktional gegen parallele Tokenverwendung gehärtet |
-| E-Mail-Verifizierung | IMPLEMENTIERT | Sichtbarer Status, erneuter Versand, Resend-Fehler, Ablauf und atomare einmalige Tokenverwendung vorhanden; Live-Mail-/DB-Test bleibt abhängig von Stagingzugang |
-| Admin-Navigation und Berechtigungen | IMPLEMENTIERT | Adminstatus erfordert übereinstimmende E-Mail, Rolle `admin` und bestätigte E-Mail; Live-DB-Abnahme bleibt separat |
-| Creator Dashboard und Creator Suite | IMPLEMENTIERT | Viele Werkzeuge, Projekte und API-Adapter vorhanden; Ende-zu-Ende-Abnahme je Werkzeug noch offen |
-| Stream Studio, Widget, Scene, Cut, Audio | IMPLEMENTIERT | Website- und Persistenzpfade vorhanden; Desktop-/OBS-Funktionen werden nicht als Browserfunktion vorgetäuscht |
+| Startseite, Über mich, Community, Spiele | GETESTET | Seiten und API-Fallbacks vorhanden; echte Werte werden nur aus bestätigten Quellen angezeigt. Öffentliche Browseransicht visuell geprüft |
+| Login und Registrierung | GETESTET | Login-/Registrierungsansicht, Tabs, mobile Darstellung und neutrale Recovery-Einstiegspunkte geprüft |
+| Passwort-Recovery | GETESTET | Einmalige Tokenverwendung, Ablauf, transaktionaler Versand, Account-/IP-Limits und parallele Anfragen regressionsgetestet |
+| E-Mail-Verifizierung | GETESTET | Sichtbarer Status, erneuter Versand, Resend-Fehler, Ablauf, atomare einmalige Tokenverwendung und parallele Requests im Vertrags-/Concurrency-Test bestanden; Live-Mail-/DB-Abnahme bleibt stagingabhängig |
+| Admin-Navigation und Berechtigungen | GETESTET | Gemeinsame Account-Projektion; Admin nur bei übereinstimmender Betreiber-E-Mail, Rolle `admin` und bestätigter E-Mail. Browser-/Live-DB-Abnahme bleibt separat |
+| Creator Dashboard und Creator Suite | IMPLEMENTIERT | Werkzeuge, Projekte und API-Adapter vorhanden; authentifizierte Ende-zu-Ende-Abnahme ist ohne isolierte DB/Session BLOCKIERT |
+| Stream Studio, Widget, Scene, Cut, Audio | IMPLEMENTIERT | Website- und Persistenzpfade vorhanden; OBS-/Desktop-Funktionen werden nicht als Browserfunktion vorgetäuscht |
 | Streamdesign-Katalog | IMPLEMENTIERT | 31 Katalogwelten und 16 Varianten referenziert; vorhandene WebPs sind nur Vorschauen, echte animierte Originalmotive fehlen |
-| Twitch | IMPLEMENTIERT | OAuth-/öffentliche Pfade vorhanden; echte Providerabnahme BLOCKIERT ohne autorisierte Testkonfiguration |
-| TikTok | IMPLEMENTIERT | OAuth-/Statuspfade vorhanden; echte Providerabnahme BLOCKIERT ohne autorisierte Testkonfiguration |
-| PlayStation | IMPLEMENTIERT | Katalog-/Launcherpfade und öffentliche Projektion vorhanden; echte Datenquelle und Zuordnung BLOCKIERT |
-| Discord | IMPLEMENTIERT | Community-Verlinkung und neutraler Status vorhanden; keine Discord-OAuth-Anmeldung; echte Mitgliederstatistik BLOCKIERT |
+| Twitch / TikTok / PlayStation / Discord | IMPLEMENTIERT | Websitepfade und neutrale Fallbacks vorhanden; reale Provider- bzw. Gerätedaten bleiben BLOCKIERT ohne autorisierte Konfiguration |
 | Shop und Zahlungen | BLOCKIERT | Katalog-/PayPal-Vorbereitung vorhanden; kostenpflichtige Käufe bleiben bis Provider-, Rechts- und Abnahmetests gesperrt |
-| Datenschutz und Kontowerkzeuge | IMPLEMENTIERT | Sessions, Export, Kontolöschung, MFA-/Passkey-Oberflächen vorhanden; echte Accountabnahme bleibt DB-abhängig |
-| Responsive Design und Barrierefreiheit | IN ARBEIT | Gemeinsame CSS-Schichten, Fokus-/Skip-Mechanismen und mobile Regeln vorhanden; 320/375/390/430/768 px sowie Desktop müssen visuell verifiziert werden |
-| Persistente Speicherung | IMPLEMENTIERT | PostgreSQL-Projekte, Sessions und Upload-Speicherpfade vorhanden; Storage-/Quota-/Recovery-Abnahme ist noch nicht vollständig live geprüft |
-| Backup und Wiederherstellung | ABGESCHLOSSEN | Nachgewiesene unabhängige Neon-Sicherung und isolierte Wiederherstellung sind im Migrations-Runbook dokumentiert; keine erneuten Produktions-Backups in diesem Entwicklungsauftrag |
+| Datenschutz und Kontowerkzeuge | IMPLEMENTIERT | Sessions, Export, Kontolöschung, MFA- und Passkey-Oberflächen vorhanden; reale Accountabnahme bleibt DB-abhängig |
+| Responsive Design und Barrierefreiheit | GETESTET | Gemeinsames Designsystem, Fokus-/Skip-Mechanismen und Breakpoints 980/760/520 vorhanden; Startseiten-Shell nutzt bis 820 px das zugängliche mobile Menü |
+| Persistente Speicherung | IMPLEMENTIERT | PostgreSQL-Projekte, Sessions, Upload-Speicher und Quota-Pfade vorhanden; isolierte Ende-zu-Ende-Abnahme noch offen |
+| Backup und Wiederherstellung | ABGESCHLOSSEN | Vorheriger Migrationsnachweis mit unabhängiger Neon-Sicherung und isolierter Wiederherstellung bleibt dokumentiert; in diesem Auftrag keine neuen Produktions-Backups |
 
-## Aktuelles Arbeitspaket
+## Abgleich der GitHub-Entwürfe
 
-1. **Auth-Transaktionshärtung:** die alte doppelte E-Mail-Tokenimplementierung wird aus `src/auth.js` entfernt und nur noch kompatibel auf `src/email-verification.js` verwiesen.
-2. **Passwort-Recovery:** Tokenverbrauch, Passwortänderung und Sitzungs-/MFA-Challenge-Invalidierung laufen in einer Transaktion; parallele und abgelaufene Token werden regresstestbar gemacht.
-3. Danach: fehlende lokale Abhängigkeit nur nach Freigabe über den vorhandenen separaten npm-Cache herstellen und anschließend die vollständige Testkette inklusive Browser-Smoke-Test ausführen.
+Die Entwürfe wurden gelesen und selektiv geprüft. Es wurde kein Pull Request blind gemergt und keine vollständige Datei aus einem Entwurf ersetzt.
+
+| Entwurf | Ergebnis | Übernommene bzw. bewusst nicht übernommene Punkte |
+|---|---|---|
+| PR #103 Passwort-Recovery | IMPLEMENTIERT / GETESTET | Migration 026, persistente Account-/IP-Limits, deterministische Advisory-Lock-Reihenfolge, neutrale Antworten, Mail-Rollback und Regressionstests übernommen; der vorhandene transaktionale Tokenverbrauch blieb erhalten |
+| PR #108 Neon-TLS/Zielprüfung | IMPLEMENTIERT / GETESTET | Striktes `rejectUnauthorized` aus dem bestehenden Code beibehalten; zusätzliche read-only Zielprüfung für exakten Neon-Host, Datenbanknamen, `sslmode=verify-full` und erlaubte URL-Parameter ergänzt |
+| PR #109 Migrationssicherheit | IMPLEMENTIERT / GETESTET | Manifestprüfung auf gültige, lückenlose und sortierte Dateinamen vor jedem DB-Zugriff ergänzt; Ledger- und Baseline-Guards bleiben aktiv |
+| PR #117 Admin-Sicherheit | IMPLEMENTIERT / GETESTET | Einheitliche `accountAccessView`-Projektion ergänzt; Rollenlisten in Creator Settings entfernt; Passwort-Hashes bleiben außerhalb von API-/Login-Projektionen |
+| PR #121 Launcher-Gerätezuordnung | IMPLEMENTIERT / GETESTET | Migration 027 und exakte `claimed_by_device`-Prädikate für Claim/Update ergänzt; E2E-DB-Abnahme bleibt CI-/isoliert-datenbankabhängig |
+| PR #107 Entwicklungsplan | ABGEGLICHEN | Roadmap und technische Inventur als Grundlage verwendet; Multi-Publisher bleibt entsprechend der Vorgabe pausiert |
+
+## Aktuelles Arbeitspaket – Nachweis
+
+| Paket | Status | Nachweis / Grenze |
+|---|---|---|
+| Lockfile-Abhängigkeiten | GETESTET | `npm ci --no-audit --no-fund` mit temporärem Cache außerhalb des Projekts erfolgreich |
+| Sicherheitskonsolidierung | GETESTET | Recovery-, E-Mail-, Admin-, Neon-Ziel-, Migrations- und Launcher-Verträge erfolgreich |
+| Responsive HTML-Vertrag | GETESTET | 59 Seiten mit `lang` und Viewport-Meta; gemeinsame Breakpoints 980/760/520 |
+| Browser-Screenshots | GETESTET | Tatsächliche lokale Browseransichten vor/nach der 768-px-Navigationskorrektur sowie bei den geforderten Breiten; der nachfolgende PNG-Export war nach einem Browserhost-Abbruch nicht wiederholbar und wurde nicht als vollständiger Nachweis ausgegeben. Keine neuen Markenassets oder CSS-Konkurrenzschicht |
+| Authentifizierte Creator-/Admin-Seiten | BLOCKIERT | Ohne isolierte synthetische PostgreSQL-18-Datenbank und Session keine verantwortbare praktische Abnahme; unauthentifizierte Aufrufe redirecten erwartungsgemäß zum Login |
+| Produktiv veröffentlicht | BLOCKIERT | Kein Produktionsdeployment und kein Merge in `main` im Rahmen dieses Auftrags |
 
 ## Sicherheits- und Betriebsgrenzen
 
-- Keine produktive Neon-Datenbank, Render-Umgebungsvariable oder Produktionsdeployment wird aus diesem Entwicklungsauftrag verändert.
-- TLS bleibt strikt; keine `rejectUnauthorized`-Abschwächung.
+- Keine produktive Neon-Datenbank, Render-Umgebungsvariable oder Produktionsbereitstellung wurde verändert.
+- TLS bleibt strikt; keine `rejectUnauthorized`-Abschwächung und kein `DATABASE_SSL=false` für entfernte Ziele.
 - Keine Passwörter, Token, API-Schlüssel, Dumps oder echten Providerdaten in Git, Chat oder Testprotokollen.
 - Keine neuen Originaldesigns oder erfundenen Providerstatistiken.
-- Rollback erfolgt über den vorherigen lokalen Commit/Branchstand; Datenbankmigrationen und produktive Umschaltungen bleiben separat freigabepflichtig.
+- Migration 027 muss vor einem Launcher-Produktiveinsatz im Ziel-Ledger vorhanden sein; die Release-Readiness-Prüfung blockiert sonst fail-closed.
+- Rollback der Codeänderungen erfolgt über den vorherigen Commit/Branchstand. Datenbankmigrationen und produktive Umschaltungen bleiben separat freigabepflichtig.
 
 ## Nächste Arbeitspakete
 
 | Priorität | Paket | Status |
 |---|---|---|
-| P0 | Auth-/Recovery-Transaktionen und Regressionstests abschließen | IN ARBEIT |
-| P0 | Lokale Abhängigkeiten und vollständige `npm`-Testkette nach Freigabe reproduzieren | BLOCKIERT |
-| P1 | Gemeinsame UI-Schichten und mobile Abnahme gegen sechs Referenzen | OFFEN |
+| P0 | Isolierte PostgreSQL-18-DB für Migration-/Launcher-/Creator-E2E-Abnahme bereitstellen | BLOCKIERT |
+| P1 | Authentifizierte Browserabnahme der Creator-Suite und Admin-Seiten mit synthetischen Konten | BLOCKIERT |
+| P1 | Provider-Abnahmen für Twitch, TikTok, PlayStation und Discord | BLOCKIERT |
 | P1 | API-/Frontend-Inventar je Seite mit echten Leer-/Fehlerzuständen vervollständigen | OFFEN |
-| P1 | Creator-Tools Ende-zu-Ende auf isolierter Testdatenbank prüfen | BLOCKIERT |
-| P2 | Provider-Abnahmen für Twitch, TikTok, PlayStation und Discord | BLOCKIERT |
 | P2 | Original-Streammotive oder separat freigegebener Kreativauftrag | BLOCKIERT |
-
-## Nachweis dieses Arbeitsschritts
-
-| Paket | Status | Nachweis / Grenze |
-|---|---|---|
-| Responsive HTML-Vertrag | GETESTET | 59 HTML-Seiten geprüft; jede Seite besitzt `lang` und einen Viewport-Meta-Tag; gemeinsame Breakpoints 980/760/520 px vorhanden |
-| Runtime-/Widget-Metadaten | IMPLEMENTIERT | `widgets/stream-maker.html`, `games/runtime.html` und `widgets/scene.html` ergänzt; keine Layout- oder Markenstruktur geändert |
-| Visuelle mobile Abnahme | OFFEN | Echte Browser-Screenshots bei 320/375/390/430/768 px fehlen weiterhin, da die lokale Laufzeit-/Abhängigkeitsabnahme nicht vollständig verfügbar ist |
-
+| P2 | Multi-Publisher | BLOCKIERT / pausiert gemäß Auftrag |

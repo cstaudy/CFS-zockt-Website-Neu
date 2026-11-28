@@ -13,7 +13,7 @@ const complete = {
   mfa_totp_replay_exists: true,
   mfa_challenge_window_exists: true,
   mfa_challenge_count_exists: true,
-  launcher_claim_device_exists: false,
+  launcher_claim_device_exists: true,
   twitch_subscriptions_exists: false,
   twitch_challenges_exists: false,
   twitch_follow_events_exists: false
@@ -57,8 +57,8 @@ assert.equal(good.database_ready_for_nonmigrating_start, true);
 assert.equal(good.production_release_approved, false,
   "Schema readiness never confirms an operational release");
 assert.deepEqual(good.blockers, []);
-assert.equal(good.schema.launcher_026_device_claim, false);
-assert.equal(good.schema.twitch_027_follow_subscriptions, false);
+assert.equal(good.schema.launcher_027_device_claim, true);
+assert.equal(good.schema.twitch_028_follow_subscriptions, false);
 assert.equal(goodDb.queries.length, 2);
 assert(!JSON.stringify(good).includes("email"));
 assert(!JSON.stringify(good).includes("password"));
@@ -70,13 +70,15 @@ const legacyDb = fakeDb({ flags: {
   mfa_recovery_rotation_exists: false,
   mfa_totp_replay_exists: false,
   mfa_challenge_window_exists: false,
-  mfa_challenge_count_exists: false
+  mfa_challenge_count_exists: false,
+  launcher_claim_device_exists: false
 } });
 const legacy = await inspectReleaseReadiness(legacyDb);
 assert.equal(legacy.migration_history, "missing");
 assert.equal(legacy.database_ready_for_nonmigrating_start, false);
 assert(legacy.blockers.includes("LEGACY_MIGRATION_BASELINE_REQUIRED"));
 assert(legacy.blockers.includes("MFA_SCHEMA_022_025_INCOMPLETE"));
+assert(legacy.blockers.includes("LAUNCHER_SCHEMA_027_INCOMPLETE"));
 assert.equal(legacyDb.queries.length, 2,
   "Legacy DB inspects column metadata but never SELECTs a missing ledger");
 assert.equal(legacy.legacy_schema_shape.matched, true);

@@ -8,6 +8,11 @@ import { fileURLToPath } from "node:url";
 // No database or real Docker daemon is contacted. A fake docker executable
 // records whether an unsafe call got past the CI-only guard.
 const target = fileURLToPath(new URL("./test-pg18-backup-restore.sh", import.meta.url));
+const bashProbe = spawnSync("bash", ["--version"], { encoding: "utf8" });
+if (bashProbe.error?.code === "ENOENT") {
+  console.log("PG18 backup refusal: SKIPPED locally because bash is unavailable; CI-only Bash/Docker refusal test remains required.");
+  process.exit(0);
+}
 const scratch = await mkdtemp(join(tmpdir(), "cfs-pg18-refusal-"));
 const dockerLog = join(scratch, "docker.log");
 const fakeDocker = join(scratch, "docker");

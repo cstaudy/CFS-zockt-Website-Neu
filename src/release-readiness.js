@@ -89,10 +89,10 @@ export async function inspectReleaseReadiness(db) {
     mfa_totp_replay: catalog.mfa_totp_replay_exists,
     mfa_challenge_window: catalog.mfa_challenge_window_exists &&
       catalog.mfa_challenge_count_exists,
-    launcher_026_device_claim: catalog.launcher_claim_device_exists,
-    twitch_027_follow_subscriptions: catalog.twitch_subscriptions_exists,
-    twitch_027_follow_challenges: catalog.twitch_challenges_exists,
-    twitch_027_follow_events: catalog.twitch_follow_events_exists
+    launcher_027_device_claim: catalog.launcher_claim_device_exists,
+    twitch_028_follow_subscriptions: catalog.twitch_subscriptions_exists,
+    twitch_028_follow_challenges: catalog.twitch_challenges_exists,
+    twitch_028_follow_events: catalog.twitch_follow_events_exists
   };
   let history = "missing";
   let entries = 0;
@@ -124,6 +124,8 @@ export async function inspectReleaseReadiness(db) {
   if (!schema.mfa_login_challenges || !schema.mfa_recovery_rotation ||
       !schema.mfa_totp_replay || !schema.mfa_challenge_window)
     blockers.push("MFA_SCHEMA_022_025_INCOMPLETE");
+  if (!schema.launcher_027_device_claim)
+    blockers.push("LAUNCHER_SCHEMA_027_INCOMPLETE");
   const noMigrationOnStartup = blockers.length === 0;
   return {
     ok: true,

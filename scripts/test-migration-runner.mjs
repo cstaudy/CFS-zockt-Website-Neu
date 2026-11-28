@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { applyMigrations, baselineMigrations } from '../src/migration-runner.js';
+import { applyMigrations, assertMigrationManifest, baselineMigrations } from '../src/migration-runner.js';
 import { migrationFiles, loadMigrationSql } from '../src/migrations.js';
 
 function fakeClient({ legacyTables = false, historyExists = false, recorded = [] } = {}) {
@@ -32,6 +32,17 @@ function fakeClient({ legacyTables = false, historyExists = false, recorded = []
 const client = fakeClient();
 const files = ['001.sql', '002.sql'];
 const sql = { '001.sql': 'create table one', '002.sql': 'create table two' };
+for (const invalid of [
+  [],
+  ['002.sql'],
+  ['001.sql', '003.sql'],
+  ['001.sql', '001.sql'],
+  ['bad.sql'],
+  ['001_Upper.sql']
+]) {
+  assert.throws(() => assertMigrationManifest(invalid), /Migrationsmanifest/);
+}
+assert.doesNotThrow(() => assertMigrationManifest(files));
 await applyMigrations(client, files, file => sql[file]);
 assert.equal(client.rows.size, 2);
 const commits = client.executed.filter(item => item === 'commit').length;
@@ -40,7 +51,7 @@ assert.equal(client.executed.filter(item => item === 'commit').length, commits, 
 await assert.rejects(applyMigrations(client, files, file => file === '001.sql' ? 'changed sql' : sql[file]), /geändert/);
 assert.equal(client.executed.at(-1), 'select pg_advisory_unlock($1)', 'lock released on checksum error');
 const failed = fakeClient();
-await assert.rejects(applyMigrations(failed, ['003.sql'], () => 'fail sql'), /SQL failed/);
+await assert.rejects(applyMigrations(failed, ['001.sql'], () => 'fail sql'), /SQL failed/);
 assert(failed.executed.includes('rollback'), 'failed SQL must roll back');
 assert.equal(failed.rows.size, 0);
 const legacy = fakeClient({ legacyTables: true });
@@ -71,7 +82,7 @@ const extra = fakeClient({ recorded: [
   ['003_future.sql', 'untrusted-checksum']
 ] });
 await assert.rejects(applyMigrations(extra, files, file => sql[file]),
-  /unvollständig, unbekannt oder ungültig/);
+  /unvollständig, unbekannt oder ungültig|Migrationsmanifest/);
 assert(!extra.executed.includes('begin'));
 
 const tampered = fakeClient({ recorded: [['001.sql', 'wrong-checksum']] });
@@ -81,7 +92,7 @@ assert(!tampered.executed.includes('begin'),
   'Wrong stored checksum must be caught before later migration DDL');
 
 await assert.rejects(applyMigrations(fakeClient(), ['001.sql', '001.sql'],
-  () => 'create table repeated'), /unvollständig, unbekannt oder ungültig/);
+  () => 'create table repeated'), /unvollständig, unbekannt oder ungültig|Migrationsmanifest/);
 console.log('Migration runner: apply, complete prefix/checksums, unknown entries, missing ledger, rollback passed.');
 
 function baselineClient(existing = []) {
@@ -117,10 +128,10 @@ await assert.rejects(
 );
 assert.equal(changed.inserted.length, 0, 'changed schema must never be baselined');
 await assert.rejects(
-  baselineMigrations(baselineClient(), ['unsafe.sql'], () => 'delete from accounts', async () => 'same'),
+  baselineMigrations(baselineClient(), ['001.sql'], () => 'delete from accounts', async () => 'same'),
   /datenverändernde Migration/
 );
 const productionBaseline = baselineClient();
 await baselineMigrations(productionBaseline, migrationFiles, loadMigrationSql, async () => 'unchanged');
-assert.equal(productionBaseline.inserted.length, 25, 'all production migrations must be baseline-safe');
+assert.equal(productionBaseline.inserted.length, 27, 'all production migrations must be baseline-safe');
 console.log('Migration baseline: unchanged-schema guard, rollback and unsafe-SQL guard passed.');

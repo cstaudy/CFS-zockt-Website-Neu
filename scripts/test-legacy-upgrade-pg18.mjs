@@ -29,7 +29,7 @@ try {
   await legacy.connect();
 
   assert.equal(legacyBaselineFiles.length, 21);
-  assert.equal(pendingLegacyUpgradeFiles.length, 4);
+  assert.equal(pendingLegacyUpgradeFiles.length, 6);
 
   // Simulate the pre-migration-ledger production era: 001–021 were applied
   // directly, and no schema_migrations table exists.
@@ -168,7 +168,7 @@ try {
 
   // All migrations must be safely repeatable on a second server startup.
   await applyMigrations(legacy, migrationFiles, loadMigrationSql);
-  assert.equal(Number((await legacy.query("select count(*) as n from schema_migrations")).rows[0].n), 25);
+  assert.equal(Number((await legacy.query("select count(*) as n from schema_migrations")).rows[0].n), 27);
   assert.deepEqual(await snapshot(), before);
 
   // A modified already-recorded migration is rejected by the checksum guard.

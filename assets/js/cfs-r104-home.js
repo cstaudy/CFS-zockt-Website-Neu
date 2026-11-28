@@ -4,7 +4,7 @@
   const menu = document.getElementById('r104MainNav');
   const trigger = document.querySelector('.r104-toggle');
   if (!menu || !trigger) return;
-  const mobile = window.matchMedia('(max-width: 760px)');
+  const mobile = window.matchMedia('(max-width: 820px)');
   const sync = () => {
     const expanded = mobile.matches && menu.classList.contains('open');
     document.body.classList.toggle('r104-menu-open', expanded);

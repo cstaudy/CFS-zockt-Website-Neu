@@ -44,7 +44,7 @@ body.public-auth-page .source-context[hidden]{display:none!important}
 .cfs-auth-tabs button:first-child{border-radius:18px 0 0 0}.cfs-auth-tabs button:last-child{border-radius:0 18px 0 0}
 html body.public-auth-page .auth-entry-shell .cfs-auth-tabs button[aria-selected="true"]{background:var(--cfs-cyan)!important;color:#00131d!important}
 @media(max-width:620px){body.public-auth-page .auth-entry-shell{padding:16px!important}body.public-auth-page .auth-entry-panel{padding:22px 18px!important}}
-@media(max-width:760px){
+@media (max-width: 820px){
   html,body{max-width:100%;overflow-x:hidden}
   body.public-home .r104-nav:not(.open){display:none!important}
   body.public-home .r104-header-actions{display:flex!important;align-items:center;gap:8px}

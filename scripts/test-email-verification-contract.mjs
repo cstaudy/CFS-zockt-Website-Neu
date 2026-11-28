@@ -32,6 +32,8 @@ try {
   assert.deepEqual(await sendMail({ to: "user@example.invalid", token: "test-token", type: "verification" }), { ok: false, error: "MAIL_DELIVERY_FAILED", status: 502 });
   globalThis.fetch = async (_url, options) => { assert.match(String(options.body), /verify-email\.html#token=test-token/); return { ok: true, status: 200 }; };
   assert.deepEqual(await sendMail({ to: "user@example.invalid", token: "test-token", type: "verification" }), { ok: true });
+  process.env.APP_BASE_URL = "http://untrusted.example.invalid/app";
+  assert.deepEqual(await sendMail({ to: "user@example.invalid", token: "test-token", type: "verification" }), { ok: false, error: "MAIL_NOT_CONFIGURED", status: 503 });
 } finally {
   globalThis.fetch = savedFetch;
   for (const key of Object.keys(process.env)) if (!(key in savedEnv)) delete process.env[key];

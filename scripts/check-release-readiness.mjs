@@ -1,5 +1,6 @@
 import { getPool, closeDatabase } from "../src/db.js";
 import { inspectReleaseReadiness } from "../src/release-readiness.js";
+import { inspectNeonTarget } from "../src/neon-target-check.js";
 
 // Deliberately NOT a startup hook. Only an operator with explicit read-only
 // consent may inspect a selected database. This does not apply migrations.
@@ -9,6 +10,12 @@ if (process.env.CONFIRM_RELEASE_PREFLIGHT_READ_ONLY !== "yes") {
 if (!process.env.DATABASE_URL) {
   throw new Error("Release-Preflight verweigert: DATABASE_URL fehlt.");
 }
+const targetConfigured = Boolean(process.env.EXPECTED_NEON_HOST || process.env.NEON_PRODUCTION_HOST ||
+  process.env.EXPECTED_NEON_DATABASE || process.env.NEON_PRODUCTION_DATABASE);
+const target = targetConfigured ? inspectNeonTarget(process.env) : null;
+if (targetConfigured && !target.ok) {
+  throw new Error(`Release-Preflight verweigert: ${target.code}`);
+}
 
 try {
   const client = await getPool().connect();
@@ -17,7 +24,7 @@ try {
     try {
       const status = await inspectReleaseReadiness(client);
       await client.query("ROLLBACK");
-      console.log(JSON.stringify(status));
+      console.log(JSON.stringify(target ? { ...status, neon_target: target } : status));
       if (!status.database_ready_for_nonmigrating_start) process.exitCode = 2;
     } catch (error) {
       await client.query("ROLLBACK").catch(() => {});

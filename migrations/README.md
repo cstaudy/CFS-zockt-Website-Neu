@@ -15,3 +15,16 @@ Bei einer bestehenden Datenbank ohne `schema_migrations` darf `npm run migrate:b
 Auf Render kann der einmalige Baseline-Lauf beim Start mit `MIGRATION_BASELINE_ON_START=yes` und `CONFIRM_MIGRATION_BASELINE=yes` aktiviert werden. Ein identischer, bereits registrierter Stand wird sicher übersprungen; abweichende Prüfsummen stoppen den Start. Nach erfolgreicher Übernahme beide Variablen wieder entfernen, damit normale Migrationen über `npm start` laufen.
 
 Vor diesem einmaligen Produktionsschritt weiterhin einen Datenbankexport anlegen. Die Zugangsdaten gehören ausschließlich in Render unter Environment Variables und niemals in GitHub.
+
+## Aktuelle Sicherheitsmigrationen
+
+`026_password_recovery_rate_limit.sql` ergänzt eine persistente, gehashte
+Account-/IP-Begrenzung für Recovery-Anfragen. Der Anwendungscode verwendet
+deterministische Advisory-Locks und rollt Versuch und Token zurück, wenn
+Resend die Zustellung ablehnt.
+
+`027_launcher_job_claims.sql` bindet einen Launcher-Export an die UUID des
+Geräts, das ihn tatsächlich geclaimt hat. Ein anderes aktives Gerät desselben
+Kontos kann den Job dadurch nicht mehr abschließen. Beide Migrationen müssen
+im Ziel-Ledger vorhanden und per Restore-/E2E-Test geprüft sein; es gibt keine
+automatische Baseline für einen bestehenden Produktionsbestand.

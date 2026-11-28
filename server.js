@@ -9,7 +9,7 @@ import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
 import { currentAccount, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, exportAccount, deleteAccount } from "./src/auth.js";
-import { isAdminAccount } from "./src/admin-access.js";
+import { accountAccessView } from "./src/admin-access.js";
 import { mailStatus } from "./src/mail.js";
 import { requestEmailVerification as requestVerifiedEmail, verifyEmail as verifyVerifiedEmail } from "./src/email-verification.js";
 import { mfaStatus, mfaSetup, mfaEnable, mfaDisable, mfaRecovery } from "./src/mfa.js";
@@ -330,11 +330,11 @@ async function handle(req, res) {
 
   if (url.pathname === "/api/account/me" && ["GET", "HEAD"].includes(method)) {
     const account = await currentAccount(req);
-    const view = account ? { ...account, admin: isAdminAccount(account), email_verified: Boolean(account.email_verified_at) } : null;
+    const view = accountAccessView(account);
     return json(res, 200, { authenticated: Boolean(view), account: view, admin: Boolean(view?.admin), email_verified: Boolean(view?.email_verified) });
   }
   if(url.pathname==="/api/account/mail/status"&&method==="GET")return json(res,200,mailStatus());
-  if(url.pathname==="/api/account/password/forgot"&&method==="POST"){const body=await readJson(req);return json(res,200,await requestPasswordReset(body.email));}
+  if(url.pathname==="/api/account/password/forgot"&&method==="POST"){const body=await readJson(req),result=await requestPasswordReset(body.email,req.socket.remoteAddress||"unknown");if(!result.error)return json(res,200,result);if(String(result.error).startsWith("MAIL_"))return json(res,200,{message:"Wenn ein passendes Konto existiert, kann eine E-Mail folgen. Die Antwort bleibt für alle Adressen gleich."});return json(res,result.status||502,{error:result.error});}
   if(url.pathname==="/api/account/password/reset"&&method==="POST"){const body=await readJson(req),result=await resetPassword(String(body.token||""),body.new_password);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/email/verification/request"&&method==="POST"){const body=await readJson(req),account=await currentAccount(req),result=await requestVerifiedEmail(account?.email||body.email);return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
   if(url.pathname==="/api/account/email/verify"&&method==="POST"){const result=await verifyVerifiedEmail(String((await readJson(req)).token||""));return result.error?json(res,result.status,{error:result.error}):json(res,200,result);}
@@ -501,7 +501,7 @@ async function handle(req, res) {
     const account = await requireAdmin(req);
     if (account.error) return json(res, account.status, { error: account.error });
     const result = await getPool().query("select id, email, display_name, role, plan, email_verified_at, created_at, updated_at from accounts order by created_at desc");
-    return json(res, 200, { accounts: result.rows.map(row => ({ ...row, admin: isAdminAccount(row), email_verified: Boolean(row.email_verified_at) })), total: result.rowCount });
+    return json(res, 200, { accounts: result.rows.map(accountAccessView), total: result.rowCount });
   }
 
   if (["/api/auth/register", "/api/account/register"].includes(url.pathname) && method === "POST") {
