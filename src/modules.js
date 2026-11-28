@@ -7,7 +7,7 @@ export async function modulesState(req){
   const a=await currentAccount(req);if(!a)return{error:"AUTHENTICATION_REQUIRED",status:401};
   const evidence=await readCreatorEvidence(getPool(),a.id,{tiktok:tiktokConfigured(),twitch:twitchConfigured()});
   const status=key=>providerEvidence(evidence.platforms?.find(p=>p.provider===key));
-  const module=(key,label,state,allowed=true)=>({key,label,title:label,status:state,allowed,minimum_plan:"free"});
+  const module=(key,label,state)=>({key,label,title:label,status:state});
   return {ok:true,modules:[module("tiktok","TikTok",status("tiktok")),module("twitch","Twitch",status("twitch")),
     module("launcher","Launcher",evidence.launcher?.status||"unknown"),module("widget_studio","Widget Studio","available"),
     module("cut_studio","Cut Studio","available"),module("games","Games","available")],account_id:a.id};
