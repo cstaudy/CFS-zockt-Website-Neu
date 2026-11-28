@@ -31,3 +31,13 @@ Offizielle Dokumentation (erneut geprüft 28.11.2026):
 
 ## Abnahme
 Keine öffentliche Veröffentlichung, neue OAuth-Scopes, produktive Migration, Kosten oder Deployment ohne getrennte Freigabe. Öffentlicher Feed, explizite Provider-Revocation, Twitch-Lifecycle und Publishing-Jobs sind weitere Arbeitspakete. Rollback: PR nicht mergen oder zusammengehörige Code-/Test-/Dokumentationsänderungen revertieren; bereits rotierte Provider-Tokens niemals durch alte Werte ersetzen.
+
+## Twitch: bestehende Profil-Synchronisierung erweitern (Folge-PR zu #112)
+
+- Referenz: älteres `cfs-zockt-Website-main`, `lib/provider-oauth-contract.js` und `tools/twitch-oauth-v143-test.mjs` dokumentieren den Lifecycle. Der große alte Server wurde nicht als Ganzes übernommen; die aktuelle Connection-Tabelle und Verschlüsselung bleiben erhalten.
+- Der authentifizierte, bestehende Profil-Sync prüft den Access-Token beim offiziellen Validate-Endpunkt; Client-ID, User-ID, Laufzeit und Scope-Liste müssen passen. Nur bei HTTP 401 wird einmal ein Refresh versucht. Anschließend wird der neue Token erneut validiert, bevor verschlüsselte Tokens und tatsächliche Scope-/Ablaufmetadaten gespeichert werden.
+- Account-Zeilenlock, begrenztes Lock-Warten und gemeinsamer HTTP-Timeout; Profiländerung bleibt unter demselben Lock, keine neue OAuth-Berechtigung oder neue Tabelle. Bei einem HTTP-/Identitätsfehler im Profil-Sync nach erfolgreicher Token-Rotation wird die Rotation trotzdem gespeichert. Schlägt die DB-Transaktion nach externer Rotation fehl, kann Wiederverbindung nötig sein; keine automatische Wiederholung innerhalb desselben Aufrufs.
+- Keine Tokens, Provider-Rohfehler oder Secrets in HTTP-Ergebnis oder Logs. Bestehendes Profil-Ergebnisformat bleibt erhalten.
+- Noch offen: Start-/stündliche Validierung aktiver Twitch-Sitzungen, Revocation und Disconnect-Policy (EventSub-Entwurf #50 gezielt erhalten), echte PostgreSQL-Rennen/Timeouts, sichere Behandlung unklarer Refresh-Antworten über mehrere Aufrufe, reale Provider-Abnahme. Der Entwurf allein erfüllt nicht den gesamten Twitch-Lifecycle und aktiviert keine Live-/Publishing-Funktion.
+- Offizielle Referenzen erneut geprüft: https://dev.twitch.tv/docs/authentication/refresh-tokens/ und https://dev.twitch.tv/docs/authentication/validate-tokens/ .
+- Tests im vorhandenen Provider-Testskript: Token- und App/User-Bindung, Rotation auf 401, Lock-/Account-Vertrag, Profilfehler, Rollback, keine Secret-Ausgabe. CI und reale Abnahme offen. #112 zuerst integrieren; #110/#111/#113 teilen Provider-Testskript; #50 berührt twitch.js, beim thematischen Split gezielt zusammenführen. Kein produktiver SQL-Zugriff, Deploy, neuer Scope oder Tarifwechsel.

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import './test-tiktok-token-lifecycle.mjs';
+import './test-twitch-token-lifecycle.mjs';
 import { twitchConfigured, finishTwitch } from '../src/twitch.js';
 import { tiktokConfigured, finishTikTok } from '../src/tiktok.js';
 
