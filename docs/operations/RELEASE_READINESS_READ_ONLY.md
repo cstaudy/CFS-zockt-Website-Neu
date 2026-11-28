@@ -196,9 +196,12 @@ neutrale Statuscodes, keine Hostnamen oder Zugangsdaten.
 
 Wichtig: `neon_target_configuration` beschreibt den Konfigurationsabgleich
 des aufrufenden Prozesses, nicht den Beweis einer produktiven Umschaltung
-oder eines verifizierten TLS-Handshakes. Insbesondere muss die effektive
-TLS-Konfiguration des tatsächlichen App-Treibers (`src/db.js`, bisher
-`rejectUnauthorized:false` als Default) getrennt geprüft werden. Ein
+oder eines verifizierten TLS-Handshakes. Die TLS-Policy des App-Treibers (`src/db.js`) wurde in diesem Entwurf
+selektiv aus dem bereits auf Render bereitgestellten Produktionsstand
+übernommen: Zertifikatsprüfung ist Standard, URL-Parameter können die
+TLS-Policy nicht überschreiben, unverschlüsselte Verbindungen bleiben auf
+lokale Nicht-Produktionsumgebungen beschränkt. Ein realer Handshake und
+Laufzeitnachweis sind weiterhin separate Abnahmeschritte. Ein
 erfolgreicher Check in einem lokalen Shell-Prozess beweist nicht die
 Render-Laufzeitidentität. Die bisherige explizite READ-ONLY-Transaktion
 und alle Schema-/Ledger-/Release-Gates bleiben unverändert. Ohne
@@ -219,3 +222,29 @@ Neon-Opt-in funktioniert der bisherige Preflight unverändert.
   tatsächliche Laufzeitidentität und TLS nachweisen. Bestehende
   026-Entwürfe in PR #50 und #103 kollidieren bei der Nummerierung;
   die Migrationen nicht blind kombinieren. Kein produktives SQL ausgeführt.
+
+### Render-Betriebsabgleich (28.11.2026)
+
+- Produktion `CFS-TikTok-Backend`: aktiver Deploy vom 27.11.2026,
+  20:13 UTC, Commit `6f51092` auf
+  `security/production-neon-tls-20261125`.
+  Startprotokoll meldet erfolgreiche Migrationen 001–021; kein
+  Nachweis der tatsächlich verwendeten Datenbankidentität.
+- Staging `cfs-zockt-staging`: aktiver Deploy vom 26.11.2026,
+  16:28 UTC, Commit `ea54afe` auf
+  `security/staging-neon-tls-20261125`.
+  Startprotokoll meldet übersprungene, bereits bekannte Migrationen 001–025.
+- Auto-Deploy ist bei beiden Diensten deaktiviert. Branches sind
+  gegenüber main divergiert (Produktion 17 voraus/136 zurück,
+  Staging 12 voraus/42 zurück bei der Prüfung). Nicht blind mergen
+  oder auf main umschalten.
+- Selektive Übernahme: `src/db.js` und
+  `scripts/db-tls.test.js` aus dem aktiven Produktionscommit
+  `6f51092`; bestehender Release-Test startet die pg-Client-TLS-Tests.
+  Keine Änderungen an Migrationen, Package-Skripten, laufenden Diensten,
+  Umgebungsvariablen oder Datenbanken. Neue CI erforderlich.
+- Die öffentliche Health-/Ready-Abfrage war von der Prüfungsumgebung aus
+  nicht möglich. Render-Deploymentstatus und Startprotokoll beweisen
+  weder vollständige Feature-Abnahme noch den Datenbank-Host oder
+  die aktuelle Wartungseinstellung. Die tatsächliche Neon-Zuordnung
+  bleibt bis zu einem redigierten Laufzeitnachweis offen.
