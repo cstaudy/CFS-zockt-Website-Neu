@@ -128,6 +128,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const media=document.getElementById("publisherMedia"), submit=document.getElementById("publisherPreviewSubmit"),
       status=document.getElementById("publisherPreviewStatus"), results=document.getElementById("publisherPreviewResults");
     let generation=0, busy=false;
+    // Fragment contains only a media UUID, never a path, token or authorization.
+    // The selection is resolved against the authenticated account's media list.
+    const handoff=location.hash.startsWith("#publisher-media=")
+      ? /^#publisher-media=([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.exec(location.hash)
+      : null;
+    const handoffRequested=location.hash.startsWith("#publisher-media=");
     const invalidate=()=>{generation++;results.replaceChildren();status.textContent="Einstellungen geändert. Vorschau erneut prüfen.";};
     form.addEventListener("input",invalidate);
     try {
@@ -137,6 +143,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       for(const item of entries) if(item?.id && item?.name) media.add(new Option(item.name,item.id));
       media.disabled=entries.length===0;submit.disabled=entries.length===0;
       status.textContent=entries.length?"Wähle ein Video und die gewünschten Zielprofile.":"Noch keine Medien vorhanden. Importiere zuerst ein Video oder einen Clip.";
+      if(handoffRequested){
+        const selected=handoff?.[1]?.toLowerCase();
+        const owned=selected&&entries.find(item=>item?.id===selected&&typeof item.name==="string"&&item.name);
+        if(owned){
+          media.value=owned.id;
+          status.textContent="Medium aus dem Cut Studio ausgewählt. Prüfe Titel und Zielprofile selbst. Kein Upload gestartet.";
+        }else{
+          media.value="";
+          status.textContent="Übergebenes Medium nicht verfügbar. Wähle ein eigenes Video oder einen Clip.";
+        }
+        // Remove the identifier from the displayed URL after selection.
+        // Do not submit or fetch the preview automatically.
+        try{history.replaceState(history.state,"",location.pathname+location.search+"#publisherPreviewForm");}catch{}
+        form.scrollIntoView?.({block:"start"});
+      }
     } catch { status.textContent="Mediathek derzeit nicht erreichbar. Keine Vorschau möglich.";return; }
     const names={tiktok:"TikTok",youtube_shorts:"YouTube Shorts",youtube_video:"YouTube Video",instagram_reels:"Instagram Reels",facebook_reels:"Facebook Reels"};
     const labels={PUBLISHING_NOT_IMPLEMENTED:"Publishing noch nicht implementiert",PROVIDER_ACCEPTANCE_REQUIRED:"Plattformabnahme offen",USER_APPROVAL_REQUIRED:"Separate Veröffentlichungsfreigabe erforderlich",RENDERED_VARIANT_VALIDATION_REQUIRED:"Video-Variante noch nicht gerendert/geprüft",OAUTH_CONFIGURATION_REQUIRED:"Entwickler-App-Konfiguration offen",ACCOUNT_CONNECTION_REQUIRED:"Kontoverbindung erforderlich",TOKEN_REVALIDATION_REQUIRED:"Tokenprüfung erforderlich",PUBLISH_SCOPE_REQUIRED:"Publishing-Berechtigung fehlt",TIKTOK_CREATOR_INFO_REQUIRED:"Aktuelle TikTok-Creator-Optionen erforderlich",MEDIA_DURATION_UNVERIFIED:"Videodauer nicht bestätigt"};

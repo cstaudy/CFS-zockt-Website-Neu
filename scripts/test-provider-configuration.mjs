@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import './test-provider-capabilities.mjs';
 import './test-publisher-preview.mjs';
 import './test-publisher-job-contract.mjs';
+import './test-cut-publisher-handoff.mjs';
 import { twitchConfigured, finishTwitch } from '../src/twitch.js';
 import { tiktokConfigured, finishTikTok } from '../src/tiktok.js';
 
