@@ -8,7 +8,7 @@ import { access, readFile, stat } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDatabase, databaseCheck, getPool } from "./src/db.js";
-import { currentAccount, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, requestEmailVerification, verifyEmail, exportAccount, deleteAccount } from "./src/auth.js";
+import { currentAccount, login, logout, register, cookie, requestPasswordReset, resetPassword, updateProfile, changePassword, listSessions, logoutAll, exportAccount, deleteAccount } from "./src/auth.js";
 import { isAdminAccount } from "./src/admin-access.js";
 import { mailStatus } from "./src/mail.js";
 import { requestEmailVerification as requestVerifiedEmail, verifyEmail as verifyVerifiedEmail } from "./src/email-verification.js";

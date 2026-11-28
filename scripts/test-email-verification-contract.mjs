@@ -4,6 +4,7 @@ import { sendMail } from "../src/mail.js";
 import { requestEmailVerification, verifyEmail } from "../src/email-verification.js";
 
 const source = await readFile(new URL("../src/email-verification.js", import.meta.url), "utf8");
+const authSource = await readFile(new URL("../src/auth.js", import.meta.url), "utf8");
 const accountHtml = await readFile(new URL("../pages/account.html", import.meta.url), "utf8");
 const accountJs = await readFile(new URL("../assets/js/page-account.js", import.meta.url), "utf8");
 const verifyJs = await readFile(new URL("../assets/js/page-verify-email.js", import.meta.url), "utf8");
@@ -11,6 +12,10 @@ const shellSources = await Promise.all(["cfs-r14-shell.js", "cfs-r19-workspace.j
 assert.match(source, /used_at is null and expires_at>now\(\)/);
 assert.match(source, /update email_verification_tokens set used_at=now\(\)/);
 assert.match(source, /await client\.query\("BEGIN"\)/);
+assert.match(authSource, /export \{ requestEmailVerification, verifyEmail \} from "\.\/email-verification\.js";/);
+assert.doesNotMatch(authSource, /delete from email_verification_tokens/);
+assert.match(authSource, /update password_recovery_tokens set used_at=now\(\)/);
+assert.match(authSource, /await client\.query\("BEGIN"\)/);
 assert.match(accountHtml, /id="emailVerificationStatus"/);
 assert.match(accountHtml, /id="requestVerificationBtn"[^>]*type="button"/);
 assert.match(accountJs, /account\?\.email_verified/);
