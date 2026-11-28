@@ -26,8 +26,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
 
+  function renderPlatformCapabilities(caps) {
+    const grid = document.getElementById("platformCapabilitiesGrid");
+    const status = document.getElementById("platformCapabilitiesStatus");
+    if (!grid || !status) return;
+    grid.replaceChildren();
+    if (caps?.integrations?.platforms_status !== "ok" || !Array.isArray(caps.integrations.platforms)) {
+      status.textContent = "Plattformstatus derzeit nicht prüfbar. Keine Freigabe bestätigt.";
+      return;
+    }
+    const names = {tiktok:"TikTok",twitch:"Twitch",youtube:"YouTube / Shorts",instagram:"Instagram",facebook:"Facebook",kick:"Kick",custom_rtmp:"Custom RTMP"};
+    const liveLabels = {official_access_required:"Offizieller LIVE-Zugang erforderlich",runtime_acceptance_required:"Reale Launcher-Abnahme offen",planned:"Geplant",manual_setup:"Manuelle Einrichtung vorgesehen",not_supported:"Nicht in CFS unterstützt"};
+    const publishLabels = {planned:"Geplant · keine Freigabe",not_supported:"Kein Datei-Direktupload in CFS"};
+    const connectionLabels = {record_present:"Verbindung gespeichert",not_connected:"Nicht verbunden",not_implemented:"OAuth noch nicht verfügbar"};
+    const tokenLabels = {not_expired_unverified:"Gültigkeitsdatum vorhanden, Token nicht geprüft",expired:"Token abgelaufen",expiry_unknown:"Ablauf unbekannt"};
+    for (const p of caps.integrations.platforms) {
+      if (!p || !Object.hasOwn(names,p.provider)) continue;
+      const card = document.createElement("article");
+      card.className = "management-summary-card";
+      const title = document.createElement("h3");
+      title.textContent = names[p.provider];
+      card.append(title);
+      const add = text => { const line = document.createElement("p"); line.textContent = text; card.append(line); };
+      add("Konto: " + (connectionLabels[p.connection] || "Unbekannt"));
+      if (Object.hasOwn(tokenLabels,p.token_status)) add(tokenLabels[p.token_status]);
+      add("Live: " + (liveLabels[p.live?.status] || "Nicht geprüft"));
+      add("Upload: " + (publishLabels[p.publishing?.status] || "Nicht freigegeben"));
+      grid.append(card);
+    }
+    status.textContent = "Status aus gespeicherten Kontodaten; keine Live- oder Publishing-Freigabe bestätigt.";
+  }
+
   try {
     const caps = await CFS.json("/api/creator/integration-capabilities");
+    renderPlatformCapabilities(caps);
     const oauth = Array.isArray(caps?.integrations?.oauth) ? caps.integrations.oauth : [];
     const twitch = oauth.find(item => item.provider === "twitch");
     if (twitch && twitchIntegrationStatus && !twitchIntegrationStatus.dataset.liveStatus) {
@@ -38,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (obsIntegrationStatus && caps?.integrations?.obs_websocket) {
       obsIntegrationStatus.textContent = "OBS WebSocket ist code-seitig implementiert: Szenen lesen/wechseln, Browser Sources aktualisieren, lokale verschlüsselte Credentials. Reale OBS-Abnahme bleibt offen.";
     }
-  } catch (_) {}
+  } catch (_) { renderPlatformCapabilities(null); }
 
   const twitchRetryButton = document.getElementById("twitchRetry");
   let checkingTwitch = false;
@@ -59,7 +91,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       twitchIntegrationStatus.textContent = betaBlocked
         ? (tw?.beta_access?.email_verified === false ? "E-Mail zuerst bestätigen; danach kann der cfs_zockt Admin Twitch freigeben." : "Twitch wartet auf deine Beta-Freigabe im Admin Control.")
         : tw.connected
-          ? `${name} ist verbunden · Token validiert${tw.validated_at ? " · " + new Date(tw.validated_at).toLocaleString("de-DE") : ""}. EventSub + Chat sind eingerichtet, sobald alle Twitch-Berechtigungen bestätigt wurden; reale Twitch-Abnahme bleibt offen.`
+          ? `${name} hat eine gespeicherte Verbindung${tw.validated_at ? " · Letzte Prüfung: " + new Date(tw.validated_at).toLocaleString("de-DE") : " · Tokenprüfung offen"}. Reale Twitch-, EventSub- und Chat-Abnahme bleibt offen.`
           : (tw.configured ? "Bereit zum Verbinden. Twitch OAuth ist auf dem Server konfiguriert." : "Twitch OAuth-Code ist vorhanden, aber TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET / TWITCH_REDIRECT_URI sind noch nicht vollständig gesetzt.");
     }
     if (twitchIntegrationBadge) twitchIntegrationBadge.textContent = betaBlocked ? "BETA AUSSTEHEND" : tw.connected ? "VERBUNDEN" : (tw.configured ? "BEREIT" : "KONFIG FEHLT");
