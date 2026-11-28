@@ -98,6 +98,28 @@
     <div id="platformCapabilitiesGrid" class="management-summary-grid integrations-management-grid integrations-provider-grid"></div>
   </section>
 
+  <section class="integration-group" aria-labelledby="publisherPreviewTitle">
+    <div class="integration-group-head"><div><span>VORSCHAU · ENTWICKLUNG</span><h2 id="publisherPreviewTitle">Multi-Publisher vorbereiten</h2><p>Wähle ein vorhandenes Video oder einen Clip und gewünschte Zielprofile. Dies ist eine unverbindliche Vorschau: kein Rendering, kein Upload, keine Veröffentlichung und keine Speicherung eines Auftrags.</p></div></div>
+    <form id="publisherPreviewForm" class="management-summary-card">
+      <label for="publisherMedia">Video aus deiner Mediathek</label>
+      <select id="publisherMedia" required disabled><option value="">Medien werden geladen…</option></select>
+      <label for="publisherTitle">Titel</label><input id="publisherTitle" maxlength="100" required>
+      <label for="publisherDescription">Beschreibung</label><textarea id="publisherDescription" maxlength="5000" rows="3"></textarea>
+      <fieldset><legend>Zielprofile (YouTube Shorts oder Video)</legend>
+        <label><input type="checkbox" name="publisherTarget" value="tiktok"> TikTok</label>
+        <label><input type="checkbox" name="publisherTarget" value="youtube_shorts"> YouTube Shorts</label>
+        <label><input type="checkbox" name="publisherTarget" value="youtube_video"> YouTube Video</label>
+        <label><input type="checkbox" name="publisherTarget" value="instagram_reels"> Instagram Reels</label>
+        <label><input type="checkbox" name="publisherTarget" value="facebook_reels"> Facebook Reels</label>
+      </fieldset>
+      <label><input type="checkbox" id="publisherCaptions" checked> Untertitel für spätere Aufbereitung vorsehen</label>
+      <label for="publisherBrand">Geplanter Schrift-/Branding-Stil</label><select id="publisherBrand"><option value="none">Ohne</option><option value="clean">Clean</option><option value="gaming">Gaming</option></select>
+      <div class="card-actions"><button class="btn primary" id="publisherPreviewSubmit" type="submit" disabled>VORSCHAU PRÜFEN</button></div>
+      <p id="publisherPreviewStatus" role="status" aria-live="polite">Noch keine Vorschau erstellt.</p>
+      <div id="publisherPreviewResults"></div>
+    </form>
+  </section>
+
   <section class="integration-group" aria-labelledby="integrationLocalTitle">
     <div class="integration-group-head">
       <div><span>06 · SYSTEM &amp; TESTS</span><h2 id="integrationLocalTitle">PC & Launcher</h2><p>Alles, was Bild, Ton oder Stream-Credentials berührt, bleibt im lokalen Desktop-Weg. OBS ist nur eine optionale Kompatibilität.</p></div>

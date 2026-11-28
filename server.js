@@ -33,6 +33,7 @@ import { listToolProjects, getToolProject, saveToolProject, deleteToolProject, l
 import { saveCutProjectAndClips } from "./src/cut-project-save.js";
 import { getStreamStudioState, saveStreamStudioState } from "./src/stream-studio-state.js";
 import { readProviderCapabilities } from "./src/provider-capabilities.js";
+import { previewPublisher } from "./src/publisher-preview.js";
 import { listMakerBundles, saveMakerBundle, controlMakerBundle, rotateMakerToken, deleteMakerBundle, getPublicMakerBundle } from "./src/stream-maker.js";
 import { createCutProject, saveCutProject, archiveCutProject } from "./src/cut-project-crud.js";
 import { listJobs, createJob, cancelJob, claimJobs, updateLauncherJob } from "./src/tool-jobs.js";
@@ -229,6 +230,14 @@ async function handle(req, res) {
     try { platforms = await readProviderCapabilities(getPool(), account.id, { tiktok:tiktokConfigured(), twitch:twitchConfigured() }); }
     catch { /* Preserve existing integration response; never imply readiness on metadata failure. */ }
     return json(res,200,{ok:true,integrations:{platforms,platforms_status:platforms === null ? "unavailable" : "ok",oauth:[{provider:"tiktok",configured:tiktokConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TIKTOK_CLIENT_KEY),client_secret:Boolean(process.env.TIKTOK_CLIENT_SECRET),redirect_uri:Boolean(process.env.TIKTOK_REDIRECT_URI||process.env.APP_BASE_URL),session_secret:Boolean(process.env.SESSION_SECRET)}},{provider:"twitch",configured:twitchConfigured(),oauth_implemented:true,configuration:{client_id:Boolean(process.env.TWITCH_CLIENT_ID),client_secret:Boolean(process.env.TWITCH_CLIENT_SECRET),redirect_uri:Boolean(process.env.TWITCH_REDIRECT_URI||process.env.APP_BASE_URL),session_secret:Boolean(process.env.SESSION_SECRET)}}],obs_websocket:Boolean(process.env.OBS_WEBSOCKET_URL||process.env.OBS_WS_URL),launcher:Boolean(process.env.LAUNCHER_BRIDGE_SECRET),paypal:paypalStatus(),playstation:Boolean(process.env.PSN_PROVIDER&&process.env.PSN_CLIENT_ID)}});
+  }
+
+  // Preview only: existing session and owned media, no queue or provider call.
+  if (url.pathname === "/api/creator/publisher/preview" && method === "POST") {
+    const account = await currentAccount(req);
+    if (!account) return json(res,401,{error:"AUTHENTICATION_REQUIRED"});
+    const result = await previewPublisher(getPool(),account.id,await readJson(req),{tiktok:tiktokConfigured(),twitch:twitchConfigured()});
+    return result.error ? json(res,result.status,{error:result.error}) : json(res,200,result);
   }
 
   if (url.pathname === "/api/integrations/tiktok/start" && method === "GET") {
