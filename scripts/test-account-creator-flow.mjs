@@ -1513,6 +1513,42 @@ try {
       }
     }
 
+    // Only the isolated CI account is temporarily assigned the configured
+    // operator address. No production role or account is touched.
+    const { ADMIN_EMAIL } = await import('../src/admin-access.js');
+    const operatorId = randomUUID();
+    const operatorSeed = await testPool.query("insert into accounts(id,email,password_hash,display_name,role) select $1,$2,password_hash,'CI Operator','creator' from accounts where id=$3 returning id", [operatorId,ADMIN_EMAIL,created.data.account.id]);
+    assert.equal(operatorSeed.rowCount,1);
+    try {
+      const operator = await request('POST','/api/account/login',{body:{email:ADMIN_EMAIL,password}});
+      assert.equal(operator.status,200);
+      assert.equal(operator.data.account.admin,false);
+      assert.equal((await request('GET','/api/admin/status',{cookie:operator.cookie})).status,403);
+      await testPool.query("update accounts set role='admin' where id=$1",[operatorId]);
+      assert.equal((await request('GET','/api/admin/status',{cookie:operator.cookie})).status,403);
+      await testPool.query("update accounts set email_verified_at=now() where id=$1",[operatorId]);
+      assert.equal((await request('GET','/api/admin/status',{cookie:operator.cookie})).status,200);
+      assert.equal((await request('GET','/api/account/me',{cookie:operator.cookie})).data.account.admin,true);
+      const opSetup=await request('POST','/api/account/mfa/setup',{cookie:operator.cookie,body:{password}});
+      assert.equal(opSetup.status,200);
+      const opEnable=await request('POST','/api/account/mfa/enable',{cookie:operator.cookie,body:{code:totpCode(opSetup.data.secret)}});
+      assert.equal(opEnable.status,200);
+      const opPending=await request('POST','/api/account/login',{body:{email:ADMIN_EMAIL,password}});
+      assert.equal(opPending.data.mfa_required,true);
+      assert.equal((await request('GET','/api/admin/status',{cookie:opPending.cookie})).status,401);
+      const opLogin=await request('POST','/api/account/mfa/login',{cookie:opPending.cookie,body:{code:totpCode(opSetup.data.secret)}});
+      assert.equal(opLogin.status,200);assert.equal(opLogin.data.account.admin,true);
+      assert.equal((await request('GET','/api/admin/status',{cookie:opLogin.cookie})).status,200);
+      await testPool.query("update accounts set role='creator' where id=$1",[operatorId]);
+      assert.equal((await request('GET','/api/admin/status',{cookie:opLogin.cookie})).status,403);
+      await testPool.query("update accounts set role='admin',email_verified_at=null where id=$1",[operatorId]);
+      assert.equal((await request('GET','/api/admin/status',{cookie:opLogin.cookie})).status,403);
+      assert.equal((await request('GET','/api/account/me',{cookie:opLogin.cookie})).data.account.admin,false);
+    } finally { await testPool.query("delete from accounts where id=$1",[operatorId]); }
+    await testPool.query("update accounts set role='admin',email_verified_at=now() where id=$1",[created.data.account.id]);
+    try { assert.equal((await request('GET','/api/admin/status',{cookie:login.cookie})).status,403); }
+    finally { await testPool.query("update accounts set role='creator',email_verified_at=null where id=$1",[created.data.account.id]); }
+
     const setup = await request('POST', '/api/account/mfa/setup', {
       cookie: login.cookie, body: { password }
     });

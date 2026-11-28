@@ -14,3 +14,11 @@ export function isAdminAccount(account) {
     account.email_verified_at
   );
 }
+
+// Public/session projection only; authority comes from the current DB row.
+export function accountAccessView(account) {
+  if (!account) return null;
+  const admin = isAdminAccount(account);
+  return { ...account, role: admin ? "admin" : "creator", admin,
+    email_verified: Boolean(account.email_verified_at) };
+}
