@@ -33,7 +33,24 @@ function assertBaselineSafe(sql, file) {
   }
 }
 
+// Every complete migration list (including a legacy baseline prefix) must
+// begin at 001 and be contiguous. Different names with the same number are
+// a conflict, not independent migrations. Validate before any DB query.
+export function assertMigrationManifest(files) {
+  if (!Array.isArray(files) || files.length === 0 || files.length > 999) {
+    throw new Error('Migrationsliste ist unvollständig, unbekannt oder ungültig.');
+  }
+  for (let index = 0; index < files.length; index++) {
+    const name = files[index];
+    const match = typeof name === 'string' && /^(\d{3})(?:_[a-z0-9_]+)?\.sql$/.exec(name);
+    if (!match || Number(match[1]) !== index + 1) {
+      throw new Error('Migrationsliste ist unvollständig, unbekannt oder ungültig (Reihenfolge oder Nummernkollision).');
+    }
+  }
+}
+
 export async function applyMigrations(client, files, loadSql) {
+  assertMigrationManifest(files);
   await client.query('select pg_advisory_lock($1)', [lockId]);
   try {
     await assertMigrationHistorySafe(client);
@@ -87,6 +104,7 @@ export async function applyMigrations(client, files, loadSql) {
 }
 
 export async function baselineMigrations(client, files, loadSql, fingerprint = schemaFingerprint) {
+  assertMigrationManifest(files);
   await client.query('select pg_advisory_lock($1)', [lockId]);
   let transactionOpen = false;
   try {
