@@ -132,6 +132,7 @@ try {
   assert.deepEqual(await legacyRows(clone, original), before, "Baseline must not mutate restored data");
   await applyMigrations(clone, migrationFiles, loadMigrationSql);
   await assertHistoryCount(clone, migrationFiles.length);
+  assert.equal((await clone.query("select exists(select 1 from information_schema.columns where table_schema='public' and table_name='tool_jobs' and column_name='claimed_by_device') as present")).rows[0].present,true);
   assert.deepEqual(await legacyRows(clone, original), before, "Upgrade must preserve every preexisting table and column");
 
   const additions = (await clone.query(`
