@@ -1777,8 +1777,7 @@ try {
     const deviceTwo = await pairDevice(psCookie, 'PostgreSQL PlayStation B');
     const foreignDevice = await pairDevice(otherCookie, 'PostgreSQL PlayStation Foreign');
     // Export job acceptance is confined to this disposable PostgreSQL DB.
-    // Until separately approved migration 026, jobs are account-bound, not
-    // restricted to the exact device that claimed them.
+    // Migration 027 binds the exact paired device in addition to the account.
     const exportProjectA = await request('POST', '/api/creator/cut-studio/projects', {
       cookie: psCookie, body: { title: 'Creator A cut export' }
     });
@@ -1845,6 +1844,14 @@ try {
     const claimedA = ownClaim.data.jobs[0].id;
     assert(exportJobsA.includes(claimedA));
     const statusPathA = '/api/launcher/jobs/' + claimedA;
+    assert.equal((await testPool.query("select claimed_by_device from tool_jobs where id=$1",[claimedA])).rows[0].claimed_by_device,deviceOne);
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceTwo), body: { status: 'completed', result: {} }
+    })).status, 409, 'A second active device of the SAME account cannot finish this claim');
+    assert.equal((await request('PUT', statusPathA, {
+      extraHeaders: bridge(deviceTwo), body: { status: 'processing' }
+    })).status, 409, 'A second active device cannot start this claim');
+    assert.equal((await testPool.query("select status from tool_jobs where id=$1",[claimedA])).rows[0].status,'claimed');
     assert.equal((await request('PUT', statusPathA, {
       extraHeaders: bridge(foreignDevice), body: { status: 'completed', result: {} }
     })).status, 409, 'Active foreign-device credentials cannot complete other-account exports');
@@ -1905,6 +1912,26 @@ try {
     assert.equal((await request('PUT', '/api/launcher/jobs/' + exportJobB, {
       extraHeaders: bridge(foreignDevice), body: { status: 'completed', result: {} }
     })).status, 200, 'Other creator own device can complete its own export');
+    // Unknown legacy claimant remains unassigned and cannot be silently adopted.
+    const legacyJob=(await testPool.query("insert into tool_jobs(account_id,project_id,kind,status) values($1,$2,'cut_export','claimed') returning id",[created.data.account.id,exportIdA])).rows[0].id;
+    assert.equal((await request('PUT','/api/launcher/jobs/'+legacyJob,{extraHeaders:bridge(deviceOne),body:{status:'completed'}})).status,409);
+    assert.equal((await request('PUT','/api/launcher/jobs/'+legacyJob,{extraHeaders:bridge(deviceTwo),body:{status:'completed'}})).status,409);
+    assert.equal((await request('POST','/api/creator/cut-studio/jobs/'+legacyJob+'/cancel',{cookie:psCookie})).status,200);
+    // Non-export jobs must remain invisible to the export claimant.
+    const otherKind=(await testPool.query("insert into tool_jobs(account_id,project_id,kind,status) values($1,$2,'ci_non_export','queued') returning id",[created.data.account.id,exportIdA])).rows[0].id;
+    try{
+      const queued=await request('POST',exportPathA,{cookie:psCookie,body:{format:'mp4'}});
+      assert.equal(queued.status,202);
+      const claims=await Promise.all([deviceOne,deviceTwo].map(id=>request('GET','/api/launcher/jobs',{extraHeaders:bridge(id)})));
+      assert(claims.every(x=>x.status===200));
+      assert.equal(claims.flatMap(x=>x.data.jobs).length,1);
+      const index=claims.findIndex(x=>x.data.jobs.length===1);
+      const claimant=[deviceOne,deviceTwo][index],other=[deviceTwo,deviceOne][index],job=queued.data.job.id;
+      assert.equal(claims[index].data.jobs[0].id,job);
+      assert.equal((await request('PUT','/api/launcher/jobs/'+job,{extraHeaders:bridge(other),body:{status:'completed'}})).status,409);
+      assert.equal((await request('PUT','/api/launcher/jobs/'+job,{extraHeaders:bridge(claimant),body:{status:'completed'}})).status,200);
+      assert.equal((await testPool.query("select status,claimed_by_device from tool_jobs where id=$1",[otherKind])).rows[0].status,'queued');
+    }finally{await testPool.query("delete from tool_jobs where id=$1",[otherKind]);}
     // The opt-in Cut Studio atomic-save endpoint commits project + all timeline
     // clip revisions together; stale/broken requests must change neither.
     const atomicCut = await request('POST', '/api/creator/cut-studio/projects', {
