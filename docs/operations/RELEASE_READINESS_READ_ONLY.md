@@ -172,3 +172,50 @@ Ledger/Schema, aber nicht tatsächliche Backups, Wiederherstellbarkeit,
 Staging-Trennung, MFA-Login, Providerberechtigungen, Device-Bindung
 oder den Produktionsrollout. Kein Check darf diese externen Punkte
 implizit als erfüllt melden.
+
+
+## Optionaler Neon-Zielabgleich (DB-01, 28.11.2026)
+
+Der vorhandene Release-Preflight kann vor dem Verbindungsaufbau zusätzlich
+prüfen, ob seine lokale `DATABASE_URL` dem vom Betreiber unabhängig
+bestätigten Neon-Endpunkt und Datenbanknamen entspricht. Kein neuer
+öffentlicher Endpunkt, keine Änderung am laufenden Server, kein Deploy.
+
+In der autorisierten Laufzeitumgebung die bestehende DATABASE_URL sicher
+bereitstellen (niemals in Chat, GitHub oder Kommandohistorie kopieren).
+Aus dem Neon-Dashboard den **erwarteten** Host (direkt oder gepoolt, exakt
+wie ausgewählt) und Datenbanknamen unabhängig übernehmen. Zusätzlich
+`CONFIRM_RELEASE_PREFLIGHT_READ_ONLY=yes`,
+`CONFIRM_NEON_TARGET_READ_ONLY=yes`, `CFS_EXPECTED_NEON_HOST` und
+`CFS_EXPECTED_NEON_DATABASE` setzen. Danach wie bisher
+`npm run release:preflight`. Es wird eine ausdrücklich verlangte
+`sslmode=verify-full`-Policy vorausgesetzt. Die Prüfung verweigert
+abweichende Hosts, DB-Namen, unerwartete/mehrfache URL-Parameter,
+abweichende Ports und fehlende Einwilligung. Sie meldet lediglich
+neutrale Statuscodes, keine Hostnamen oder Zugangsdaten.
+
+Wichtig: `neon_target_configuration` beschreibt den Konfigurationsabgleich
+des aufrufenden Prozesses, nicht den Beweis einer produktiven Umschaltung
+oder eines verifizierten TLS-Handshakes. Insbesondere muss die effektive
+TLS-Konfiguration des tatsächlichen App-Treibers (`src/db.js`, bisher
+`rejectUnauthorized:false` als Default) getrennt geprüft werden. Ein
+erfolgreicher Check in einem lokalen Shell-Prozess beweist nicht die
+Render-Laufzeitidentität. Die bisherige explizite READ-ONLY-Transaktion
+und alle Schema-/Ledger-/Release-Gates bleiben unverändert. Ohne
+Neon-Opt-in funktioniert der bisherige Preflight unverändert.
+
+### Neuer Neon-Katalogbefund (28.11.2026)
+
+- Neon production: Ledger fehlt, MFA-Schema 022–025 nicht vollständig.
+  Separates Staging enthält die entsprechenden Spalten und Tabellen.
+- Neon-Schemavergleich production zu snapshot-restore-validation und
+  clean-migration-validation meldete Unterschiede bei den ACLs der
+  Backup-Leserolle; keine weiteren DDL-Unterschiede in diesen Diffs.
+  Production zu staging zeigt MFA/Ledger-Erweiterungen **und** ACL-Drift.
+- Backup-Wiederherstellungsdatenbank vom 26.11. war zuvor lesbar;
+  daraus keine vollständige Daten-/Berechtigungsgleichheit ableiten.
+- Vor produktivem Eingriff: ACL-/Rollen-Soll prüfen, vollständigen
+  isolierten Restore und Migrations-/Rollback-Test dokumentieren,
+  tatsächliche Laufzeitidentität und TLS nachweisen. Bestehende
+  026-Entwürfe in PR #50 und #103 kollidieren bei der Nummerierung;
+  die Migrationen nicht blind kombinieren. Kein produktives SQL ausgeführt.
