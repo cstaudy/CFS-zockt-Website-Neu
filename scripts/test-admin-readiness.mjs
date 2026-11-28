@@ -36,3 +36,12 @@ const blocked = spawnSync(process.execPath, ["scripts/check-admin-readiness.mjs"
 assert.notEqual(blocked.status, 0);
 assert.match(blocked.stderr, /CONFIRM_ADMIN_PREFLIGHT_READ_ONLY=yes/);
 console.log("Admin preflight: read-only query, no PII, fail-closed readiness and opt-in guard passed.");
+
+const {isAdminAccount,accountAccessView}=await import("../src/admin-access.js");
+const operator={email:ADMIN_EMAIL,role:"admin",email_verified_at:new Date()};
+assert.equal(isAdminAccount(operator),true);
+assert.equal(accountAccessView(operator).admin,true);
+for(const account of [null,{...operator,role:"creator"},{...operator,email_verified_at:null},{...operator,email:"other@example.test"},{...operator,role:"owner"}]) {
+  assert.equal(isAdminAccount(account),false);
+  if(account) {assert.equal(accountAccessView(account).role,"creator");assert.equal(accountAccessView(account).admin,false);}
+}
