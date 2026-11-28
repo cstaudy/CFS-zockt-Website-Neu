@@ -74,11 +74,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     loaded=true;saveButton.disabled=false;
     syncInfo.textContent = data.setup_status==="saved" && data.updated_at
-      ? `Letzte Server-Speicherung: ${new Date(data.updated_at).toLocaleString("de-DE")}`
+      ? `Letzte Speicherung der Creator-Einstellungen: ${new Date(data.updated_at).toLocaleString("de-DE")}`
       : "Noch kein Creator Setup gespeichert.";
   } catch (error) {
     message.textContent = error.message;
     message.className = "notice danger";
+    syncInfo.textContent = "Setup konnte nicht sicher geladen werden. Bitte Seite neu laden.";
   }
 
   function render() {
@@ -122,7 +123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       setupVersion=saved.setup_version;
       message.textContent = "Creator Setup wurde serverseitig gespeichert.";
       message.className = "notice";
-      syncInfo.textContent = `Letzte Server-Speicherung: ${new Date(saved.updated_at).toLocaleString("de-DE")}`;
+      syncInfo.textContent = `Letzte Speicherung der Creator-Einstellungen: ${new Date(saved.updated_at).toLocaleString("de-DE")}`;
     } catch (error) {
       if(error.status===409){loaded=false;message.textContent="Setup wurde geändert oder muss geprüft werden. Bitte Seite neu laden; nichts wurde überschrieben.";}else{message.textContent=error.message;}
       message.className = "notice danger";
