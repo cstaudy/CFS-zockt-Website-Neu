@@ -168,7 +168,7 @@ try {
 
   // All migrations must be safely repeatable on a second server startup.
   await applyMigrations(legacy, migrationFiles, loadMigrationSql);
-  assert.equal(Number((await legacy.query("select count(*) as n from schema_migrations")).rows[0].n), 26);
+  assert.equal(Number((await legacy.query("select count(*) as n from schema_migrations")).rows[0].n), migrationFiles.length);
   assert.deepEqual(await snapshot(), before);
 
   // A modified already-recorded migration is rejected by the checksum guard.
@@ -179,7 +179,7 @@ try {
   );
   assert.deepEqual(await snapshot(), before);
 
-  console.log("PG18 real legacy upgrade passed: historical 001–021, schema-drift refusal, 21-item baseline, pending MFA/password-recovery 022–026, unchanged account data, idempotence and checksum guard.");
+  console.log("PG18 real legacy upgrade passed: historical 001–021, schema-drift refusal, 21-item baseline, pending MFA/password-recovery/launcher 022–027, unchanged account data, idempotence and checksum guard.");
 } finally {
   try { if (legacy) await legacy.end(); } finally {
     try {

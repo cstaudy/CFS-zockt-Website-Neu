@@ -99,8 +99,8 @@ export async function claimJobs(req) {
       return { error: "DEVICE_NOT_ACTIVE", status: 403 };
     }
     const result = await client.query(
-      "with next_job as (select id from tool_jobs where account_id=$1 and kind='cut_export' and status='queued' order by created_at for update skip locked limit 1) update tool_jobs set status='claimed',updated_at=now() where id in (select id from next_job) and account_id=$1 and kind='cut_export' and status='queued' returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
-      [device.account_id]
+      "with next_job as (select id from tool_jobs where account_id=$1 and kind='cut_export' and status='queued' order by created_at for update skip locked limit 1) update tool_jobs set status='claimed',claimed_by_device=$2,updated_at=now() where id in (select id from next_job) and account_id=$1 and kind='cut_export' and status='queued' returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
+      [device.account_id, device.id]
     );
     await client.query("COMMIT");
     return { ok: true, jobs: result.rows.map(view) };
@@ -110,10 +110,8 @@ export async function claimJobs(req) {
   } finally { client.release(); }
 }
 
-// The existing schema has no claimed_by_device column. Until migration 026 is
-// explicitly approved, updates may be made by *active devices of the owning
-// account*, never by a device belonging to another account. The transaction
-// holds the device row lock through the job update to serialize revocation.
+// Update only the exact claiming device of the owning account; retain the
+// transaction lock through the update so revocation cannot race it.
 export async function updateLauncherJob(req, id, body) {
   if (!launcherAuthorized(req)) return { error: "LAUNCHER_UNAUTHORIZED", status: 401 };
   const deviceId = req?.headers?.["x-cfs-device-id"];
@@ -141,8 +139,8 @@ export async function updateLauncherJob(req, id, body) {
       return { error: "DEVICE_NOT_ACTIVE", status: 403 };
     }
     const result = await client.query(
-      "update tool_jobs set status=$3,result=$4::jsonb,error=$5,updated_at=now() where id=$1 and account_id=$2 and kind='cut_export' and (status='claimed' or (status='processing' and $3 <> 'processing')) returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
-      [id, active.rows[0].account_id, body.status, resultJson, body.error?.slice(0, 1000) || null]
+      "update tool_jobs set status=$3,result=$4::jsonb,error=$5,updated_at=now() where id=$1 and account_id=$2 and kind='cut_export' and claimed_by_device=$6 and (status='claimed' or (status='processing' and $3 <> 'processing')) returning id,project_id,kind,status,payload,result,error,created_at,updated_at",
+      [id, active.rows[0].account_id, body.status, resultJson, body.error?.slice(0, 1000) || null, deviceId]
     );
     await client.query("COMMIT");
     return result.rows[0] ? { ok: true, job: view(result.rows[0]) }
