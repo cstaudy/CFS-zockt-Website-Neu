@@ -1,17 +1,62 @@
 # Datenbank-Migrationen
 
-Die Migrationen sind für PostgreSQL bei Render vorgesehen.
+PostgreSQL ist die Datenbankbasis; Neon ist das vom Betreiber festgelegte Ziel.
+Render-Laufzeitzuordnung, Backup/Restore und produktive Freigabe sind getrennte
+Abnahmeschritte. Aktueller zentraler Plan: [DEVELOPMENT_PLAN.md](../docs/plans/DEVELOPMENT_PLAN.md)
+(PR #107, bis zum Merge im Entwicklungsbranch). Keine produktive Ausführung
+aufgrund dieses Dokuments allein.
 
-`001_initial.sql` aktiviert `pgcrypto` selbst:
+## Normaler Migrationslauf
 
-```sql
-create extension if not exists pgcrypto;
-```
+`001_initial.sql` aktiviert `pgcrypto`. `npm start` führt bei gesetzter
+`DATABASE_URL` ausstehende Migrationen aus. Der Runner verlangt eine
+lückenlose, aufsteigende Dateiliste ab 001 mit eindeutiger Nummerierung und
+prüft diese vor dem ersten SQL-Zugriff. Ein Advisory Lock serialisiert
+Migrationen. Das Ledger `schema_migrations` speichert Dateiname und SHA-256;
+unbekannte Einträge, Lücken oder geänderte Prüfsummen blockieren weitere DDL.
+Bereits ausgeführte Migrationen niemals umbenennen, überschreiben oder aus dem
+Ledger entfernen.
 
-`npm start` führt bei gesetzter `DATABASE_URL` ausstehende Migrationen automatisch aus. Eine Datenbanksperre verhindert parallele Läufe; `schema_migrations` speichert Name und SHA-256-Prüfsumme. Bereits ausgeführte Dateien werden übersprungen. Eine nachträglich geänderte SQL-Datei stoppt den Start, statt unbemerkt erneut ausgeführt zu werden.
+## Historische Baseline 001–021
 
-Bei einer bestehenden Datenbank ohne `schema_migrations` darf `npm run migrate:baseline` einmalig verwendet werden. Der Befehl benötigt die ausdrückliche Freigabe `CONFIRM_MIGRATION_BASELINE=yes`. Er führt alle Migrationen zunächst in einer Transaktion aus, vergleicht Tabellen, Spalten, Constraints, Indizes und Erweiterungen davor und danach und rollt den Test vollständig zurück. Nur wenn keine Migration das Schema verändern würde, werden die SHA-256-Prüfsummen registriert. Migrationen mit datenverändernden SQL-Befehlen werden grundsätzlich abgewiesen.
+Eine bestehende Anwendung ohne Ledger darf nicht wie eine Neuinstallation
+behandelt werden. Der manuelle Befehl `npm run migrate:baseline` erfordert
+alle drei ausdrücklich bestätigten Schalter:
 
-Auf Render kann der einmalige Baseline-Lauf beim Start mit `MIGRATION_BASELINE_ON_START=yes` und `CONFIRM_MIGRATION_BASELINE=yes` aktiviert werden. Ein identischer, bereits registrierter Stand wird sicher übersprungen; abweichende Prüfsummen stoppen den Start. Nach erfolgreicher Übernahme beide Variablen wieder entfernen, damit normale Migrationen über `npm start` laufen.
+- `CONFIRM_MIGRATION_BASELINE=yes`
+- `CONFIRM_VERIFIED_DATABASE_BACKUP=yes`
+- `CONFIRM_LEGACY_BASELINE_ONLY=yes`
 
-Vor diesem einmaligen Produktionsschritt weiterhin einen Datenbankexport anlegen. Die Zugangsdaten gehören ausschließlich in Render unter Environment Variables und niemals in GitHub.
+Der Befehl überprüft zuerst die historische Spalten-/Tabellenform lesend,
+probt anschließend ausschließlich 001–021 in einer zurückgerollten
+Transaktion und vergleicht Schema-Metadaten. Bei Abweichung erfolgt keine
+Registrierung. Nur nach isolierter Restore-/Upgrade-Abnahme und eigener
+Betreiberfreigabe darf eine produktive Baseline erfolgen. Die MFA-Migrationen
+022–025 werden **nicht** als historisch ausgeführt eingetragen.
+
+**Eine automatische Baseline beim Start ist verboten.**
+`MIGRATION_BASELINE_ON_START=yes` führt in aktuellem main zum Abbruch.
+Keine Produktionsverbindung für lokale Tests. Der
+[Read-only Release-Preflight](../docs/operations/RELEASE_READINESS_READ_ONLY.md)
+ist eine Prüfung und keine Freigabe.
+
+## Geplante Auflösung der Nummernkollision (28.11.2026)
+
+| Nummer | Status / Zuordnung |
+| --- | --- |
+| 001–025 | Main; historisches Präfix und SHA-256 unverändert erhalten |
+| 026 | Passwort-Recovery, PR #103; bereits im isolierten Recovery-Validierungsbranch registriert, daher nicht umnummerieren |
+| 027 | Vorgesehene neue Nummer für Launcher-Claim aus PR #50 (dort bisher 026) |
+| 028 | Vorgesehene neue Nummer für Twitch EventSub aus PR #50 (dort bisher 027) |
+
+Die letzten beiden Zuordnungen sind eine Integrationsentscheidung, **keine**
+aktiven Migrationen. Lesende Neon-Prüfung: production und clean-validation
+ohne Ledger, staging bis 025, recovery-validation bis 026 (Passwort-Recovery);
+keine Launcher-Claim-/Twitch-Follow-Erweiterung in diesen vier Datenbanken.
+Vor einer Umnummerierung zusätzlich alle relevanten Ziel-/Testumgebungen
+prüfen und im aufgeteilten #50 die SQL-Dateien, Manifest, Schema-Flags, Tests
+und Dokumentation konsistent anpassen. #103 bleibt in seinem bestehenden PR.
+Keine neue 029+-Migration ohne Inventar und abgestimmte Abhängigkeiten.
+
+Keine Zugangsdaten in GitHub, Chat oder Logs. Kein Deploy, produktives SQL
+oder Rollback ohne separate Freigabe und nachgewiesenen Restore.
