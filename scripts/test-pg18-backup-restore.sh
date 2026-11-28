@@ -134,8 +134,13 @@ docker exec -i "$container" pg_restore -U cfs_ci -d "$restore_db" \
 sql="select count(*) from public.schema_migrations"
 source_migrations="$(docker exec "$container" psql -U cfs_ci -d cfs_ci -At -v ON_ERROR_STOP=1 -c "$sql")"
 restored_migrations="$(docker exec "$container" psql -U cfs_ci -d "$restore_db" -At -v ON_ERROR_STOP=1 -c "$sql")"
-[[ "$source_migrations" == "25" && "$restored_migrations" == "25" ]] || {
-  echo "Migrations ledger did not survive restore." >&2
+expected_migrations="$(node --input-type=module -e 'import { migrationFiles } from "./src/migrations.js"; console.log(migrationFiles.length)')"
+[[ "$expected_migrations" =~ ^[1-9][0-9]*$ ]] || {
+  echo "Invalid migration manifest count." >&2
+  exit 1
+}
+[[ "$source_migrations" == "$expected_migrations" && "$restored_migrations" == "$expected_migrations" ]] || {
+  echo "Migration ledger count differs from the manifest or restore." >&2
   exit 1
 }
 
@@ -143,7 +148,7 @@ restored_migrations="$(docker exec "$container" psql -U cfs_ci -d "$restore_db" 
 # without printing any passwords, session hashes, account data or dump contents.
 for table in accounts sessions creator_projects creator_assets user_media \
              account_mfa account_security_events mfa_login_challenges \
-             creator_settings schema_migrations; do
+             creator_settings password_recovery_attempts launcher_devices tool_jobs schema_migrations; do
   sql="select md5(coalesce(string_agg(row_to_json(t)::text, E'\\n' order by row_to_json(t)::text), '')) from (select * from public.${table}) t"
   source_fingerprint="$(docker exec "$container" psql -U cfs_ci -d cfs_ci -At -v ON_ERROR_STOP=1 -c "$sql")"
   restored_fingerprint="$(docker exec "$container" psql -U cfs_ci -d "$restore_db" -At -v ON_ERROR_STOP=1 -c "$sql")"
@@ -202,5 +207,5 @@ restored_count="$(docker exec "$container" psql -U cfs_ci -d "$probe_clone_db" -
 }
 echo "PostgreSQL 18 CI ACL rehearsal: synthetic row restored, original owner and reader grant intentionally absent; real migrations still require operator role checks."
 
-echo "PostgreSQL 18 CI backup verified: pg_dump, AES256-GPG synthetic encryption/decryption, SHA-256 of ciphertext, clean pg_restore, 25 migrations, application rows and schema."
+echo "PostgreSQL 18 CI backup verified: pg_dump, AES256-GPG synthetic encryption/decryption, SHA-256 of ciphertext, clean pg_restore, ${expected_migrations} migrations, application rows and schema."
 echo "Only disposable CI data was used; temporary archive and restore DB will be deleted."

@@ -1,0 +1,27 @@
+# Abnahme des Codex-Staging-Stands – 28.11.2026
+
+Basis: `security/staging-neon-tls-20261125` / `0223110bf572779ab6759c13ee8fa3f6c6cec09b`. Dieser reine Dokumentations-/CI-Entwurf verändert keinen Anwendungscode. Nicht mergen oder deployen. Ziel: unabhängige PostgreSQL-18-CI auf Basis des tatsächlichen Codex-Stands, statt getrennte historische Entwürfe als integriertes System auszugeben. Vorhandener Website-checks-Workflow nutzt ausschließlich lokale synthetische cfs_ci-Datenbank. Manueller Render-Neon-Kopierworkflow wird nicht ausgelöst.
+
+## Abgleich
+- main ist 7808447a26fc51d906e97bfc81d7cae4baed83cd; Staging liegt 15 Commits voraus, 42 dahinter. Staging als Arbeitsgrundlage erhalten, aber keine pauschale Übernahme nach main.
+- Codex meldet npm ci/npm run check und öffentliche Homepage/Login-Abnahme bei 320/375/390/430/768/1280/1920 px bestanden. Geschützte Seiten, isolierte reale PG18-Integration und vollständige exportierte Screenshots sind nicht nachgewiesen. Keine erneute visuelle Prüfung durch diesen Audit.
+- #103/#108/#109/#117/#121 wurden selektiv in Staging bearbeitet. Historische PRs nicht zusätzlich blind mergen. #121 separat CI fehlgeschlagen (run 46116762349: Migration-Runner-Test erwartet 26 statt 27; DB-Schritte übersprungen). Der neue Codex-Stand korrigiert diese konkrete Assertion auf 27, aber scripts/test-pg18-backup-restore.sh verlangt weiterhin 25 Migrationen. Nicht als erfolgreicher Restore-Test zählen.
+- Migration 026: Staging und #103 haben unterschiedliche SQL-Dateien und Indexnamen. Read-only Recovery-Neon-Ledger enthält einen Eintrag für 026; Vergleich der abgerufenen SQL-Texte inklusive LF/CRLF/Endnewline-Varianten zeigt Übereinstimmung mit #103-Variante, keine mit Staging-Variante. Exakte ursprüngliche Datei/Checksumme und Katalog vor Freigabe verifizieren. Keine Ledger-Manipulation, keine bereits angewandte Migration umschreiben. Falls tatsächlich erforderlich, additive neue Migration separat planen. Auch 027 unterscheidet sich textlich von #121; noch nicht als produktiv angewandt nachgewiesen.
+- Auth-Abnahme: echte PostgreSQL-Paralleltests für Forgot/Reset/Change/MFA/Session, konsistente Reihenfolge Account-/Token-/Advisory-Locks; Mailfehler-Rollback darf nicht zu unbegrenzten Wiederholungen führen, öffentliche Antworten neutral halten, keine externen Mail-Aufrufe mit echten Konten. Nicht aus Mock-Tests auf Live-Sicherheit schließen.
+- 027: vorhandene account-/device-/cut_export-Filter und Transaktionsschutz erhalten; zusätzliche E2E-Fälle aus #121 (zweites aktives Gerät desselben Accounts, konkurrierende Claims, ungebundener Alt-Claim, fremder Jobtyp) gezielt auf Staging übernehmen. Shared Bridge-Secret bleibt kein individueller kryptografischer Gerätenachweis.
+- Betreiberfreigabe und unabhängiger vollständiger Backup-/Restore-Nachweis bleiben offen. Kein produktiver Rollen-/DB-/Render-Schreibzugriff.
+
+## Reihenfolge nach CI
+1. Fehler der integrierten Staging-Testkette beheben, Migration 026 gegen Original/Recovery-Ledger klären, 027 und vollständige Restore-Rehearsal mit realem PostgreSQL 18 prüfen. Alte Assertions nicht einfach deaktivieren.
+2. Aktuellen main-Stand und Staging-Delta dateiweise abgleichen; fehlende Sicherheits- und Feature-Verbesserungen selektiv konsolidieren. Authentifizierte Browserabnahme mit synthetischen Konten, keine echten Provider.
+3. #110 → #118 → #119 → #120 gezielt integrieren (Plattformfähigkeiten, Status, Creator Setup, Modulkatalog). Bestehendes Codex-Design/Navigation und strenge Admin-Regel erhalten; gemeinsame Dateien und Testimports abgleichen.
+4. Launcher-/OBS-Engine und #50 selektiv prüfen; #112/#114 Token-Lifecycle, #106 Cut-Mobile separat abnehmen. Kein paralleles Neudesign. Multi-Publisher #111/#113/#115/#116 bleibt bis nach Grundintegration pausiert.
+5. Vor Produktionsfreigabe erneute Ziel-/TLS-/Ledger-/Restore-/Betreiber-/MFA-/Geräte-/Provider-Prüfung und ausdrückliche Freigabe.
+
+CI dieses Entwurfs: noch offen. Ergebnisse nach Run anhand genauem Head/Base und vollständigen Job-Schritten verifizieren. Dokumentation ist keine technische Freigabe. Keine neue Abhängigkeit, kein Deploy oder zusätzlicher kostenpflichtiger Dienst.
+
+## Erster unabhängiger CI-Lauf und gezielte Testkorrektur
+
+Run [46125880466](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/46125880466) für a655ee5: npm ci, npm run check (inkl. Backup-Refusal), PostgreSQL-18 Account-/Creator-E2E, Read-only Release-Readiness (27 Ledger-Einträge, keine Checksumme-/Namensabweichung in dieser frischen CI-DB), Legacy-Baseline/Upgrade und Legacy-Dump/Restore/Upgrade erfolgreich. Abschließende verschlüsselte Backup-Abnahme scheiterte nach pg_restore an der veralteten 25er-Assertion. Nachfolgende Fingerprint-/ACL-Prüfungen wurden dadurch nicht erreicht. Keine Aussage über vollständige Wiederherstellung der echten Produktionsdaten.
+
+Testkorrektur auf diesem Audit-Zweig: erwartete Migrationsanzahl aus dem vorhandenen Manifest, beide Ledger müssen dieser Anzahl entsprechen; bestehende exakte Ledger- und Datenvergleichsprüfung bleibt, zusätzlich Recovery-Attempts, Launcher-Geräte und Tool-Jobs im Fingerprint-Vergleich. CI-Sicherheitsguards bleiben. Neue CI muss vollständigen Durchlauf bestätigen. Keine SQL-Migration, kein Anwendungscode, keine Änderung an Codex-Staging oder Produktionsdiensten. Migration-026-Konflikt auf dem echten Recovery-Zweig bleibt ungeklärt und blockiert Release.
