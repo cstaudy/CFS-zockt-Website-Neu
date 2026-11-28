@@ -1,4 +1,5 @@
 import { getPool } from "./db.js";
+import { MAX_STREAM_DESTINATIONS } from "./creator-module-catalog.js";
 import { requireAccount } from "./projects.js";
 import { listScenes } from "./studio-adapter.js";
 import { listWidgets } from "./widget-adapter.js";
@@ -29,7 +30,7 @@ export async function getStreamStudioState(req) {
     ok:true, config:storedConfig(row), version:row?.version ?? null,
     scenes:scenes.scenes || [], widgets:widgets.widgets || [], registry:widgets.registry || [],
     access:{ plan:account.plan || "free", entitlements:{ max_scenes:scenes.limits?.max_scenes || 50 } },
-    multistream:{ max_destinations:1 }, settings:{}
+    multistream:{ max_destinations:MAX_STREAM_DESTINATIONS }, settings:{}
   };
 }
 
@@ -64,7 +65,7 @@ export async function saveStreamStudioState(req, body) {
       );
       if (!updated.rows[0]) { await client.query("ROLLBACK"); return { error:"STREAM_STUDIO_VERSION_CONFLICT", status:409 }; }
       await client.query("COMMIT");
-      return { ok:true,config,version:updated.rows[0].version,settings:{},multistream:{max_destinations:1} };
+      return { ok:true,config,version:updated.rows[0].version,settings:{},multistream:{max_destinations:MAX_STREAM_DESTINATIONS} };
     }
     if (body.expected_version !== null && body.expected_version !== undefined) {
       await client.query("ROLLBACK");
@@ -75,7 +76,7 @@ export async function saveStreamStudioState(req, body) {
       [account.id,serialized]
     );
     await client.query("COMMIT");
-    return { ok:true,config,version:created.rows[0].version,settings:{},multistream:{max_destinations:1} };
+    return { ok:true,config,version:created.rows[0].version,settings:{},multistream:{max_destinations:MAX_STREAM_DESTINATIONS} };
   } catch(error) { await client.query("ROLLBACK").catch(()=>{}); throw error; }
   finally { client.release(); }
 }

@@ -4,7 +4,7 @@ import { widgetConfigs, nextWidgetData } from "./widget-publication.js";
 import { publicWidgetPayload } from "./widget-output.js";
 import { validateSceneConfig } from "./scene-validation.js";
 
-const MAX_SCENES = 50;
+import { MAX_SCENES } from "./creator-module-catalog.js";
 const MAX_DATA_BYTES = 512 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
