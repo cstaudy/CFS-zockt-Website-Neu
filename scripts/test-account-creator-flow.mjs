@@ -750,6 +750,42 @@ try {
   assert.equal(otherSettings.data.settings?.accountMarker, undefined,
     'Private settings from creator A must not appear in creator B session');
 
+  // Existing settings row also owns the creator_setup namespace.
+  const setupPath='/api/creator/modules/launcher/state';
+  const initialSetup=await request('GET',setupPath,{cookie:login.cookie});
+  assert.equal(initialSetup.status,200);
+  assert.equal(initialSetup.data.setup_status,'not_saved');
+  assert.equal(initialSetup.data.setup_version,null);
+  const prefs={theme:'cfs',start_module:'dashboard',widgets:['follower_goal'],active_game:'',follower_goal:250,show_mode:'standard'};
+  const setupBody=(value,version)=>({state:{creator_setup:value},expected_version:version});
+  assert.equal((await request('PUT',setupPath,{body:setupBody(prefs,null)})).status,401);
+  for(const invalid of [{...prefs,theme:'unknown'},{...prefs,follower_goal:0},{...prefs,widgets:['follower_goal','follower_goal']},{...prefs,admin:true}]){
+    assert.equal((await request('PUT',setupPath,{cookie:login.cookie,body:setupBody(invalid,null)})).status,400);
+  }
+  assert.equal((await request('PUT',setupPath,{cookie:login.cookie,body:{state:{creator_setup:prefs,devices:[]},expected_version:null}})).status,400);
+  const firstSetup=await request('PUT',setupPath,{cookie:login.cookie,body:setupBody(prefs,null)});
+  assert.equal(firstSetup.status,200);
+  assert.match(firstSetup.data.setup_version,/^[0-9a-f]{64}$/);
+  const concurrent=await Promise.all([251,252].map(follower_goal=>request('PUT',setupPath,{cookie:login.cookie,body:setupBody({...prefs,follower_goal},firstSetup.data.setup_version)})));
+  assert.deepEqual(concurrent.map(x=>x.status).sort(),[200,409]);
+  const winner=concurrent.find(x=>x.status===200).data;
+  const savedSetup=await request('GET',setupPath,{cookie:login.cookie});
+  assert.deepEqual(savedSetup.data.state.creator_setup,winner.state.creator_setup);
+  assert.equal(savedSetup.data.setup_version,winner.setup_version);
+  assert.equal((await request('GET',setupPath,{cookie:mediaOtherCookie})).data.setup_status,'not_saved');
+  const allSettings=await request('GET','/api/creator/settings',{cookie:login.cookie});
+  assert.equal(allSettings.data.settings.accountMarker,'creator-A-private');
+  assert.equal((await request('PUT','/api/creator/settings',{cookie:login.cookie,body:{settings:{creator_setup:prefs}}})).status,409);
+  const simultaneous=await Promise.all([
+    request('PUT','/api/creator/settings',{cookie:login.cookie,body:{settings:{accountMarker:'creator-A-updated'}}}),
+    request('PUT',setupPath,{cookie:login.cookie,body:setupBody({...prefs,follower_goal:300},winner.setup_version)})
+  ]);
+  assert(simultaneous.every(x=>x.status===200));
+  const afterBoth=await request('GET','/api/creator/settings',{cookie:login.cookie});
+  assert.equal(afterBoth.data.settings.accountMarker,'creator-A-updated');
+  assert.equal(afterBoth.data.settings.creator_setup.follower_goal,300);
+  assert.equal((await request('GET',setupPath,{cookie:mediaOtherCookie})).data.state.creator_setup,null);
+
   const upload = async (path, mimeType, filename, bytes, extraHeaders = {}) => {
     const response = await fetch(base + path, {
       method: 'POST',
