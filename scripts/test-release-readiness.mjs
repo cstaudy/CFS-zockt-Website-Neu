@@ -13,7 +13,7 @@ const complete = {
   mfa_totp_replay_exists: true,
   mfa_challenge_window_exists: true,
   mfa_challenge_count_exists: true,
-  launcher_claim_device_exists: false,
+  launcher_claim_device_exists: true,
   twitch_subscriptions_exists: false,
   twitch_challenges_exists: false,
   twitch_follow_events_exists: false
@@ -57,12 +57,16 @@ assert.equal(good.database_ready_for_nonmigrating_start, true);
 assert.equal(good.production_release_approved, false,
   "Schema readiness never confirms an operational release");
 assert.deepEqual(good.blockers, []);
-assert.equal(good.schema.launcher_026_device_claim, false);
-assert.equal(good.schema.twitch_027_follow_subscriptions, false);
+assert.equal(good.schema.launcher_027_device_claim, true);
+assert.equal(good.schema.twitch_028_follow_subscriptions, false);
 assert.equal(goodDb.queries.length, 2);
 assert(!JSON.stringify(good).includes("email"));
 assert(!JSON.stringify(good).includes("password"));
 assert(!JSON.stringify(good).includes("secret"));
+
+const missingClaim = await inspectReleaseReadiness(fakeDb({flags:{launcher_claim_device_exists:false}}));
+assert(missingClaim.blockers.includes("LAUNCHER_SCHEMA_027_INCOMPLETE"));
+assert.equal(missingClaim.database_ready_for_nonmigrating_start,false);
 
 const legacyDb = fakeDb({ flags: {
   ledger_exists: false,
