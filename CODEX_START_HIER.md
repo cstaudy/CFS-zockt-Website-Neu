@@ -2,6 +2,9 @@
 
 Dies ist die **entpackte Website 3** – nicht nur eine Übergabe mit Anhängen. Die Website liegt direkt in dieser Wurzel (`index.html`, `server.js`, `package.json`, `pages/`, `assets/`, `src/`, `migrations/`).
 
+## Aktueller Entwicklungsstand
+Der verbindliche Plan für die laufende Weiterentwicklung ist [docs/plans/DEVELOPMENT_PLAN.md](docs/plans/DEVELOPMENT_PLAN.md). Er bündelt Neon, Sicherheitsfreigaben, Creator Suite, Multistream und Multi-Publisher. Die älteren datierten Pläne bleiben historische Nachweise; öffentliche Produktstatus stehen auf [pages/roadmap.html](pages/roadmap.html).
+
 ## Mit Codex loslegen
 1. ZIP entpacken und **diesen Projektordner** in Codex als Workspace öffnen.
 2. Codex folgende kurze Nachricht geben:
