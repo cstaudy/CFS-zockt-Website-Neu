@@ -2,6 +2,8 @@
 
 Stand: 28.11.2026. Master: `CFS-zockt-Website-Neu` (Website 3), geprüfter main-Stand `7808447`. Dieser Plan ersetzt die allgemeine Prioritätenliste vom 14.11.2026; datierte Fachpläne und Auditberichte bleiben historische Nachweise. Die öffentliche [Roadmap](../../pages/roadmap.html) ist die vereinfachte Produktübersicht, keine technische Freigabe.
 
+**Aktuelle Priorität:** Multi-Publisher-Ausbau vorerst pausiert. Zuerst den [technischen Gesamtstand und die Codex-Integrationsreihenfolge](WEBSITE3_TECHNICAL_INVENTORY.md) abarbeiten (Betrieb/Sicherheit, Launcher, Creator-Kern, Streaming, Cut, öffentliche Datenquellen und Design). Die späteren Publishing-Pakete bleiben erhalten.
+
 ## 1. Verbindliche Leitplanken
 
 - Ausschließlich Website 3 weiterentwickeln. Ältere Website-Repositories und Launcher-Quellen nur selektiv als Referenz nutzen; keine zweite Website, kein blindes Überschreiben, keine doppelte Account-, Medien-, Job- oder Editorverwaltung.
@@ -159,3 +161,9 @@ Nächster ausführbarer Schritt: **DB-01/DB-02 lesend verifizieren und PUB-01/CO
 - [PR #116](https://github.com/cstaudy/CFS-zockt-Website-Neu/pull/116) ergänzt die vorhandenen Cut-Mediathek-Karten um einen internen Publisher-Vorschau-Link. Vorauswahl ausschließlich anhand der eigenen authentifizierten Medienliste; UUID-Fragment, keine Pfade/Tokens, kein automatischer POST, Entwurf oder Upload. Vorhandener Editor, API, HTML/CSS, Export-Queue und #106 unverändert. Mock-DOM-Tests eingebunden; CI und echte Browser-/Designabnahme offen.
 - Lokale Launcher-Ausgaben weiterhin bewusst in Mediathek importieren, bestehendes 16-MiB-Limit. Keine Behauptung eines automatischen Export-Handoffs oder geprüfter Render-Bytes. #50 überlappt beide JS-Dateien, selektiver Abgleich erforderlich. Referenzbilder nicht visuell geöffnet; kein Designfreigabe-Nachweis.
 - Nächster Block: private und unveränderliche Ausgabevarianten, Content-Hash und tatsächliche Medien-/Codecprüfung, sichere Übertragung größerer Dateien, danach persistente Ausführung/Freigabe. #110 → #111 → #113 → #115 → #116; #112 → #114. DB-/Backup-/Admin-/Release-Gates bleiben offen. Kein Merge, Deploy, produktives SQL, Tarifwechsel oder externe Veröffentlichung.
+
+## 16. Neupriorisierung – Website-weite technische Bestandsaufnahme
+
+- Betreiberwunsch: vor weiterer Multi-Publisher-Entwicklung zuerst alle anderen Website-Funktionen technisch prüfen und für späteren Codex-Umbau konsolidieren. [Technisches Inventar und Integrationsreihenfolge](WEBSITE3_TECHNICAL_INVENTORY.md) ergänzt. 29 offene PRs (27 Drafts), main unverändert; #116 [CI grün](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/46103105441).
+- P0: Admin-Autorisierung ist trotz vorhandenem strikten Helper noch nicht konsistent (E-Mail-basierte Pfade in auth.js/projects.js/mfa-login.js); echte DB-/Backup-/Restore-/MFA-Abnahme und Statuswahrheit vor Funktionsausbau. P1: #50 selektiv aufteilen, Launcher-/OBS-/Stream-/Scene-/Widget-/Audio-/Cut-Kern und PS/Games prüfen. Design #101 nach Referenz-/Mockup-Abnahme schrittweise integrieren.
+- Branch feat/publisher-private-stream-staging-2026-11-28 lediglich angelegt; keine neue Publishing-Codeänderung oder PR. Keine Datenbank-, Render-, Tarif- oder Produktionsänderung. Codex-Umsetzung folgt als separater, gezielter Auftrag nach dieser Bestandsaufnahme.
