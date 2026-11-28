@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./test-neon-target.mjs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { inspectReleaseReadiness } from "../src/release-readiness.js";
@@ -162,3 +163,16 @@ const missingUrl = spawnSync(process.execPath, ["scripts/check-release-readiness
 assert.notEqual(missingUrl.status, 0);
 assert.match(missingUrl.stderr, /DATABASE_URL fehlt/);
 console.log("Release readiness inspector: catalog-only, ledger checksums, old schema, missing MFA, conflicts, no PII, explicit opt-in, no writes.");
+
+// Both cases must fail before any database connection is attempted.
+for (const [consent, expected] of [["no","NEON_TARGET_PREFLIGHT_CONSENT_REQUIRED"],["yes","NEON_TARGET_MISMATCH"]]) {
+  const attempt = spawnSync(process.execPath, ["scripts/check-release-readiness.mjs"], {
+    encoding: "utf8", env: { ...process.env, CONFIRM_RELEASE_PREFLIGHT_READ_ONLY: "yes",
+      CONFIRM_NEON_TARGET_READ_ONLY: consent, CFS_EXPECTED_NEON_HOST: "ep-expected.eu-central-1.aws.neon.tech",
+      CFS_EXPECTED_NEON_DATABASE: "creator_db",
+      DATABASE_URL: "postgresql://creator:fake-secret@ep-wrong.eu-central-1.aws.neon.tech/creator_db?sslmode=verify-full" }
+  });
+  assert.notEqual(attempt.status, 0);
+  assert.match(attempt.stderr, new RegExp(expected));
+  assert.doesNotMatch(attempt.stderr, /fake-secret|ep-wrong/);
+}
