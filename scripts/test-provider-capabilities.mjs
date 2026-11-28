@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { buildProviderCapabilities, readProviderCapabilities } from "../src/provider-capabilities.js";
 const now = Date.parse("2026-11-28T12:00:00Z");
 const configured = { tiktok: true, twitch: true, youtube: true };
@@ -41,3 +42,18 @@ assert.doesNotMatch(calls[0].sql, /access_token|refresh_token|open_id|email|inse
 await assert.rejects(readProviderCapabilities(db, "", configured, now), /PROVIDER_ACCOUNT_REQUIRED/);
 assert.equal(calls.length, 1);
 console.log("Provider capabilities: account-scoped metadata, exact scope checks, expiry, no secret projection and fail-closed publishing.");
+
+const server = await readFile(new URL("../server.js", import.meta.url), "utf8");
+const route = server.slice(server.indexOf('if (url.pathname === "/api/creator/integration-capabilities"'), server.indexOf('if (url.pathname === "/api/integrations/tiktok/start"'));
+assert(route.includes('method === "GET"'));
+assert(route.indexOf('if(!account)return json(res,401') >= 0);
+assert(route.indexOf('if(!account)return json(res,401') < route.indexOf('readProviderCapabilities(getPool(), account.id'));
+assert(route.includes('platforms_status:platforms === null ? "unavailable" : "ok"'));
+assert(route.includes('oauth:'));
+const html = await readFile(new URL("../pages/integrations.html", import.meta.url), "utf8");
+const ui = await readFile(new URL("../assets/js/page-integrations.js", import.meta.url), "utf8");
+assert.equal((html.match(/id="platformCapabilitiesGrid"/g)||[]).length, 1);
+assert(html.includes("hier werden keine Videos veröffentlicht"));
+assert(ui.includes('renderPlatformCapabilities(null)'));
+assert(ui.includes('line.textContent = text'));
+console.log("Existing authenticated route and integration hub contract checked.");
