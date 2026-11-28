@@ -219,9 +219,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     const stateData = await CFS.json("/api/creator/modules/launcher/state");
-    journey.setup = Boolean(stateData.state && stateData.state.creator_setup);
-    setJourneyStep("progressSetup", journey.setup, journey.setup ? "Gespeichert" : "Noch offen");
-    if (!journey.setup) setupWarning.classList.remove("hidden");
+    journey.setup = stateData.setup_status==="saved" ? true : stateData.setup_status==="not_saved" ? false : "unknown";
+    setJourneyStep("progressSetup", journey.setup, journey.setup===true ? "Gespeichert" : journey.setup===false ? "Noch offen" : "Status nicht verfügbar");
+    if (journey.setup!==true) setupWarning.classList.remove("hidden");
     renderNextStep();
   } catch {
     journey.setup = "unknown";

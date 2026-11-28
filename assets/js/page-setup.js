@@ -51,8 +51,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     `;
   }).join("");
 
+  let setupVersion=null, loaded=false, saving=false;
+  const saveButton=setupForm.querySelector('button[type="submit"]');
+  saveButton.disabled=true;
   try {
     const data = await CFS.json("/api/creator/modules/launcher/state");
+    if(!["saved","not_saved"].includes(data.setup_status))throw Error("Gespeichertes Setup muss geprüft werden. Kein Überschreiben möglich.");
+    setupVersion=data.setup_version;
+    if(!(setupVersion===null||typeof setupVersion==="string"))throw Error("Setup-Version fehlt.");
     const state = data.state?.creator_setup || {};
 
     setupForm.theme.value = allowedThemes.includes(state.theme) ? state.theme : allowedThemes[0];
@@ -63,15 +69,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const selected = Array.isArray(state.widgets) ? state.widgets : ["follower_goal"];
     document.querySelectorAll('input[name="widget"]').forEach(input => {
-      input.checked = selected.includes(input.value) && !input.disabled;
+      input.checked = selected.includes(input.value);
     });
 
-    syncInfo.textContent = data.updated_at
-      ? `Letzte Server-Speicherung: ${new Date(data.updated_at).toLocaleString("de-DE")}`
+    loaded=true;saveButton.disabled=false;
+    syncInfo.textContent = data.setup_status==="saved" && data.updated_at
+      ? `Letzte Speicherung der Creator-Einstellungen: ${new Date(data.updated_at).toLocaleString("de-DE")}`
       : "Noch kein Creator Setup gespeichert.";
   } catch (error) {
     message.textContent = error.message;
     message.className = "notice danger";
+    syncInfo.textContent = "Setup konnte nicht sicher geladen werden. Bitte Seite neu laden.";
   }
 
   function render() {
@@ -87,6 +95,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   setupForm.addEventListener("submit", async event => {
     event.preventDefault();
+    if(!loaded||saving)return;
+    saving=true;saveButton.disabled=true;
 
     const widgets = [...document.querySelectorAll('input[name="widget"]:checked')]
       .map(input => input.value);
@@ -106,16 +116,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       const saved = await CFS.json("/api/creator/modules/launcher/state", {
         method: "PUT",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ state })
+        body: JSON.stringify({ state, expected_version:setupVersion })
       });
 
+      if(saved.ok!==true||saved.setup_status!=="saved"||typeof saved.setup_version!=="string")throw Error("Speicherung nicht bestätigt.");
+      setupVersion=saved.setup_version;
       message.textContent = "Creator Setup wurde serverseitig gespeichert.";
       message.className = "notice";
-      syncInfo.textContent = `Letzte Server-Speicherung: ${new Date(saved.updated_at).toLocaleString("de-DE")}`;
+      syncInfo.textContent = `Letzte Speicherung der Creator-Einstellungen: ${new Date(saved.updated_at).toLocaleString("de-DE")}`;
     } catch (error) {
-      message.textContent = error.message;
+      if(error.status===409){loaded=false;message.textContent="Setup wurde geändert oder muss geprüft werden. Bitte Seite neu laden; nichts wurde überschrieben.";}else{message.textContent=error.message;}
       message.className = "notice danger";
-    }
+    } finally {saving=false;saveButton.disabled=!loaded;}
   });
 
   render();
