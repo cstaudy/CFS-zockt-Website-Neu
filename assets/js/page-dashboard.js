@@ -79,19 +79,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     const signal = document.getElementById("systemSignal");
     const headline = document.getElementById("systemHeadline");
     const next = document.getElementById("systemNext");
-    signal.classList.toggle("ready", readyCount >= 4);
-    signal.classList.toggle("wait", readyCount < 4);
+    signal.classList.toggle("ready", false);
+    signal.classList.toggle("wait", true);
     if (!connection.obs) {
-      headline.textContent = "Veröffentlichtes Widget noch nicht bestätigt";
+      headline.textContent = "Aktuelle OBS-Verbindung noch nicht bestätigt";
       next.innerHTML = 'Im <a href="/pages/widget-studio.html">Widget Studio →</a> zuerst ein statisches oder manuelles Test-Widget vorbereiten.';
     } else if (!connection.launcher) {
-      headline.textContent = "Widget vorhanden · OBS-Test vorbereiten";
+      headline.textContent = "Launcher-Heartbeat nicht bestätigt";
       next.innerHTML = 'Die Website kann vor TikTok und Twitch geprüft werden. <a href="/pages/website-abnahme.html">Website-Abnahme öffnen →</a>';
     } else {
-      headline.textContent = "Widget und Launcher erkannt";
+      headline.textContent = "Launcher und OBS gemeldet · Abnahme offen";
       next.innerHTML = 'Prüfe die tatsächliche Browserquelle mit OBS. <a href="/pages/website-abnahme.html">Abnahme öffnen →</a>';
     }
-    signal.querySelector("span").textContent = `${readyCount}/5 BEREIT`;
+    signal.querySelector("span").textContent = `${readyCount}/5 STATUS-SIGNALE`;
   };
   renderSystemSummary();
   document.getElementById("refreshStatus")?.addEventListener("click", () => location.reload());
@@ -141,61 +141,62 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
   renderStreamReady();
 
-  const liveReady = Boolean(moduleData.entitlements?.live_bridge);
+  const liveReady = false;
   connection.live = liveReady;
   renderSystemSummary();
   setStatus(
     "statusLive",
     liveReady,
-    liveReady ? "FREIGESCHALTET" : "NICHT FREIGESCHALTET",
-    liveReady ? (moduleData.access?.beta?.active ? "Über Beta-Freigabe" : `${CFS.planLabel(moduleData.access?.effective_plan || a.plan)} Zugriff`) : "CREATOR Plan oder Beta-Freigabe benötigt"
+    liveReady ? "FREIGESCHALTET" : "NICHT BESTÄTIGT",
+    liveReady ? (moduleData.access?.beta?.active ? "Über Beta-Freigabe" : `${CFS.planLabel(moduleData.access?.effective_plan || a.plan)} Zugriff`) : "Live-Freigabe separat prüfen"
   );
 
   try {
     const tt = await CFS.json("/api/creator/tiktok/status");
-    connection.tiktok = !!tt.connected;
+    connection.tiktok = false;
     journey.tiktok = !!tt.connected;
     setJourneyStep("progressTikTok", journey.tiktok, tt.connected ? "Verbunden" : "Optional verbinden");
     renderSystemSummary();
     renderNextStep();
-    setStatus("statusTikTok", !!tt.connected, tt.connected ? "VERBUNDEN" : "OFFLINE",
-      tt.connected ? `${tt.profile?.display_name || "TikTok"} · ${Number(tt.profile?.follower_count || 0).toLocaleString("de-DE")} Follower` : "TikTok verbinden");
+    setStatus("statusTikTok", false, tt.connected ? "GESPEICHERT" : "NICHT VERBUNDEN",
+      tt.connected ? "Kontoverbindung gespeichert; Tokenprüfung offen" : "TikTok verbinden");
   } catch {
     journey.tiktok = "unknown";
     setJourneyStep("progressTikTok", journey.tiktok, "Status nicht verfügbar");
     renderNextStep();
-    setStatus("statusTikTok", false, "OFFLINE", "TikTok-Status nicht verfügbar");
+    setStatus("statusTikTok", false, "UNBEKANNT", "TikTok-Status nicht verfügbar");
   }
 
   try {
     const devices = await CFS.json("/api/creator/launcher/devices");
     const active = (devices.devices || []).filter(d => d.status === "active");
     const online = active.find(d => d.online);
-    connection.launcher = active.length > 0;
+    connection.launcher = Boolean(online);
+    connection.obs = Boolean(active.some(d=>d.online===true&&d.obs_connected===true));
     journey.launcher = active.length > 0;
     setJourneyStep("progressLauncher", journey.launcher, online ? "Online" : active.length ? "Verbunden" : "Optional verbinden");
     renderSystemSummary();
     renderNextStep();
-    setStatus("statusLauncher", active.length > 0, online ? "ONLINE" : active.length ? "VERBUNDEN" : "OFFLINE",
+    setStatus("statusLauncher", Boolean(online), online ? "ONLINE" : active.length ? "GEKOPPELT / OFFLINE" : "NICHT GEKOPPELT",
       online ? `${online.machine_name || "Creator PC"} · ${online.client_version || ""}` : active.length ? `${active.length} PC verbunden` : "Launcher per Device-Link verbinden");
   } catch {
     journey.launcher = "unknown";
     setJourneyStep("progressLauncher", journey.launcher, "Status nicht verfügbar");
     renderNextStep();
-    setStatus("statusLauncher", false, "OFFLINE", "Noch kein PC erkannt");
+    setStatus("statusLauncher", false, "UNBEKANNT", "Gerätestatus nicht verfügbar");
   }
 
   try {
     const widgets = await CFS.json("/api/creator/widget-studio/widgets");
     const liveWidgets = (widgets.widgets || []).filter(w => w.status === "live");
-    connection.obs = liveWidgets.length > 0;
+    // Widget publication is not an OBS heartbeat.
     journey.widget = (widgets.widgets || []).length > 0;
     journey.widgetPublished = liveWidgets.length > 0;
     setJourneyStep("progressWidget", journey.widget, journey.widget ? `${(widgets.widgets || []).length} Widget${(widgets.widgets || []).length === 1 ? "" : "s"} angelegt` : "Noch kein Widget");
     renderSystemSummary();
     renderNextStep();
-    setStatus("statusObs", liveWidgets.length > 0, liveWidgets.length ? "BEREIT" : "NOCH LEER",
-      liveWidgets.length ? `${liveWidgets.length} veröffentlicht${liveWidgets.length === 1 ? "es Widget" : "e Widgets"}` : "Erstes Widget veröffentlichen");
+    setStatus("statusObs", connection.obs, connection.obs ? "OBS GEMELDET" : "NICHT BESTÄTIGT",
+      connection.obs ? "Aktueller Launcher meldet OBS; Abnahme offen" : "Widget-Veröffentlichung bestätigt keine OBS-Verbindung");
   } catch {
     journey.widget = "unknown";
     journey.widgetPublished = "unknown";
