@@ -3,7 +3,7 @@ import { requireAccount } from "./projects.js";
 import { launcherAuthorized, UUID as LAUNCHER_UUID } from "./launcher-auth.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const MAX_PENDING = 3;
+import { MAX_PENDING_EXPORT_JOBS as MAX_PENDING } from "./creator-module-catalog.js";
 const MAX_PAYLOAD_BYTES = 64 * 1024;
 const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
 
