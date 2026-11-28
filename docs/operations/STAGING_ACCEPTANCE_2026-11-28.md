@@ -19,3 +19,9 @@ Basis: `security/staging-neon-tls-20261125` / `0223110bf572779ab6759c13ee8fa3f6c
 5. Vor Produktionsfreigabe erneute Ziel-/TLS-/Ledger-/Restore-/Betreiber-/MFA-/Geräte-/Provider-Prüfung und ausdrückliche Freigabe.
 
 CI dieses Entwurfs: noch offen. Ergebnisse nach Run anhand genauem Head/Base und vollständigen Job-Schritten verifizieren. Dokumentation ist keine technische Freigabe. Keine neue Abhängigkeit, kein Deploy oder zusätzlicher kostenpflichtiger Dienst.
+
+## Erster unabhängiger CI-Lauf und gezielte Testkorrektur
+
+Run [46125880466](https://github.com/cstaudy/CFS-zockt-Website-Neu/actions/runs/46125880466) für a655ee5: npm ci, npm run check (inkl. Backup-Refusal), PostgreSQL-18 Account-/Creator-E2E, Read-only Release-Readiness (27 Ledger-Einträge, keine Checksumme-/Namensabweichung in dieser frischen CI-DB), Legacy-Baseline/Upgrade und Legacy-Dump/Restore/Upgrade erfolgreich. Abschließende verschlüsselte Backup-Abnahme scheiterte nach pg_restore an der veralteten 25er-Assertion. Nachfolgende Fingerprint-/ACL-Prüfungen wurden dadurch nicht erreicht. Keine Aussage über vollständige Wiederherstellung der echten Produktionsdaten.
+
+Testkorrektur auf diesem Audit-Zweig: erwartete Migrationsanzahl aus dem vorhandenen Manifest, beide Ledger müssen dieser Anzahl entsprechen; bestehende exakte Ledger- und Datenvergleichsprüfung bleibt, zusätzlich Recovery-Attempts, Launcher-Geräte und Tool-Jobs im Fingerprint-Vergleich. CI-Sicherheitsguards bleiben. Neue CI muss vollständigen Durchlauf bestätigen. Keine SQL-Migration, kein Anwendungscode, keine Änderung an Codex-Staging oder Produktionsdiensten. Migration-026-Konflikt auf dem echten Recovery-Zweig bleibt ungeklärt und blockiert Release.
