@@ -27,3 +27,18 @@ assert.equal((await previewPublisher(db,"",body)).status,401);
 assert.equal((await previewPublisher(db,account,{...body,publish:true})).status,400);
 assert.equal(calls.length,2);
 console.log("Publisher preview: strict inputs, owned media, target profiles, blockers and no side effects.");
+
+const {readFile}=await import("node:fs/promises");
+const server=await readFile(new URL("../server.js",import.meta.url),"utf8");
+const route=server.slice(server.indexOf('if (url.pathname === "/api/creator/publisher/preview"'),server.indexOf('if (url.pathname === "/api/integrations/tiktok/start"'));
+assert(route.includes('method === "POST"'));
+assert(route.indexOf("if (!account)")>=0 && route.indexOf("if (!account)")<route.indexOf("previewPublisher(getPool(),account.id"));
+assert(!route.includes("createJob("));
+const html=await readFile(new URL("../pages/integrations.html",import.meta.url),"utf8");
+const ui=await readFile(new URL("../assets/js/page-integrations.js",import.meta.url),"utf8");
+assert(html.includes('id="publisherPreviewForm"'));
+assert(html.includes("kein Rendering, kein Upload, keine Veröffentlichung"));
+assert(ui.includes('data.can_publish!==false||data.job_created!==false'));
+assert(ui.includes('ticket!==generation'));
+assert(ui.includes('CFS.json("/api/creator/media/"+folder)'));
+console.log("Publisher preview route and UI contract checked.");
