@@ -172,3 +172,79 @@ Ledger/Schema, aber nicht tatsächliche Backups, Wiederherstellbarkeit,
 Staging-Trennung, MFA-Login, Providerberechtigungen, Device-Bindung
 oder den Produktionsrollout. Kein Check darf diese externen Punkte
 implizit als erfüllt melden.
+
+
+## Optionaler Neon-Zielabgleich (DB-01, 28.11.2026)
+
+Der vorhandene Release-Preflight kann vor dem Verbindungsaufbau zusätzlich
+prüfen, ob seine lokale `DATABASE_URL` dem vom Betreiber unabhängig
+bestätigten Neon-Endpunkt und Datenbanknamen entspricht. Kein neuer
+öffentlicher Endpunkt, keine Änderung am laufenden Server, kein Deploy.
+
+In der autorisierten Laufzeitumgebung die bestehende DATABASE_URL sicher
+bereitstellen (niemals in Chat, GitHub oder Kommandohistorie kopieren).
+Aus dem Neon-Dashboard den **erwarteten** Host (direkt oder gepoolt, exakt
+wie ausgewählt) und Datenbanknamen unabhängig übernehmen. Zusätzlich
+`CONFIRM_RELEASE_PREFLIGHT_READ_ONLY=yes`,
+`CONFIRM_NEON_TARGET_READ_ONLY=yes`, `CFS_EXPECTED_NEON_HOST` und
+`CFS_EXPECTED_NEON_DATABASE` setzen. Danach wie bisher
+`npm run release:preflight`. Es wird eine ausdrücklich verlangte
+`sslmode=verify-full`-Policy vorausgesetzt. Die Prüfung verweigert
+abweichende Hosts, DB-Namen, unerwartete/mehrfache URL-Parameter,
+abweichende Ports und fehlende Einwilligung. Sie meldet lediglich
+neutrale Statuscodes, keine Hostnamen oder Zugangsdaten.
+
+Wichtig: `neon_target_configuration` beschreibt den Konfigurationsabgleich
+des aufrufenden Prozesses, nicht den Beweis einer produktiven Umschaltung
+oder eines verifizierten TLS-Handshakes. Die TLS-Policy des App-Treibers (`src/db.js`) wurde in diesem Entwurf
+selektiv aus dem bereits auf Render bereitgestellten Produktionsstand
+übernommen: Zertifikatsprüfung ist Standard, URL-Parameter können die
+TLS-Policy nicht überschreiben, unverschlüsselte Verbindungen bleiben auf
+lokale Nicht-Produktionsumgebungen beschränkt. Ein realer Handshake und
+Laufzeitnachweis sind weiterhin separate Abnahmeschritte. Ein
+erfolgreicher Check in einem lokalen Shell-Prozess beweist nicht die
+Render-Laufzeitidentität. Die bisherige explizite READ-ONLY-Transaktion
+und alle Schema-/Ledger-/Release-Gates bleiben unverändert. Ohne
+Neon-Opt-in funktioniert der bisherige Preflight unverändert.
+
+### Neuer Neon-Katalogbefund (28.11.2026)
+
+- Neon production: Ledger fehlt, MFA-Schema 022–025 nicht vollständig.
+  Separates Staging enthält die entsprechenden Spalten und Tabellen.
+- Neon-Schemavergleich production zu snapshot-restore-validation und
+  clean-migration-validation meldete Unterschiede bei den ACLs der
+  Backup-Leserolle; keine weiteren DDL-Unterschiede in diesen Diffs.
+  Production zu staging zeigt MFA/Ledger-Erweiterungen **und** ACL-Drift.
+- Backup-Wiederherstellungsdatenbank vom 26.11. war zuvor lesbar;
+  daraus keine vollständige Daten-/Berechtigungsgleichheit ableiten.
+- Vor produktivem Eingriff: ACL-/Rollen-Soll prüfen, vollständigen
+  isolierten Restore und Migrations-/Rollback-Test dokumentieren,
+  tatsächliche Laufzeitidentität und TLS nachweisen. Bestehende
+  026-Entwürfe in PR #50 und #103 kollidieren bei der Nummerierung;
+  die Migrationen nicht blind kombinieren. Kein produktives SQL ausgeführt.
+
+### Render-Betriebsabgleich (28.11.2026)
+
+- Produktion `CFS-TikTok-Backend`: aktiver Deploy vom 27.11.2026,
+  20:13 UTC, Commit `6f51092` auf
+  `security/production-neon-tls-20261125`.
+  Startprotokoll meldet erfolgreiche Migrationen 001–021; kein
+  Nachweis der tatsächlich verwendeten Datenbankidentität.
+- Staging `cfs-zockt-staging`: aktiver Deploy vom 26.11.2026,
+  16:28 UTC, Commit `ea54afe` auf
+  `security/staging-neon-tls-20261125`.
+  Startprotokoll meldet übersprungene, bereits bekannte Migrationen 001–025.
+- Auto-Deploy ist bei beiden Diensten deaktiviert. Branches sind
+  gegenüber main divergiert (Produktion 17 voraus/136 zurück,
+  Staging 12 voraus/42 zurück bei der Prüfung). Nicht blind mergen
+  oder auf main umschalten.
+- Selektive Übernahme: `src/db.js` und
+  `scripts/db-tls.test.js` aus dem aktiven Produktionscommit
+  `6f51092`; bestehender Release-Test startet die pg-Client-TLS-Tests.
+  Keine Änderungen an Migrationen, Package-Skripten, laufenden Diensten,
+  Umgebungsvariablen oder Datenbanken. Neue CI erforderlich.
+- Die öffentliche Health-/Ready-Abfrage war von der Prüfungsumgebung aus
+  nicht möglich. Render-Deploymentstatus und Startprotokoll beweisen
+  weder vollständige Feature-Abnahme noch den Datenbank-Host oder
+  die aktuelle Wartungseinstellung. Die tatsächliche Neon-Zuordnung
+  bleibt bis zu einem redigierten Laufzeitnachweis offen.
