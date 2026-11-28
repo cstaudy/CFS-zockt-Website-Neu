@@ -9,7 +9,7 @@ const checks = [
   {name:"Launcher Release Policy",url:"/api/creator/launcher/releases?channel=stable",type:"launcher",group:"Stream & OBS"},
   {name:"Integrations-Verträge",url:"/api/creator/integration-capabilities",type:"integrations",group:"Integrationen"},
   {name:"Twitch Runtime",url:"/api/creator/twitch/status",type:"twitch",group:"Integrationen"},
-  {name:"TikTok Status",url:"/api/tiktok/status",type:"json",group:"Integrationen"}
+  {name:"TikTok Status",url:"/api/creator/tiktok/status",type:"twitch",group:"Integrationen"}
 ];
 
 const results=[];
@@ -51,12 +51,12 @@ async function testCheck(check,index){
     if(response.status===403)return setResult(index,"warn","PLAN / RECHTE",data?.error||"Für diesen Account nicht freigeschaltet.");
     if(check.type==="launcher"){
       if(!response.ok||!data)return setResult(index,"bad",`HTTP ${response.status}`,"Launcher-Policy konnte nicht gelesen werden.");
-      const target=String(data.policy?.build_target_version||"");const ok=!target||target===EXPECTED.launcher;
+      const target=String(data.policy?.build_target_version||data.build_target_version||"");const ok=Boolean(target&&target===EXPECTED.launcher&&data.release);
       return setResult(index,ok?"ok":"warn",ok?"POLICY OK":"TARGET DRIFT",`Launcher-Ziel ${target||"?"} · erwartet ${EXPECTED.launcher}`);
     }
     if(check.type==="release"){
       if(!data)return setResult(index,"bad","KEIN JSON","Release-Readiness antwortet nicht mit JSON.");
-      const ready=data.release?.local_ready===true||data.ok===true;
+      const ready=response.ok&&data.release?.local_ready===true;
       return setResult(index,ready?"ok":"warn",ready?"LOCAL READY":"LOCAL OFFEN",`Code-/DB-/Security-Readiness: ${ready?"bestätigt":"noch nicht vollständig"}.`);
     }
     if(check.type==="integrations"){
@@ -66,9 +66,11 @@ async function testCheck(check,index){
     }
     if(check.type==="twitch"){
       if(!response.ok||!data)return setResult(index,"bad",`HTTP ${response.status}`,data?.error||"Twitch Runtime nicht verfügbar.");
-      return setResult(index,"ok",data.connected?"VERBUNDEN":"RUNTIME OK",data.connected?"Twitch Account verbunden.":"Runtime-Endpunkt erreichbar; echter Provider-Login bleibt Acceptance.");
+      return setResult(index,"warn",data.connected?"GESPEICHERT":"NICHT VERBUNDEN","Endpunkt erreichbar; Token- und Provider-Abnahme offen.");
     }
     if(!response.ok)return setResult(index,"bad",`HTTP ${response.status}`,data?.error||`${check.url} antwortet mit Fehler.`);
+    if(check.type==="protected"&&data?.ready!==true)return setResult(index,"warn","ABNAHME OFFEN","API erreichbar; keine Funktionsfreigabe bestätigt.");
+    if(check.type==="account"&&data?.authenticated!==true)return setResult(index,"warn","LOGIN NÖTIG","Keine bestätigte Sitzung.");
     return setResult(index,"ok","API OK",`${check.url} erreichbar.`);
   }catch(error){return setResult(index,"bad",error?.name==="AbortError"?"TIMEOUT":"FEHLER",error?.name==="AbortError"?"Keine Antwort innerhalb von 10 Sekunden.":String(error?.message||error))}
 }
